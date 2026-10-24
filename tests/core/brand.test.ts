@@ -10,7 +10,7 @@ describe("botName", () => {
 		const discord: { username?: string } = {};
 		nameBot(() => discord.username);
 
-		expect(botName()).toBe("Testify");
+		expect(botName()).toBe("Zangetsu");
 		discord.username = "helper-app";
 		expect(botName()).toBe("helper-app");
 	});
