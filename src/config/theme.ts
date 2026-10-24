@@ -3,9 +3,11 @@ import { CATEGORIES, type Category } from "@config/categories";
 
 /** Colours, emoji and branding. */
 export const theme = {
-	author: "Kkermit",
-	repository: "https://github.com/Kkkermit/Testify",
-	supportServer: "https://discord.gg/xcMVwAVjSD",
+	author: "Zangetsu",
+	repository: "https://github.com/MewtwoOP1/Zangetsu",
+	/** Configure this once the Zangetsu Discord invite URL is available. */
+	supportServer: "",
+	logoUrl: "https://cdn.discordapp.com/icons/1514592000429654196/c07572fcdd3987826f09fdcd490e9b65.webp?size=2048",
 
 	/** The only place a colour is written. Everything else names one of these. */
 	colours: {
