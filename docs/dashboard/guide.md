@@ -66,7 +66,7 @@ changed screen is proved.
 
 ## 1. What it is, and what it is not
 
-A web dashboard for configuring Testify, served **from inside the bot process**. That single fact explains most
+A web dashboard for configuring Zangetsu, served **from inside the bot process**. That single fact explains most
 of the architecture:
 
 - The API can read the live `discord.js` client cache, so a channel picker can grey out a channel the bot cannot
@@ -770,7 +770,7 @@ precisely the screen you want when something is wrong.
   the name is no longer readable from the cache and the record would say only that something was left.
 - **There is no "start the bot".** Pause is a flag `runChecks` honours; shut down really ends the process behind
   a typed confirmation.
-- **Testify never phones home.** The runtime tab reports its version and links the releases page; it does not
+- **Zangetsu never phones home.** The runtime tab reports its version and links the releases page; it does not
   check for a newer one.
 - **No chart library.** `UsageChart` is a `<span>` per day with a height, and the numbers behind it are a real
   `<table>` in an `sr-only` `<figcaption>`.
