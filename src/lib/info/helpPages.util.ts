@@ -66,7 +66,7 @@ export function helpHome(client: TestifyClient, surface: Surface, prefix: string
 			"",
 			"Pick a category from the menu below to browse.",
 		].join("\n"),
-		thumbnail: client.user?.displayAvatarURL(),
+		thumbnail: theme.logoUrl,
 		fields: [
 			{
 				name: "📊 Commands",
