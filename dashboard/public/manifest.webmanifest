@@ -4,7 +4,20 @@
 	"background_color": "#07070b",
 	"theme_color": "#07070b",
 	"icons": [
-		{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-		{ "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
-	]
+		{
+			"src": "https://cdn.discordapp.com/icons/1514592000429654196/c07572fcdd3987826f09fdcd490e9b65.webp?size=192",
+			"sizes": "192x192",
+			"type": "image/webp",
+			"purpose": "any"
+		},
+		{
+			"src": "https://cdn.discordapp.com/icons/1514592000429654196/c07572fcdd3987826f09fdcd490e9b65.webp?size=512",
+			"sizes": "512x512",
+			"type": "image/webp",
+			"purpose": "any"
+		}
+	],
+	"name": "Zangetsu Dashboard",
+	"short_name": "Zangetsu",
+	"description": "Server management dashboard for the Zangetsu Discord bot."
 }
