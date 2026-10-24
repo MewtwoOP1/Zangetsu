@@ -37,9 +37,42 @@ export default defineEvent({
 				return;
 			}
 
+			// /play can spend several seconds in database-backed checks before yt-dlp even starts.
+			// Acknowledge only this slow command up front; other commands and private subcommands keep their existing flow.
+			if (command.name === "play") {
+				try {
+					await interaction.deferReply();
+				} catch (error) {
+					const ageMs = Date.now() - interaction.createdTimestamp;
+					if (error instanceof DiscordAPIError && error.code === RESTJSONErrorCodes.UnknownInteraction) {
+						client.logger.trace({ command: command.name, ageMs }, "Play interaction expired before acknowledgement");
+					} else {
+						client.logger.warn(
+							{ err: toError(error), command: command.name, ageMs },
+							"Could not acknowledge play interaction; skipping work",
+						);
+					}
+					return;
+				}
+			}
+
 			const refusal = await runChecks(interaction, command, client);
 			if (refusal !== null) {
-				await interaction.reply({ embeds: [refusalEmbed(refusal)], flags: MessageFlags.Ephemeral });
+				const refusalMessage = { embeds: [refusalEmbed(refusal)], flags: MessageFlags.Ephemeral } as const;
+
+				if (interaction.deferred || interaction.replied) {
+					// /play has a public deferred reply; remove its placeholder and keep refusals private.
+					if (interaction.deferred && interaction.ephemeral !== true) {
+						try {
+							await interaction.deleteReply();
+						} catch (error) {
+							client.logger.debug({ err: toError(error), command: command.name }, "Could not remove deferred refusal placeholder");
+						}
+					}
+					await interaction.followUp(refusalMessage);
+				} else {
+					await interaction.reply(refusalMessage);
+				}
 				return;
 			}
 
