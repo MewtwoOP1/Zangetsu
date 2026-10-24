@@ -230,7 +230,7 @@ fix: Stopped losing XP when two messages arrive together
 ## 🐛 Reporting a bug or asking for a feature
 
 Open an issue from the [templates](https://github.com/MewtwoOP1/Zangetsu/issues/new/choose) — they ask for what is
-needed to act on it. For setup help, the [support server](https://discord.gg/xcMVwAVjSD) is quicker.
+needed to act on it. For setup help, open an issue in the [Zangetsu repository](https://github.com/MewtwoOP1/Zangetsu/issues) and include logs with tokens and database credentials removed.
 
 > [!WARNING]
 > **Never report a security problem in a public issue.** See [`security.md`](security.md) for the private route.
