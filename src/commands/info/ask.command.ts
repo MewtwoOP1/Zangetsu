@@ -63,7 +63,7 @@ export default defineCommand({
 				bot: help.bot,
 				ownerId: interaction.user.id,
 				dashboard: dashboardUrl(client.env),
-				supportServer: theme.supportServer,
+				supportServer: theme.supportServer || null,
 			}),
 		);
 	},
