@@ -1,18 +1,18 @@
 {
-	"name": "testify",
+	"name": "zangetsu",
 	"version": "2.0.6",
-	"description": "Open source, multipurpose Discord bot written in TypeScript",
+	"description": "Customizable multipurpose Discord bot for the Zangetsu community, built with TypeScript",
 	"main": "dist/index.js",
 	"license": "SEE LICENSE IN LICENSE",
-	"author": "Kkermit",
+	"author": "MewtwoOP1",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/Kkkermit/Testify.git"
+		"url": "git+https://github.com/MewtwoOP1/Zangetsu.git"
 	},
 	"bugs": {
-		"url": "https://github.com/Kkkermit/Testify/issues"
+		"url": "https://github.com/MewtwoOP1/Zangetsu/issues"
 	},
-	"homepage": "https://github.com/Kkkermit/Testify#readme",
+	"homepage": "https://github.com/MewtwoOP1/Zangetsu#readme",
 	"keywords": [
 		"discord",
 		"discord-bot",
