@@ -2473,7 +2473,7 @@ thing to read over someone's shoulder than a terminal, so any context key matchi
 is stored — not before it is served. A restart clears the buffer, which is the trade for something that needs
 no collection, no retention policy and cannot fill a disk.
 
-**Testify never phones home.** The runtime tab reports the version it is running and links the releases page; it
+**Zangetsu never phones home.** The runtime tab reports the version it is running and links the releases page; it
 does not check for a newer one. A self-hosted bot that contacts a server on a timer is not something to ship by
 default, and the tab says so in as many words.
 
@@ -2532,7 +2532,7 @@ that decides "slow" lives in `STATUS_LIMITS` in `shared/src/status.ts`. Seven th
   is itself the outage, and the page says so rather than showing an error.
 - **Outside services are recorded, never probed.** `fetchRaw` records every call it makes, `watchDiscordApi`
   listens to discord.js's own REST responses, and yt-dlp's requests are recorded against YouTube or SoundCloud.
-  Nothing is contacted just to check, which keeps "Testify never phones home" true. A 4xx, or a video that is
+  Nothing is contacted just to check, which keeps "Zangetsu never phones home" true. A 4xx, or a video that is
   private or removed, is the service answering, so it does not count against it.
 - **Core and peripheral are different.** The gateway, the database, the event loop, memory and the Discord API
   can make the bot "down". A joke API or slow commands can only make it "degraded", because they cost features,
