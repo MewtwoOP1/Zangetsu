@@ -1,6 +1,6 @@
 <div align="center">
 
-# 📚 Testify documentation
+# 📚 Zangetsu documentation
 
 **Everything written down about this project, in one place. Start with whichever row describes you.**
 
