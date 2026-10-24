@@ -22,15 +22,13 @@
 > **Please do not open a public issue for a security problem.** A public report is a public exploit until it is
 > fixed.
 
-Report it through GitHub's **[private vulnerability reporting](https://github.com/Kkkermit/Testify/security/advisories/new)**
-on this repository, or to the maintainer directly on [Discord](https://discord.gg/xcMVwAVjSD). Include:
+If [private vulnerability reporting](https://github.com/MewtwoOP1/Zangetsu/security/advisories/new) is enabled for this repository, use it. If that page is unavailable, contact the repository maintainer through a private channel. Do not post security details in public issues or discussions. Include:
 
 1. **What you found** — the component, route or command.
 2. **How to reproduce it** — the smallest steps that show it.
 3. **What an attacker could do with it** — read, change, escalate, or take down.
 
-You can expect a first response within a few days. Fixes land on `develop` and ship to `main` in the next release —
-sooner, in a release of their own, when the problem is serious.
+Response and remediation timelines are not guaranteed; the maintainer should acknowledge the report and coordinate a safe fix before public disclosure.
 
 ## 🗓️ Supported versions
 
