@@ -3,7 +3,7 @@ import { CATEGORIES, type Category } from "@config/categories";
 
 /** Colours, emoji and branding. */
 export const theme = {
-	author: "Zangetsu",
+	author: "MewtwoOP1",
 	repository: "https://github.com/MewtwoOP1/Zangetsu",
 	/** Configure this once the Zangetsu Discord invite URL is available. */
 	supportServer: "",
