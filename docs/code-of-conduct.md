@@ -5,7 +5,7 @@
 **The standard everybody here is held to — short on purpose, and not a legal document.**
 
 [![Based on the Contributor Covenant](https://img.shields.io/badge/based_on-Contributor_Covenant-5E0D73?style=for-the-badge)](https://www.contributor-covenant.org/)
-[![Report privately](https://img.shields.io/badge/report-privately-dc2626?style=for-the-badge&logo=github)](https://github.com/MewtwoOP1/Zangetsu/security/advisories/new)
+[![Security reporting](https://img.shields.io/badge/security-reporting-dc2626?style=for-the-badge&logo=github)](https://github.com/MewtwoOP1/Zangetsu/security/advisories/new)
 
 </div>
 
