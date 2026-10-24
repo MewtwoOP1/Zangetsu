@@ -77,6 +77,12 @@ describe("supportScreen", () => {
 		]);
 	});
 
+	it("omits the support button while the server invite is not configured", () => {
+		const screen = supportScreen({ answer, related: [] }, OPTIONS);
+
+		expect(buttonsOf(screen).map((button) => button.url)).toEqual([]);
+	});
+
 	it("says what it can help with when nothing matched", () => {
 		const text = textOf(supportScreen({ answer: null, related: [] }, { ...OPTIONS, bot: "Helper" }));
 
