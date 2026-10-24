@@ -1,8 +1,10 @@
 import { Collection } from "discord.js";
+import { theme } from "@config/theme";
 import { parseCustomId } from "@core/button";
 import { type TestifyClient } from "@core/client";
 import { defineCommand } from "@core/command";
 import {
+	helpLinks,
 	categoryControls,
 	categoryPage,
 	commandPage,
@@ -28,6 +30,14 @@ function clientWith(count: number, category: "fun" | "owner" = "fun"): TestifyCl
 
 	return createMockClient({ commands });
 }
+
+describe("help links", () => {
+	it("shows source code without linking to an unconfigured support server", () => {
+		const components = helpLinks().toJSON().components;
+		expect(components).toHaveLength(1);
+		expect(components[0]?.url).toBe(theme.repository);
+	});
+});
 
 describe("which commands help shows", () => {
 	it("hides the owner category", () => {
