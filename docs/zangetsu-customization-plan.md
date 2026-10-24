@@ -57,3 +57,11 @@ These are candidates, not a promise to create duplicate commands; the existing c
 
 - The supplied server icon is known. A Zangetsu Discord invite URL and preferred support channel IDs have not been supplied; use configuration and leave links unset rather than inventing them.
 - Keep the upstream license and attribution notice with the derivative project.
+
+## Current execution status
+
+The dedicated branch is `zangetsu/customization-dev`. The first rebrand pass now updates the project identity and logo configuration, embeds and help pages, bot-info copy, README/package metadata, dashboard title and web-app manifest, contributor/security/hosting documentation, issue templates, code of conduct, and support-test fixtures. The original `LICENSE` and upstream notice are retained.
+
+The support-server URL remains unset because a Zangetsu Discord invite URL has not been provided. Help and support surfaces omit the invite button until it is configured.
+
+**Verification is pending.** The baseline and changed code have not been tested in this session, so no tests are claimed to pass. Before merging, run the full acceptance suite above and inspect CI results. The baseline gap should be recorded rather than inferred from existing upstream history.
