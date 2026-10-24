@@ -29,9 +29,8 @@ export default defineCommand({
 		const channel = voiceChannelOf(asMember(interaction));
 		const query = requestedQuery(interaction.options.getString("query", true));
 
-		// Resolving spawns yt-dlp and can take seconds, which is well past Discord's reply window.
-		await interaction.deferReply();
-
+		// The slash-command dispatcher acknowledges /play before database-backed checks.
+		// Prefix invocations do not have Discord's three-second interaction deadline.
 		const { session, note } = await queueRequest({
 			guild,
 			client,
