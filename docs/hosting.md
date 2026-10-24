@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🐳 Running Testify in Docker
+# 🐳 Running Zangetsu in Docker
 
 **The bot and a MongoDB, brought up together with one command — the same on Linux, macOS and Windows.**
 
