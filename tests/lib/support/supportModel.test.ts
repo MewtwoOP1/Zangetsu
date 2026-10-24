@@ -58,7 +58,7 @@ describe("pickSchema", () => {
 
 describe("systemPrompt", () => {
 	it("lists every article by id and title", () => {
-		const prompt = systemPrompt(ENTRIES, "Testify");
+		const prompt = systemPrompt(ENTRIES, "Zangetsu");
 
 		expect(prompt).toContain("- add-the-bot: Adding {bot} (add)");
 		expect(prompt).toContain("- levelling: Levelling (xp)");
@@ -115,7 +115,7 @@ describe("createClaudePicker", () => {
 			apiKey: "k",
 			model: "claude-opus-5",
 			entries: ENTRIES,
-			bot: "Testify",
+			bot: "Zangetsu",
 			client,
 		});
 
@@ -146,7 +146,7 @@ describe("createClaudePicker", () => {
 	/** The fallback and effort settings belong to the default model; another one gets a request it will accept. */
 	it("sends a plain request to a model the owner chose", async () => {
 		const { client, create } = fakeClient(Promise.resolve(message('{"article":"none"}')));
-		await createClaudePicker({ apiKey: "k", model: "claude-sonnet-5", entries: ENTRIES, bot: "Testify", client }).pick(
+		await createClaudePicker({ apiKey: "k", model: "claude-sonnet-5", entries: ENTRIES, bot: "Zangetsu", client }).pick(
 			"what",
 		);
 
@@ -162,7 +162,7 @@ describe("createClaudePicker", () => {
 			apiKey: "k",
 			model: "claude-opus-5",
 			entries: ENTRIES,
-			bot: "Testify",
+			bot: "Zangetsu",
 			client,
 		});
 
