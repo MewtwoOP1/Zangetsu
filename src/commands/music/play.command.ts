@@ -29,8 +29,9 @@ export default defineCommand({
 		const channel = voiceChannelOf(asMember(interaction));
 		const query = requestedQuery(interaction.options.getString("query", true));
 
-		// The slash-command dispatcher acknowledges /play before database-backed checks.
-		// Prefix invocations do not have Discord's three-second interaction deadline.
+		// Slash /play is already deferred by the dispatcher; prefix commands still show the typing indicator.
+		if (!interaction.deferred) await interaction.deferReply();
+
 		const { session, note } = await queueRequest({
 			guild,
 			client,
