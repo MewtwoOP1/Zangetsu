@@ -1,4 +1,4 @@
-# AGENTS.md — working on Testify
+# AGENTS.md — working on Zangetsu (derived from Testify)
 
 Everything needed to work on this repo: how the bot is built, how to run and test it, the conventions, and the
 rules that have been agreed over time. Read this first. It is written so that anyone — a person or a coding agent —
@@ -44,10 +44,12 @@ here, so every agent reads the same rules.
 
 ---
 
+> [!IMPORTANT]
+> This repository is the Zangetsu derivative, not the upstream Testify repository. Use `MewtwoOP1/Zangetsu` for all changes. The customization work belongs on `zangetsu/customization-dev`; do not push Zangetsu changes to `main` until reviewed. The upstream `develop`-branch convention does not apply unless this repository explicitly adds that branch.
+
 ## 1. What this project is
 
-**Testify v2** — a multi-purpose Discord bot, written as a full TypeScript rewrite of the original JavaScript
-bot. discord.js v14, MongoDB via Mongoose, Node ≥ 24.11.
+**Zangetsu** — a customized derivative of Testify v2, a multipurpose Discord bot built with TypeScript, discord.js v14, MongoDB via Mongoose, and Node ≥ 24.11. Retain the upstream license and attribution notices; use the Zangetsu configuration and branch workflow for new work.
 
 The defining architectural decision: **one command object serves both the slash and the prefix surface.** The
 original had two near-duplicate implementations of every command; here a command is written once against the
