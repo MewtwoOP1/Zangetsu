@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🖥️ The Testify dashboard
+# 🖥️ The Zangetsu dashboard
 
 **How the web dashboard is put together, how a screen gets built, and how it is proved.**
 
