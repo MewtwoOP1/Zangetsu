@@ -21,7 +21,7 @@ This plan applies only to the `MewtwoOP1/Zangetsu` repository and the `zangetsu/
 
 | Path | Planned work |
 | --- | --- |
-| `src/config/theme.ts` | Change user-facing author/repository links to Zangetsu; add the supplied logo URL as the single source for brand imagery; keep colours centralized. Do not invent a Discord invite URL. |
+| `src/config/theme.ts` | Set the displayed developer credit to `MewtwoOP1`, point repository links to Zangetsu, and use the supplied logo URL as the single source for brand imagery; keep colours centralized. Do not invent a Discord invite URL. |
 | `src/lib/discord/embeds.util.ts` | Use the Zangetsu logo as the default embed footer icon while preserving explicit per-embed overrides and Discord embed limits. Add/update unit tests. |
 | `src/config/categories.ts` | Keep existing categories compatible. Add a category only when a real new command group needs it; preserve unique, readable colours and hidden owner-only categories. |
 | `src/core/command.ts`, `src/core/prefix.ts`, `src/core/checks.ts` | Keep the shared command contract and shared authorization checks. Do not fork slash and prefix implementations or bypass permission/owner gates. |
