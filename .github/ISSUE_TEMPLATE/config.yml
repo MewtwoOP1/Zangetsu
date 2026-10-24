@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Security vulnerability
-    url: https://github.com/Kkkermit/Testify/security/advisories/new
+    url: https://github.com/MewtwoOP1/Zangetsu/security/advisories/new
     about: Report privately rather than opening an issue.
-  - name: Support server
-    url: https://discord.gg/xcMVwAVjSD
-    about: Setup help and general questions.
+  - name: Setup help and general questions
+    url: https://github.com/MewtwoOP1/Zangetsu/issues
+    about: Ask for setup help; redact secrets and connection strings from logs.
