@@ -22,7 +22,7 @@ export const FAKE = {
 	githubToken: ["ghp", "abcdefghijklmnopqrstuvwxyz0123"].join("_"),
 	privateKey: ["-----BEGIN RSA", "PRIVATE KEY-----"].join(" "),
 	databasePassword: ["hunter2", "hunter2"].join(""),
-	mongoUri: ["mongodb+srv://testify", `${["hunter2", "hunter2"].join("")}@cluster0.example.mongodb.net/testify`].join(
+	mongoUri: ["mongodb+srv://zangetsu", `${["hunter2", "hunter2"].join("")}@cluster0.example.mongodb.net/zangetsu`].join(
 		":",
 	),
 };
