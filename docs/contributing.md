@@ -4,8 +4,8 @@
 
 **Issues and pull requests are both welcome — including from first-timers.**
 
-[![PRs welcome](https://img.shields.io/badge/PRs-welcome-8b5cf6?style=for-the-badge&logo=github)](https://github.com/Kkkermit/Testify/pulls)
-[![Target branch: develop](https://img.shields.io/badge/target_branch-develop-0ea5e9?style=for-the-badge&logo=git&logoColor=white)](https://github.com/Kkkermit/Testify/tree/develop)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-8b5cf6?style=for-the-badge&logo=github)](https://github.com/MewtwoOP1/Zangetsu/pulls)
+[![Integration branch: customization-dev](https://img.shields.io/badge/branch-zangetsu%2Fcustomization--dev-0ea5e9?style=for-the-badge&logo=git&logoColor=white)](https://github.com/MewtwoOP1/Zangetsu/tree/zangetsu/customization-dev)
 [![Code style: Prettier](https://img.shields.io/badge/code_style-prettier-F7B93E?style=for-the-badge&logo=prettier&logoColor=black)](../.prettierrc)
 [![Commits: commitlint](https://img.shields.io/badge/commits-commitlint-000000?style=for-the-badge&logo=commitlint&logoColor=white)](../commitlint.config.mjs)
 
@@ -34,35 +34,23 @@ through building is not live everywhere.
 
 ## 🌿 Branches and releases
 
-`main` is the released code — what is deployed to the bot — and it is protected. `develop` is where work is
-merged. Every few days a release pull request from `develop` into `main` ships what has gathered there.
+This repository currently uses `main` as its starting snapshot and keeps active Zangetsu customization work on `zangetsu/customization-dev`. Do not push changes directly to `main`.
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="images/diagrams/release-flow-dark.png">
-    <img alt="Work branches off develop as testify/feature-01 and testify/bugfix-01, merges back into develop, and develop merges into main as the next release" src="images/diagrams/release-flow-light.png" width="520">
-  </picture>
-</p>
+Keep the ongoing rebrand and feature work on `zangetsu/customization-dev`. For an isolated task, create a branch from that integration branch named `zangetsu/<type>-<nn>`:
 
-Cut every piece of work from the latest `develop`, named `testify/<type>-<nn>`:
-
-| Type      | For                                       | Example              |
-| --------- | ----------------------------------------- | -------------------- |
-| `feature` | A new feature, or a change to one         | `testify/feature-01` |
-| `bugfix`  | A bug fix                                 | `testify/bugfix-01`  |
-| `chore`   | Dependencies, CI, tooling and maintenance | `testify/chore-01`   |
-| `docs`    | Documentation only                        | `testify/docs-01`    |
-
-The number counts up per type — one past the highest used so far, counting merged pull requests as well as the
-branches still on the remote. A merged branch is never reused; follow-up work takes the next number.
+| Type      | For                                       | Example                   |
+| --------- | ----------------------------------------- | ------------------------- |
+| `feature` | A new feature, or a change to one         | `zangetsu/feature-01`    |
+| `bugfix`  | A bug fix                                 | `zangetsu/bugfix-01`     |
+| `chore`   | Dependencies, CI, tooling and maintenance | `zangetsu/chore-01`      |
+| `docs`    | Documentation only                        | `zangetsu/docs-01`       |
 
 ```bash
-git fetch origin develop
-git checkout -b testify/feature-02 origin/develop
+git fetch origin
+git checkout -b zangetsu/feature-01 origin/zangetsu/customization-dev
 ```
 
-> [!IMPORTANT]
-> **Open pull requests against `develop`, never `main`.** Only the release pull request goes into `main`.
+When a small isolated task is ready, its pull request should target `zangetsu/customization-dev`. Once the overall Zangetsu work has been reviewed and verified, the integration branch can be submitted for a single pull request into `main`. The upstream Testify `develop` convention does not apply unless this repository adds that branch deliberately.
 
 ## ✅ Before you open a pull request
 
@@ -241,7 +229,7 @@ fix: Stopped losing XP when two messages arrive together
 
 ## 🐛 Reporting a bug or asking for a feature
 
-Open an issue from the [templates](https://github.com/Kkkermit/Testify/issues/new/choose) — they ask for what is
+Open an issue from the [templates](https://github.com/MewtwoOP1/Zangetsu/issues/new/choose) — they ask for what is
 needed to act on it. For setup help, the [support server](https://discord.gg/xcMVwAVjSD) is quicker.
 
 > [!WARNING]
