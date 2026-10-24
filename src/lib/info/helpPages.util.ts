@@ -238,6 +238,7 @@ export function categoryControls(
 
 /** Links, shown under the front page. */
 export function helpLinks() {
+	if (!theme.supportServer) return row(linkButton("Source code", theme.repository));
 	return row(linkButton("Support server", theme.supportServer), linkButton("Source code", theme.repository));
 }
 
