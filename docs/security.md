@@ -2,9 +2,9 @@
 
 # 🔒 Security policy
 
-**How to report a vulnerability, and how Testify handles what it is trusted with.**
+**How to report a vulnerability, and how Zangetsu handles what it is trusted with.**
 
-[![Report a vulnerability](https://img.shields.io/badge/report-privately-dc2626?style=for-the-badge&logo=github)](https://github.com/Kkkermit/Testify/security/advisories/new)
+[![Report a vulnerability](https://img.shields.io/badge/report-privately-dc2626?style=for-the-badge&logo=github)](https://github.com/MewtwoOP1/Zangetsu/security/advisories/new)
 [![Supported: 2.x](https://img.shields.io/badge/supported-2.x-16a34a?style=for-the-badge)](#️-supported-versions)
 [![npm audit: high](https://img.shields.io/badge/npm_audit-high-cb3837?style=for-the-badge&logo=npm&logoColor=white)](#-dependency-scanning)
 [![Snyk: nightly](https://img.shields.io/badge/Snyk-nightly-4C4A73?style=for-the-badge&logo=snyk&logoColor=white)](../.github/workflows/nightly.yml)
