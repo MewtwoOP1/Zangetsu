@@ -1,7 +1,7 @@
 import { DiscordAPIError, Events, type Interaction, MessageFlags, RESTJSONErrorCodes } from "discord.js";
 import { parseCustomId } from "@core/button";
 import { runChecks } from "@core/checks";
-import { runButton, runCommand, toError } from "@core/errors";
+import { runButton, runCommand, tell, toError } from "@core/errors";
 import { defineEvent } from "@core/event";
 import { countCommandUse, logCommandUse, recordCommandTime } from "@lib/bot";
 import { errorEmbed, refusalEmbed } from "@lib/discord";
@@ -56,7 +56,18 @@ export default defineEvent({
 				}
 			}
 
-			const refusal = await runChecks(interaction, command, client);
+			let refusal: Awaited<ReturnType<typeof runChecks>>;
+			try {
+				refusal = await runChecks(interaction, command, client);
+			} catch (error) {
+				// Do not strand /play's public deferred reply if a database check fails.
+				if (command.name !== "play") throw error;
+
+				client.logger.error({ err: toError(error), command: command.name }, "Play command checks failed");
+				await tell(interaction, errorEmbed("I could not verify whether music can be played right now. Please try again."));
+				return;
+			}
+
 			if (refusal !== null) {
 				const refusalMessage = { embeds: [refusalEmbed(refusal)], flags: MessageFlags.Ephemeral } as const;
 
