@@ -4,7 +4,7 @@ import { choiceName, discordMarkdown, suggestionName, supportScreen } from "@lib
 import { buttonsOf, idsOf, textOf } from "@tests/helpers/containers";
 
 const OWNER = "100000000000000001";
-const OPTIONS = { bot: "Testify", ownerId: OWNER, dashboard: null, supportServer: null };
+const OPTIONS = { bot: "Zangetsu", ownerId: OWNER, dashboard: null, supportServer: null };
 
 describe("discordMarkdown", () => {
 	it("turns a dashboard path into a full link when the dashboard is on", () => {
@@ -18,8 +18,8 @@ describe("discordMarkdown", () => {
 	});
 
 	it("keeps an allowed outside link and drops one that is not allowed", () => {
-		expect(discordMarkdown("[source](https://github.com/Kkkermit/Testify)", null)).toBe(
-			"[source](https://github.com/Kkkermit/Testify)",
+		expect(discordMarkdown("[source](https://github.com/MewtwoOP1/Zangetsu)", null)).toBe(
+			"[source](https://github.com/MewtwoOP1/Zangetsu)",
 		);
 		expect(discordMarkdown("[prize](https://evil.example/)", null)).toBe("prize");
 	});
@@ -42,7 +42,7 @@ describe("choice names", () => {
 describe("supportScreen", () => {
 	const answer = {
 		id: "add-the-bot",
-		title: "Adding Testify",
+		title: "Adding Zangetsu",
 		topic: "getting-started" as const,
 		body: "Open [your servers](/guilds).",
 	};
@@ -53,7 +53,7 @@ describe("supportScreen", () => {
 
 		expect(screen.flags).toBe(MessageFlags.IsComponentsV2);
 		expect(textOf(screen)).toContain("Getting started");
-		expect(textOf(screen)).toContain("## Adding Testify");
+		expect(textOf(screen)).toContain("## Adding Zangetsu");
 		expect(textOf(screen)).toContain("Open your servers.");
 	});
 
