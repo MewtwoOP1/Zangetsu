@@ -5,7 +5,7 @@ import { secretsOf } from "@lib/support/supportGuard.util";
 import { SUPPORT_LIMITS } from "@testify/shared";
 import { FAKE_ENV, realEntries } from "@tests/helpers/support";
 
-const CONTEXT = { bot: "Testify", prefix: "t?", repository: "https://github.com/Kkkermit/Testify" };
+const CONTEXT = { bot: "Zangetsu", prefix: "t?", repository: "https://github.com/MewtwoOP1/Zangetsu" };
 const ENV = FAKE_ENV;
 const SECRETS = secretsOf(ENV);
 const ENTRIES = realEntries();
@@ -23,7 +23,7 @@ function desk(picker: SupportPicker | null = null, extra: Partial<ConstructorPar
 		picker,
 		secrets: SECRETS,
 		logger: quietLogger(),
-		ignore: ["testify"],
+		ignore: ["zangetsu"],
 		...extra,
 	});
 }
@@ -68,7 +68,7 @@ describe("SupportDesk, answering by search", () => {
 
 		expect(catalogue.length).toBe(ENTRIES.length);
 		expect(catalogue.find((entry) => entry.id === "add-the-bot")).toMatchObject({
-			title: "Adding Testify to your server",
+			title: "Adding Zangetsu to your server",
 			topic: "getting-started",
 			featured: true,
 		});
@@ -82,7 +82,7 @@ describe("SupportDesk, answering by search", () => {
 	});
 
 	it("opens an article by id, and nothing for an id it does not have", () => {
-		expect(desk().article("add-the-bot", CONTEXT)?.title).toBe("Adding Testify to your server");
+		expect(desk().article("add-the-bot", CONTEXT)?.title).toBe("Adding Zangetsu to your server");
 		expect(desk().article("nope", CONTEXT)).toBeNull();
 	});
 
