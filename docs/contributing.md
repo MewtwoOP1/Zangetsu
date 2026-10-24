@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🤝 Contributing to Testify
+# 🤝 Contributing to Zangetsu
 
 **Issues and pull requests are both welcome — including from first-timers.**
 
