@@ -5,7 +5,7 @@
 **The standard everybody here is held to — short on purpose, and not a legal document.**
 
 [![Based on the Contributor Covenant](https://img.shields.io/badge/based_on-Contributor_Covenant-5E0D73?style=for-the-badge)](https://www.contributor-covenant.org/)
-[![Report privately](https://img.shields.io/badge/report-privately-dc2626?style=for-the-badge&logo=github)](https://github.com/Kkkermit/Testify/security/advisories/new)
+[![Report privately](https://img.shields.io/badge/report-privately-dc2626?style=for-the-badge&logo=github)](https://github.com/MewtwoOP1/Zangetsu/security/advisories/new)
 
 </div>
 
@@ -40,16 +40,13 @@ anywhere somebody is representing the project.
 
 ## 🆘 If something goes wrong
 
-Report it to the maintainer, [@Kkkermit](https://github.com/Kkkermit), by opening a private security advisory on
-the repository or by direct message on [Discord](https://discord.gg/xcMVwAVjSD). Do not open a public issue
-about somebody's conduct.
+Report it privately to the Zangetsu repository maintainer through an available private contact channel. Do not open a public issue about somebody's conduct. If the repository's private reporting page is enabled, it is available at [GitHub security advisories](https://github.com/MewtwoOP1/Zangetsu/security/advisories/new); note that this feature is intended for security issues, not as a substitute for a private conduct report.
 
 A report will be read and answered. What happens next depends on what happened — usually a private word, and for
 anything serious or repeated, removal from the project's spaces. Whoever reports something is not obliged to
 justify why it bothered them.
 
-If the person you need to report is the maintainer, say so in the report to Discord; there is no better answer
-than that on a project this size, and pretending otherwise would be dishonest.
+If the person you need to report is the maintainer, use GitHub's own reporting tools or another server moderator, if one is available. Do not send the report to the person it concerns.
 
 ## 📜 Where this came from
 
