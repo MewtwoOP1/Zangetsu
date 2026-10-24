@@ -39,13 +39,15 @@ export function embed(options: EmbedOptions): EmbedBuilder {
 		});
 	}
 
+	const footerIcon = options.footerIcon ?? theme.logoUrl;
+
 	builder.setFooter({
 		// Discord rejects an empty footer, so a blank string falls back to the name.
 		text: truncate(
 			options.footer !== undefined && options.footer !== "" ? options.footer : botName(),
 			LIMITS.embedTitle,
 		),
-		...(options.footerIcon !== undefined ? { iconURL: options.footerIcon } : {}),
+		...(footerIcon !== "" ? { iconURL: footerIcon } : {}),
 	});
 
 	if (options.timestamp !== false) builder.setTimestamp();
