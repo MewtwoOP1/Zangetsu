@@ -96,6 +96,10 @@ describe("what the pages say", () => {
 		expect(JSON.stringify(helpHome(clientWith(3), "slash", "!"))).toContain("!");
 	});
 
+	it("uses the configured Zangetsu logo on the help home page", () => {
+		expect(helpHome(clientWith(3), "slash", "t?").data.thumbnail?.url).toBe(theme.logoUrl);
+	});
+
 	it("writes commands as slash or as prefix depending on the surface", () => {
 		const client = clientWith(1);
 
