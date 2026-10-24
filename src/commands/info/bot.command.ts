@@ -4,7 +4,8 @@ import { theme } from "@config/theme";
 import { botName } from "@core/brand";
 import { type TestifyClient } from "@core/client";
 import { defineCommand, type CommandInput } from "@core/command";
-import { embed, linkButton, reply, row } from "@lib/discord";
+import { embed, reply } from "@lib/discord";
+import { helpLinks } from "@lib/info/helpPages.util";
 import { discordTime, formatBytes, formatNumber, formatUptime } from "@lib/format";
 
 async function showUptime(interaction: CommandInput, client: TestifyClient): Promise<void> {
@@ -63,7 +64,7 @@ async function showInfo(interaction: CommandInput, client: TestifyClient): Promi
 			embed({
 				category: "info",
 				title: `About ${botName()}`,
-				description: "An open source, multipurpose Discord bot written in TypeScript.",
+				description: "A multipurpose Discord bot maintained for the Zangetsu community, built with TypeScript.",
 				fields: [
 					{ name: "Servers", value: formatNumber(client.guilds.cache.size), inline: true },
 					{ name: "Members", value: formatNumber(members), inline: true },
@@ -72,10 +73,10 @@ async function showInfo(interaction: CommandInput, client: TestifyClient): Promi
 					{ name: "Latency", value: `${Math.max(0, Math.round(client.ws.ping))}ms`, inline: true },
 					{ name: "Developer", value: theme.author, inline: true },
 				],
-				thumbnail: client.user?.displayAvatarURL(),
+				thumbnail: theme.logoUrl,
 			}),
 		],
-		components: [row(linkButton("Source code", theme.repository), linkButton("Support server", theme.supportServer))],
+		components: [helpLinks()],
 	});
 }
 
