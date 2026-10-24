@@ -19,6 +19,17 @@ describe("embed", () => {
 		expect(embed({ footer: "Page 1" }).data.footer?.text).toBe("Page 1");
 	});
 
+	it("uses the configured Zangetsu logo as the default footer icon", () => {
+		expect(embed({}).data.footer?.icon_url).toBe(theme.logoUrl);
+	});
+
+	it("allows a caller to override or suppress the default footer icon", () => {
+		expect(embed({ footerIcon: "https://example.com/custom.png" }).data.footer?.icon_url).toBe(
+			"https://example.com/custom.png",
+		);
+		expect(embed({ footerIcon: "" }).data.footer?.icon_url).toBeUndefined();
+	});
+
 	it("clamps a description Discord would reject", () => {
 		const built = embed({ description: "x".repeat(5_000) });
 		expect(built.data.description?.length).toBeLessThanOrEqual(4_096);
