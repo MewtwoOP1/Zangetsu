@@ -56,7 +56,7 @@ and games — plus an optional web dashboard. Every command works as <code>/ban<
 <details>
 <summary><strong>📑 Table of contents</strong></summary>
 
-- [✨ What's new in v2](#-whats-new-in-v2)
+- [✨ Inherited v2 architecture](#-inherited-v2-architecture)
 - [🧩 Features](#-features)
 - [📸 See it in Discord](#-see-it-in-discord)
 - [🏗️ How it fits together](#️-how-it-fits-together)
@@ -84,12 +84,11 @@ and games — plus an optional web dashboard. Every command works as <code>/ban<
 
 ---
 
-## ✨ What's new in v2
+## ✨ Inherited v2 architecture
 
-v2 is a **complete rewrite of the original JavaScript bot in TypeScript** — not a port with types bolted on.
-The whole thing was rebuilt around the problems the old codebase actually had.
+This repository starts from **Testify v2**, a TypeScript rewrite of its author's original JavaScript bot. The comparison below describes the inherited upstream architecture; it is not claiming that the Zangetsu fork created those changes.
 
-|                    | v1 (JavaScript)                                                                        | v2 (TypeScript)                                                              |
+| Area               | Testify v1 (JavaScript)                                                                  | Testify v2 (TypeScript)                                                       |
 | ------------------ | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
 | **Slash + prefix** | Two separate implementations of each command, kept in sync by hand                     | **One command serves both.** 46 duplicated pairs became one file each        |
 | **Types**          | None                                                                                   | `strict`, plus `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`   |
@@ -101,8 +100,7 @@ The whole thing was rebuilt around the problems the old codebase actually had.
 | **Setup**          | Manual, including patching a file inside `node_modules`                                | `npm run setup`, and you are running                                         |
 | **Web**            | None                                                                                   | An optional dashboard served from the bot itself                             |
 
-Everything the old bot did is still here, apart from the integrations that needed paid or personal API keys
-(Spotify, Valorant, Instagram and the AI commands).
+The inherited v2 base does not include some integrations that required paid or personal API keys (Spotify, Valorant, Instagram and AI integrations). Zangetsu-specific additions will be documented separately as they are implemented.
 
 ## 🧩 Features
 
