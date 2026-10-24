@@ -1,16 +1,12 @@
-<!--     ████████╗███████╗███████╗████████╗██╗███████╗██╗   ██╗
-         ╚══██╔══╝██╔════╝██╔════╝╚══██╔══╝██║██╔════╝╚██╗ ██╔╝
-            ██║   █████╗  ███████╗   ██║   ██║█████╗   ╚████╔╝
-            ██║   ██╔══╝  ╚════██║   ██║   ██║██╔══╝    ╚██╔╝
-            ██║   ███████╗███████║   ██║   ██║██║        ██║
-            ╚═╝   ╚══════╝╚══════╝   ╚═╝   ╚═╝╚═╝        ╚═╝    -->
-
-<img align="center" alt="Testify: the all-in-one Discord bot, shown with its web dashboard, music player and rank card" src="docs/banner.png">
-
 <p align="center">
-  <a href="https://github.com/Kkkermit/Testify/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/Kkkermit/Testify/ci.yml?style=for-the-badge&label=CI&logo=githubactions&logoColor=white"></a>
-  <a href="https://github.com/Kkkermit/Testify/actions/workflows/nightly.yml"><img alt="Nightly" src="https://img.shields.io/github/actions/workflow/status/Kkkermit/Testify/nightly.yml?style=for-the-badge&label=Nightly&logo=githubactions&logoColor=white"></a>
-  <a href="package.json"><img alt="Version" src="https://img.shields.io/github/package-json/v/Kkkermit/Testify?style=for-the-badge&color=8b5cf6"></a>
+  <img alt="Zangetsu Discord server icon" src="https://cdn.discordapp.com/icons/1514592000429654196/c07572fcdd3987826f09fdcd490e9b65.webp?size=2048" width="160">
+</p>
+<h1 align="center">Zangetsu</h1>
+<p align="center">A customizable multipurpose Discord bot, with slash and prefix commands, moderation, community tools, and an optional dashboard.</p>
+<p align="center">
+  <a href="https://github.com/MewtwoOP1/Zangetsu/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/MewtwoOP1/Zangetsu/ci.yml?style=for-the-badge&label=CI&logo=githubactions&logoColor=white"></a>
+  <a href="https://github.com/MewtwoOP1/Zangetsu/actions/workflows/nightly.yml"><img alt="Nightly" src="https://img.shields.io/github/actions/workflow/status/MewtwoOP1/Zangetsu/nightly.yml?style=for-the-badge&label=Nightly&logo=githubactions&logoColor=white"></a>
+  <a href="package.json"><img alt="Version" src="https://img.shields.io/github/package-json/v/MewtwoOP1/Zangetsu?style=for-the-badge&color=8b5cf6"></a>
   <a href="LICENSE"><img alt="License: Apache 2.0 with Commons Clause" src="https://img.shields.io/badge/license-Apache_2.0_%2B_Commons_Clause-blue?style=for-the-badge"></a>
 </p>
 
@@ -23,11 +19,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Kkkermit/Testify/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/Kkkermit/Testify?style=for-the-badge&logo=github"></a>
-  <a href="https://github.com/Kkkermit/Testify/network/members"><img alt="GitHub forks" src="https://img.shields.io/github/forks/Kkkermit/Testify?style=for-the-badge&logo=github"></a>
-  <a href="https://github.com/Kkkermit/Testify/issues"><img alt="GitHub issues" src="https://img.shields.io/github/issues/Kkkermit/Testify?style=for-the-badge&logo=github"></a>
-  <a href="https://github.com/Kkkermit/Testify/graphs/contributors"><img alt="GitHub contributors" src="https://img.shields.io/github/contributors/Kkkermit/Testify?style=for-the-badge&logo=github"></a>
-  <a href="https://discord.gg/xcMVwAVjSD"><img alt="Support server on Discord" src="https://img.shields.io/badge/support-Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white"></a>
+  <a href="https://github.com/MewtwoOP1/Zangetsu/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/MewtwoOP1/Zangetsu?style=for-the-badge&logo=github"></a>
+  <a href="https://github.com/MewtwoOP1/Zangetsu/network/members"><img alt="GitHub forks" src="https://img.shields.io/github/forks/MewtwoOP1/Zangetsu?style=for-the-badge&logo=github"></a>
+  <a href="https://github.com/MewtwoOP1/Zangetsu/issues"><img alt="GitHub issues" src="https://img.shields.io/github/issues/MewtwoOP1/Zangetsu?style=for-the-badge&logo=github"></a>
+  <a href="https://github.com/MewtwoOP1/Zangetsu/graphs/contributors"><img alt="GitHub contributors" src="https://img.shields.io/github/contributors/MewtwoOP1/Zangetsu?style=for-the-badge&logo=github"></a>
+  <a href="https://github.com/MewtwoOP1/Zangetsu/issues"><img alt="Zangetsu GitHub issues" src="https://img.shields.io/badge/support-GitHub_Issues-181717?style=for-the-badge&logo=github&logoColor=white"></a>
 </p>
 
 <h3 align="center">An all-in-one Discord bot, written once for both slash <em>and</em> prefix commands.</h3>
@@ -44,12 +40,12 @@ and games — plus an optional web dashboard. Every command works as <code>/ban<
   <a href="#-see-it-in-discord"><strong>Screenshots</strong></a> ·
   <a href="#️-the-web-dashboard"><strong>Dashboard</strong></a> ·
   <a href="docs/README.md"><strong>Docs</strong></a> ·
-  <a href="https://discord.gg/xcMVwAVjSD"><strong>Support</strong></a>
+  <a href="https://github.com/MewtwoOP1/Zangetsu/issues"><strong>Issues</strong></a>
 </p>
 
 <p align="center">
-  <a href="https://discord.com/oauth2/authorize?client_id=1211784897627168778&permissions=8&scope=applications.commands%20bot"><img alt="Invite Testify to your server" src="https://img.shields.io/badge/Invite_Testify-to_your_server-5865F2?style=for-the-badge&logo=discord&logoColor=white"></a>
-  <a href="https://buymeacoffee.com/kkermit"><img alt="Buy me a coffee" src="https://img.shields.io/badge/Buy_me_a_coffee-support_the_project-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=black"></a>
+  <a href="https://github.com/MewtwoOP1/Zangetsu#-quick-start"><img alt="Set up Zangetsu" src="https://img.shields.io/badge/Setup-Zangetsu-6d28d9?style=for-the-badge&logo=github&logoColor=white"></a>
+  <a href="https://github.com/MewtwoOP1/Zangetsu/issues"><img alt="Report a bug or request a feature" src="https://img.shields.io/badge/Feedback-GitHub_Issues-181717?style=for-the-badge&logo=github&logoColor=white"></a>
 </p>
 
 > [!CAUTION]
@@ -83,7 +79,7 @@ and games — plus an optional web dashboard. Every command works as <code>/ban<
 </details>
 
 > [!TIP]
-> ⭐ **If Testify is useful to you, or you have borrowed any of its code, please leave a star.** It genuinely helps,
+> ⭐ **If Zangetsu is useful to you, or you have borrowed any of its code, please leave a star.** It genuinely helps,
 > and it tells us the project is worth continuing.
 
 ---
@@ -244,7 +240,7 @@ same gates and run the same code; the dashboard is a third surface onto the same
 | 25.x             | ✅ Supported       | Works, but not what CI runs                  |
 
 > [!IMPORTANT]
-> Testify requires **Node 24.11 or newer**. If you are stuck on an older version, use
+> Zangetsu requires **Node 24.11 or newer**. If you are stuck on an older version, use
 > [nvm](https://github.com/nvm-sh/nvm) — the repo ships a `.nvmrc`, so `nvm use` picks the right version
 > automatically.
 
@@ -259,8 +255,8 @@ newly published vulnerabilities with npm audit and Snyk.
 Already have Node 24 and a MongoDB connection string? You are five commands away.
 
 ```bash
-git clone https://github.com/Kkkermit/Testify.git
-cd Testify
+git clone https://github.com/MewtwoOP1/Zangetsu.git
+cd Zangetsu
 npm ci                   # installs exactly what the lockfile says
 npm run setup -- --dev   # asks for your token, client ID, owner ID and database URL
 npm run dev              # starts the bot, restarting whenever you save a file
@@ -308,7 +304,7 @@ and `npm start`. No token or database yet? The next section walks through both f
 <details open>
 <summary><strong>4. Get a database</strong></summary>
 
-Testify keeps everything in MongoDB. The free tier is plenty.
+Zangetsu keeps everything in MongoDB. The free tier is plenty.
 
 1. Sign up at [MongoDB Atlas](https://www.mongodb.com/cloud/atlas/register).
 2. Create a **free M0 cluster**.
@@ -394,7 +390,7 @@ If one is missing, `/music status` says which, and:
 npm run music:setup
 ```
 
-fetches yt-dlp into `bin/`. Testify looks in `MUSIC_YTDLP_PATH` / `MUSIC_FFMPEG_PATH`, then your `PATH`, then the
+fetches yt-dlp into `bin/`. Zangetsu looks in `MUSIC_YTDLP_PATH` / `MUSIC_FFMPEG_PATH`, then your `PATH`, then the
 npm package, then `bin/` — and for yt-dlp **the newest copy that runs wins**, wherever it lives, because a stale
 extractor is the commonest way music breaks. Set the variables only to force a specific build.
 
@@ -525,7 +521,7 @@ Options, subcommands, buttons and the 100-command limit are covered in
 
 ## 🖥️ The web dashboard
 
-Testify ships an optional web dashboard with **a screen for nearly everything the bot does**, signed in with
+Zangetsu ships an optional web dashboard with **a screen for nearly everything the bot does**, signed in with
 Discord and served **from inside the bot process** — no second service to deploy and no API key to manage.
 
 > [!NOTE]
@@ -781,8 +777,8 @@ The colours and links live in `src/config/theme.ts`.
 | Cards render with no text on them                | You are in a container without fonts — use this repository's `Dockerfile`                            |
 | `Sign in to confirm you're not a bot`            | YouTube is refusing the host. Update yt-dlp, or set `/play` to SoundCloud only                       |
 
-Still stuck? [Ask in Discord](https://discord.gg/xcMVwAVjSD) or
-[open an issue](https://github.com/Kkkermit/Testify/issues/new/choose).
+Still stuck? [Ask in Discord](https://github.com/MewtwoOP1/Zangetsu/issues) or
+[open an issue](https://github.com/MewtwoOP1/Zangetsu/issues/new/choose).
 
 ## 📚 Documentation
 
@@ -813,31 +809,18 @@ npm run commit    # guided commit message in the project's format
 coverage floor and the pre-push hook enforces it.
 
 <p align="center">
-  <a href="https://github.com/Kkkermit/Testify/graphs/contributors">
-    <img alt="Everybody who has contributed to Testify" src="https://contrib.rocks/image?repo=Kkkermit/Testify" />
+  <a href="https://github.com/MewtwoOP1/Zangetsu/graphs/contributors">
+    <img alt="Everybody who has contributed to Zangetsu" src="https://contrib.rocks/image?repo=MewtwoOP1/Zangetsu" />
   </a>
-  <br><sub>Thank you to everybody who has contributed to Testify.</sub>
+  <br><sub>Thank you to everybody who has contributed to Zangetsu.</sub>
 </p>
 
-## 💛 Support
+## 💬 Support
 
-Join us on [Discord](https://discord.gg/xcMVwAVjSD) for help, questions, or just to say hello. If Testify has been
-useful to you, a [coffee](https://buymeacoffee.com/kkermit) keeps it going.
-
-<div align="center">
- <a href="https://www.star-history.com/#Kkkermit/Testify&Date">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=Kkkermit/Testify&type=Date&theme=dark" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=Kkkermit/Testify&type=Date" />
-    <img alt="Star history chart" src="https://api.star-history.com/svg?repos=Kkkermit/Testify&type=Date" />
-  </picture>
- </a>
-</div>
+Use the [GitHub issue tracker](https://github.com/MewtwoOP1/Zangetsu/issues) to report bugs or request features. A Zangetsu Discord invite can be added here once the invite URL is configured.
 
 ## ⚖️ License
 
-Copyright 2026 Kkermit (Kkermit on Discord, [Kkkermit](https://github.com/Kkkermit) on GitHub).
+Zangetsu is a customized derivative of [Testify by Kkermit](https://github.com/Kkkermit/Testify). The original `LICENSE` and `NOTICE` are retained in this repository.
 
-Released under the [Apache License 2.0](LICENSE) with the [Commons Clause](https://commonsclause.com) License
-Condition v1.0. You may use, modify and share it, but you may not sell it, and the attribution in
-[`NOTICE`](NOTICE) must be kept in every copy and derived work.
+The source is licensed under the Apache License 2.0 with the Commons Clause. You may use and modify it, but you may not sell the software or a product or service whose value derives entirely or substantially from it. Preserve the original author attribution and the license condition in redistributed copies.
