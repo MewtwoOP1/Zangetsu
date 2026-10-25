@@ -156,6 +156,14 @@ export default defineCommand({
 				await requireEnabledNsfwChannel(interaction, guild.id);
 
 				const target = interaction.options.getUser("target");
+				const actorName =
+					guild.members.cache.get(interaction.user.id)?.displayName ??
+					interaction.user.globalName ??
+					interaction.user.username;
+				const targetName = target
+					? (guild.members.cache.get(target.id)?.displayName ?? target.globalName ?? target.username)
+					: null;
+
 				let result: Awaited<ReturnType<typeof fetchNsfwGif>>;
 				try {
 					result = await fetchNsfwGif(category);
@@ -173,7 +181,7 @@ export default defineCommand({
 				}
 
 				await reply(interaction, {
-					...(target ? { content: buildNsfwActionLine(category, interaction.user.username, target.username) } : {}),
+					...(targetName ? { content: buildNsfwActionLine(category, actorName, targetName) } : {}),
 					embeds: [
 						embed({
 							category: "fun",
