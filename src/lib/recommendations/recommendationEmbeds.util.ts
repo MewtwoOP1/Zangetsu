@@ -21,11 +21,25 @@ export function recommendationEmbeds(items: readonly MediaRecommendation[]) {
 				{ name: "Genres", value: item.genres.slice(0, 5).join(", ") || "Not listed", inline: true },
 				...(item.mediaType === "manga" || item.mediaType === "novel"
 					? [
-							{ name: "Chapters", value: item.chapters == null ? "Unknown" : new Intl.NumberFormat("en-US").format(item.chapters), inline: true },
-							{ name: "Volumes", value: item.volumes == null ? "Unknown" : new Intl.NumberFormat("en-US").format(item.volumes), inline: true },
+							{
+								name: "Chapters",
+								value: item.chapters == null ? "Unknown" : new Intl.NumberFormat("en-US").format(item.chapters),
+								inline: true,
+							},
+							{
+								name: "Volumes",
+								value: item.volumes == null ? "Unknown" : new Intl.NumberFormat("en-US").format(item.volumes),
+								inline: true,
+							},
 						]
 					: item.mediaType === "anime"
-						? [{ name: "Episodes", value: item.episodes == null ? "Unknown" : String(item.episodes), inline: true }]
+						? [
+								{
+									name: "Episodes",
+									value: item.episodes == null ? "Unknown" : String(item.episodes),
+									inline: true,
+								},
+							]
 						: []),
 			],
 			footer:
