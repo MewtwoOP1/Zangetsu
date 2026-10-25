@@ -14,6 +14,7 @@ describe("parseRecommendationTypeChoice", () => {
 		["films!", "movie"],
 		["TV series", "series"],
 		["shows.", "series"],
+		["all media", "all"],
 	] as const)("parses the follow-up type %s", (value, expected) => {
 		expect(parseRecommendationTypeChoice(value)).toBe(expected);
 	});
@@ -46,6 +47,7 @@ describe("parseRecommendationRequest", () => {
 		["Can you recommend me a fantasy anime?", "anime"],
 		["Any movie recommendations for a sci-fi fan?", "movie"],
 		["Suggest a good TV series to watch", "series"],
+		["Recommend anime and movies", "all"],
 		["What anime should I watch next?", "anime"],
 	] as const)("detects a %s request", (message, type) => {
 		expect(parseRecommendationRequest(message)).toEqual({

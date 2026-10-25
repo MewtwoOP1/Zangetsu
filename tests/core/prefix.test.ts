@@ -261,6 +261,29 @@ describe("options from a message", () => {
 	});
 });
 
+describe("persistent prefix replies", () => {
+	it("keeps private help replies visible when keepPrefixReply is enabled", async () => {
+		const message = fakeMessage();
+		const timers = { after: jest.fn() };
+		(message.client as unknown as { timers: typeof timers }).timers = timers;
+		const help = defineCommand({
+			name: "help",
+			description: "Help.",
+			category: "info",
+			private: true,
+			keepPrefixReply: true,
+			run: jest.fn(),
+		});
+		const input = new PrefixInteraction(message, help, []);
+		input.tidyAway();
+
+		await input.reply({ content: "Help panel" });
+
+		expect(timers.after).not.toHaveBeenCalled();
+		const sent = (message as unknown as { sent: { content?: string }[] }).sent;
+		expect(sent[0]?.content).toBe("Help panel");
+	});
+});
 describe("subcommands from a message", () => {
 	const welcome = defineCommand({
 		name: "welcome",

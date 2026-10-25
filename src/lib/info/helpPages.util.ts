@@ -60,11 +60,11 @@ export function helpHome(client: TestifyClient, surface: Surface, prefix: string
 
 	return embed({
 		category: "info",
-		title: `${botName()} help centre`,
+		title: `${botName()} • Command Centre`,
 		description: [
-			`Everything here works as a slash command **and** with the \`${prefix}\` prefix.`,
+			`Your community toolkit, all in one place. Use slash commands or the \`${prefix}\` prefix.`,
 			"",
-			"Pick a category from the menu below to browse.",
+			"Choose a category below to explore.",
 		].join("\n"),
 		thumbnail: theme.logoUrl,
 		fields: [
@@ -236,10 +236,10 @@ export function categoryControls(
 	);
 }
 
-/** Links, shown under the front page. */
-export function helpLinks() {
-	if (!theme.supportServer) return row(linkButton("Source code", theme.repository));
-	return row(linkButton("Support server", theme.supportServer), linkButton("Source code", theme.repository));
+/** The optional community link, shown under the front page when configured. */
+export function helpLinks(): ReturnType<typeof row>[] {
+	if (!theme.supportServer) return [];
+	return [row(linkButton("Join the support server", theme.supportServer))];
 }
 
 export function resolveCategory(value: string): Category | null {

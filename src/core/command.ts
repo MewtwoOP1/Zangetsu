@@ -145,8 +145,10 @@ export interface Command {
 	ownerOnly?: boolean;
 	/** Only usable in age-restricted channels. */
 	nsfw?: boolean;
-	/** Only the person who ran it sees the answer, whichever subcommand it was. */
+	/** Only the person who ran it sees the slash-command answer, whichever subcommand it was. */
 	private?: boolean;
+	/** Keep this private command's prefix reply visible instead of deleting it after the tidy interval. */
+	keepPrefixReply?: boolean;
 
 	/** Optional when the command is nothing but subcommands. */
 	run?(interaction: CommandInput, client: TestifyClient): Promise<void>;

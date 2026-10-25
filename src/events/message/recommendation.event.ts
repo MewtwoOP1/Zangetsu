@@ -1,12 +1,13 @@
 import { defineMessageHandler } from "@core/message";
 import { embed } from "@lib/discord";
-import { recommendMedia, recommendationEmbeds, type RecommendationType } from "@lib/recommendations";
+import { createMediaSession, recommendMedia, type RecommendationType } from "@lib/recommendations";
 
 const INTENT =
 	/\b(?:recommend(?:ation|ations|ed|ing)?|suggest(?:ion|ions|ed|ing)?|what\s+should\s+i\s+watch|what\s+to\s+watch|anything\s+(?:good\s+)?to\s+watch|something\s+(?:good\s+)?to\s+watch|what\s+(?:(?:tv\s+)?(?:series|shows?)|anime|movies?|films?)\s+should\s+i\s+watch)\b/i;
 const ANIME = /\banime\b/i;
 const MOVIE = /\bmovies?\b|\bfilms?\b/i;
 const SERIES = /\b(?:tv\s+)?series\b|\bshows?\b|\bk-?dramas?\b/i;
+const ALL_MEDIA = /\b(?:all media|everything|anime\s+(?:and|&)\s+(?:movies?|films?|series|shows?)|(?:movies?|films?|series|shows?)\s+(?:and|&)\s+anime)\b/i;
 const USER_COOLDOWN_MS = 30_000;
 const MAX_COOLDOWN_ENTRIES = 2_000;
 const PENDING_TYPE_TTL_MS = 90_000;
@@ -29,7 +30,8 @@ export function parseRecommendationRequest(content: string): RecommendationReque
 	if (!text || text.length > 1_500 || !INTENT.test(text)) return null;
 
 	let type: RecommendationType | null = null;
-	if (ANIME.test(text)) type = "anime";
+	if (ALL_MEDIA.test(text)) type = "all";
+	else if (ANIME.test(text)) type = "anime";
 	else if (MOVIE.test(text)) type = "movie";
 	else if (SERIES.test(text)) type = "series";
 
@@ -57,6 +59,7 @@ export function clearRecommendationCooldowns(): void {
 /** Accept a short answer to the type prompt, e.g. "anime", "movie", or "series". */
 export function parseRecommendationTypeChoice(content: string): RecommendationType | null {
 	const text = content.trim().toLowerCase().replace(/[.!?]+$/, "").trim();
+	if (/^(?:all|all media|everything)(?: please)?$/.test(text)) return "all";
 	if (/^(?:(?:i (?:want|prefer|would like) )?)(?:an? )?anime(?: please)?$/.test(text)) return "anime";
 	if (/^(?:(?:i (?:want|prefer|would like) )?)(?:a )?(?:movies?|films?)(?: please)?$/.test(text)) return "movie";
 	if (/^(?:(?:i (?:want|prefer|would like) )?)(?:a )?(?:tv )?(?:series|shows?)(?: please)?$/.test(text)) return "series";
@@ -109,7 +112,7 @@ export default defineMessageHandler({
 					embed({
 						category: "community",
 						title: "What would you like to watch?",
-						description: "Tell me which type you want: **anime**, **movie**, or **TV series**, and any genre or trope you like.",
+						description: "Tell me which type you want: **anime**, **movie**, **TV series**, or **all media**, and any genre or trope you like.",
 					}),
 				],
 				allowedMentions: { parse: [] },
@@ -125,7 +128,7 @@ export default defineMessageHandler({
 					embed({
 						category: "community",
 						title: "Recommendations are not configured yet",
-						description: "Anime recommendations are available now. Movie and TV recommendations need the optional TMDB API Read Access Token.",
+						description: "Anime recommendations are available now. Movie, TV, and all-media recommendations need the TMDB API Read Access Token.",
 					}),
 				],
 				allowedMentions: { parse: [] },
@@ -154,7 +157,11 @@ export default defineMessageHandler({
 			}
 
 			await message.channel.send({
-				embeds: recommendationEmbeds(items),
+				...createMediaSession({
+					userId: message.author.id,
+					items,
+					mode: "recommendation",
+				}),
 				allowedMentions: { parse: [] },
 			});
 		} catch (error) {

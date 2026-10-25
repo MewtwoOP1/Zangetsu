@@ -1,12 +1,13 @@
 import { defineCommand } from "@core/command";
 import { UserFacingError } from "@core/errors";
 import { reply } from "@lib/discord";
-import { recommendMedia, recommendationEmbeds, type RecommendationType } from "@lib/recommendations";
+import { createMediaSession, recommendMedia, type RecommendationType } from "@lib/recommendations";
 
 const MEDIA_TYPES = [
 	{ name: "Anime", value: "anime" },
 	{ name: "Movie", value: "movie" },
 	{ name: "TV series", value: "series" },
+	{ name: "All media · top AniList + TMDB picks", value: "all" },
 ];
 
 export default defineCommand({
@@ -37,7 +38,7 @@ export default defineCommand({
 
 		if (type !== "anime" && !client.env.TMDB_API_READ_ACCESS_TOKEN) {
 			throw new UserFacingError(
-				"Movie and TV recommendations need the free TMDB API Read Access Token. Add `TMDB_API_READ_ACCESS_TOKEN` to your `.env` file. Anime recommendations work without it.",
+				"Movie, TV, and all-media recommendations need the TMDB API Read Access Token. Anime recommendations work without it.",
 			);
 		}
 
@@ -59,6 +60,13 @@ export default defineCommand({
 			throw new UserFacingError("I couldn't find matching titles. Try a broader genre or different preferences.");
 		}
 
-		await reply(interaction, { embeds: recommendationEmbeds(recommendations) });
+		await reply(
+			interaction,
+			createMediaSession({
+				userId: interaction.user.id,
+				items: recommendations,
+				mode: "recommendation",
+			}),
+		);
 	},
 });
