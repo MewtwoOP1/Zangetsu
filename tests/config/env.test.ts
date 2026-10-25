@@ -11,7 +11,7 @@ const VALID = {
 
 function setEnv(values: Record<string, string | undefined>): void {
 	for (const key of Object.keys(process.env)) {
-		const owned = ["DISCORD_", "CHANNEL_", "DASHBOARD_"].some((prefix) => key.startsWith(prefix));
+		const owned = ["DISCORD_", "CHANNEL_", "DASHBOARD_", "TMDB_", "SUPPORT_AI_"].some((prefix) => key.startsWith(prefix));
 		if (owned || key === "MONGODB_URI") delete process.env[key];
 	}
 	for (const [key, value] of Object.entries(values)) {
@@ -66,12 +66,14 @@ describe("loadEnv", () => {
 			CHANNEL_BUG_REPORT_LOG: "",
 			CHANNEL_SUGGESTION_LOG: "",
 			CHANNEL_EVAL_LOG: "",
+			TMDB_API_READ_ACCESS_TOKEN: "",
 		});
 
 		const env = loadEnv();
 
 		expect(env.DISCORD_DEV_GUILD_ID).toBeUndefined();
 		expect(env.CHANNEL_ERROR_LOG).toBeUndefined();
+		expect(env.TMDB_API_READ_ACCESS_TOKEN).toBeUndefined();
 		expect(env.LOG_LEVEL).toBe("info");
 	});
 
