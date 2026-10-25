@@ -1,12 +1,13 @@
 import { defineCommand } from "@core/command";
 import { UserFacingError } from "@core/errors";
 import { reply } from "@lib/discord";
-import { recommendMedia, recommendationEmbeds, type RecommendationType } from "@lib/recommendations";
+import { createMediaSession, recommendMedia, type RecommendationType } from "@lib/recommendations";
 
 const MEDIA_TYPES = [
 	{ name: "Anime", value: "anime" },
 	{ name: "Movie", value: "movie" },
 	{ name: "TV series", value: "series" },
+	{ name: "All media · top AniList + TMDB picks", value: "all" },
 ];
 
 export default defineCommand({
@@ -59,6 +60,10 @@ export default defineCommand({
 			throw new UserFacingError("I couldn't find matching titles. Try a broader genre or different preferences.");
 		}
 
-		await reply(interaction, { embeds: recommendationEmbeds(recommendations) });
+		await reply(interaction, createMediaSession({
+			userId: interaction.user.id,
+			items: recommendations,
+			mode: "recommendation",
+		}));
 	},
 });
