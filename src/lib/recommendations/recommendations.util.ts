@@ -3,7 +3,9 @@ import { fetchJson } from "@lib/infra";
 
 /** Recommendations come from media catalogues, not generated titles. */
 
-export type RecommendationType = "anime" | "movie" | "series";
+export type MediaType = "anime" | "movie" | "series";
+export type RecommendationType = MediaType | "all";
+export type MediaLookupType = MediaType | "all";
 
 export interface MediaRecommendation {
 	title: string;
@@ -14,6 +16,16 @@ export interface MediaRecommendation {
 	genres: string[];
 	poster: string | null;
 	source: "AniList" | "TMDB";
+	mediaType?: MediaType;
+	status?: string | null;
+	format?: string | null;
+	episodes?: number | null;
+	duration?: number | null;
+	popularity?: number | null;
+	favourites?: number | null;
+	voteCount?: number | null;
+	rank?: number | null;
+	popularityRank?: number | null;
 }
 
 export interface RecommendationInput {
@@ -77,6 +89,19 @@ const anilistMediaSchema = z.object({
 	description: z.string().nullable().optional(),
 	coverImage: z.object({ large: z.string().nullable().optional() }).nullable().optional(),
 	averageScore: z.number().nullable().optional(),
+	meanScore: z.number().nullable().optional(),
+	popularity: z.number().nullable().optional(),
+	favourites: z.number().nullable().optional(),
+	format: z.string().nullable().optional(),
+	status: z.string().nullable().optional(),
+	episodes: z.number().nullable().optional(),
+	duration: z.number().nullable().optional(),
+	rankings: z.array(z.object({
+		rank: z.number(),
+		type: z.string(),
+		context: z.string().optional(),
+		allTime: z.boolean().optional(),
+	})).nullable().optional(),
 	genres: z.array(z.string()).default([]),
 	seasonYear: z.number().nullable().optional(),
 	siteUrl: z.string().url(),
@@ -99,6 +124,8 @@ const tmdbResultSchema = z.object({
 	overview: z.string().nullable().optional(),
 	poster_path: z.string().nullable().optional(),
 	vote_average: z.number().nullable().optional(),
+	vote_count: z.number().nullable().optional(),
+	popularity: z.number().nullable().optional(),
 	genre_ids: z.array(z.number()).default([]),
 	release_date: z.string().optional(),
 	first_air_date: z.string().optional(),
@@ -136,7 +163,7 @@ const TMDB_GENRE_NAMES: Record<number, string> = {
 	10768: "War & politics",
 };
 
-export function detectRecommendationGenre(preferences: string, type: RecommendationType): string | null {
+export function detectRecommendationGenre(preferences: string, type: MediaType): string | null {
 	const matches = GENRE_RULES.flatMap((rule) => {
 		const supported = type === "anime" ? rule.anilist : type === "movie" ? rule.movie : rule.series;
 		if (supported === undefined) return [];
@@ -219,6 +246,39 @@ query ($page: Int, $perPage: Int, $genreIn: [String], $tagIn: [String]) {
       description(asHtml: false)
       coverImage { large }
       averageScore
+      meanScore
+      popularity
+      favourites
+      format
+      status
+      episodes
+      duration
+      rankings { rank type context allTime }
+      genres
+      seasonYear
+      siteUrl
+    }
+  }
+}`;
+
+const ANILIST_LOOKUP_QUERY = `
+query ($search: String, $page: Int, $perPage: Int) {
+  Page(page: $page, perPage: $perPage) {
+    media(type: ANIME, search: $search, isAdult: false, sort: [SEARCH_MATCH, SCORE_DESC]) {
+      id
+      idMal
+      title { english romaji native }
+      description(asHtml: false)
+      coverImage { large }
+      averageScore
+      meanScore
+      popularity
+      favourites
+      format
+      status
+      episodes
+      duration
+      rankings { rank type context allTime }
       genres
       seasonYear
       siteUrl
@@ -257,6 +317,36 @@ export function buildZangetsuTmdbUrl(input: {
 	return url.toString();
 }
 
+function mapAniListMedia(media: z.infer<typeof anilistMediaSchema>): MediaRecommendation {
+	const title = media.title.english?.trim() || media.title.romaji;
+	const ratedRank = media.rankings?.find((entry) => entry.type === "RATED" && entry.allTime)
+		?? media.rankings?.find((entry) => entry.type === "RATED");
+	const popularRank = media.rankings?.find((entry) => entry.type === "POPULAR" && entry.allTime)
+		?? media.rankings?.find((entry) => entry.type === "POPULAR");
+
+	return {
+		title,
+		url: media.idMal == null
+			? media.siteUrl
+			: buildZangetsuAnimeUrl({ malId: media.idMal, title, cover: media.coverImage?.large ?? null }),
+		summary: cleanSummary(media.description) || "No synopsis is available.",
+		year: media.seasonYear ?? null,
+		rating: media.averageScore == null ? null : Math.round(media.averageScore) / 10,
+		genres: media.genres,
+		poster: media.coverImage?.large ?? null,
+		source: "AniList",
+		mediaType: "anime",
+		status: media.status ?? null,
+		format: media.format ?? null,
+		episodes: media.episodes ?? null,
+		duration: media.duration ?? null,
+		popularity: media.popularity ?? null,
+		favourites: media.favourites ?? null,
+		rank: ratedRank?.rank ?? null,
+		popularityRank: popularRank?.rank ?? null,
+	};
+}
+
 async function fetchAnime(genre: string | null, tag: string | null): Promise<MediaRecommendation[]> {
 	const genreFilter = genre === null ? null : genreValue(genre, "anime");
 	const variables = {
@@ -277,23 +367,7 @@ async function fetchAnime(genre: string | null, tag: string | null): Promise<Med
 		throw new Error(payload.errors?.[0]?.message ?? "AniList returned no catalogue data.");
 	}
 
-	return mediaList.map((media) => ({
-		title: media.title.english?.trim() || media.title.romaji,
-		url:
-			media.idMal == null
-				? media.siteUrl
-				: buildZangetsuAnimeUrl({
-						malId: media.idMal,
-						title: media.title.english?.trim() || media.title.romaji,
-						cover: media.coverImage?.large ?? null,
-				  }),
-		summary: cleanSummary(media.description) || "No synopsis is available.",
-		year: media.seasonYear ?? null,
-		rating: media.averageScore == null ? null : Math.round(media.averageScore) / 10,
-		genres: media.genres,
-		poster: media.coverImage?.large ?? null,
-		source: "AniList" as const,
-	}));
+	return mediaList.map(mapAniListMedia);
 }
 
 async function fetchMovieOrSeries(
@@ -309,7 +383,7 @@ async function fetchMovieOrSeries(
 		query: {
 			include_adult: false,
 			language: "en-US",
-			sort_by: genreFilter === null ? "vote_average.desc" : "popularity.desc",
+			sort_by: "vote_average.desc",
 			"vote_count.gte": genreFilter === null ? 500 : 100,
 			...(genreFilter === null ? {} : { with_genres: genreFilter }),
 			page: 1,
@@ -334,26 +408,33 @@ async function fetchMovieOrSeries(
 				genres,
 				poster,
 				source: "TMDB" as const,
+				mediaType: type,
+				voteCount: result.vote_count ?? null,
+				popularity: result.popularity ?? null,
 			},
 		];
 	});
 }
 
 /**
- * Returns up to three real catalogue entries. Results are cached per type/genre/trope for fifteen minutes,
- * which keeps repeated requests cheap and helps stay within upstream rate limits.
+ * Catalogue order is intentional: AniList supplies score/popularity ranking and TMDB supplies vote-average
+ * ranking with a minimum vote count. Sessions can move through the ranked results without refetching each click.
  */
 export async function recommendMedia(input: RecommendationInput): Promise<MediaRecommendation[]> {
 	const { type, preferences, tmdbToken } = input;
-	const genre = detectRecommendationGenre(preferences, type);
-	const tag = type === "anime" ? detectAnimeTag(preferences) : null;
-	const key = `${type}:${genre ?? "all"}:${tag ?? "none"}`;
+	const animeGenre = detectRecommendationGenre(preferences, "anime");
+	const genre = type === "all" ? null : detectRecommendationGenre(preferences, type);
+	const tag = type === "anime" || type === "all" ? detectAnimeTag(preferences) : null;
+	const key = type === "all"
+		? `all:${animeGenre ?? "all"}:${detectRecommendationGenre(preferences, "movie") ?? "all"}:${detectRecommendationGenre(preferences, "series") ?? "all"}:${tag ?? "none"}`
+		: `${type}:${genre ?? "all"}:${tag ?? "none"}`;
+	const limit = type === "all" ? 6 : 20;
 	const previous = cacheRead(key);
-	if (previous !== null) return previous.slice(0, 3);
+	if (previous !== null) return previous.slice(0, limit);
 
-	// Concurrent requests for the same recommendation share one upstream API call.
+	// Concurrent requests for the same preference set share one upstream API call.
 	const pending = inFlight.get(key);
-	if (pending !== undefined) return (await pending).slice(0, 3);
+	if (pending !== undefined) return (await pending).slice(0, limit);
 
 	const request = (async (): Promise<MediaRecommendation[]> => {
 		if (type === "anime") {
@@ -361,6 +442,23 @@ export async function recommendMedia(input: RecommendationInput): Promise<MediaR
 			if (results.length === 0 && tag !== null) results = await fetchAnime(genre, null);
 			if (results.length === 0 && genre !== null) results = await fetchAnime(null, null);
 			return results;
+		}
+
+		if (type === "all") {
+			if (!tmdbToken) {
+				throw new Error("TMDB_API_READ_ACCESS_TOKEN is required for all-media recommendations.");
+			}
+			let anime = await fetchAnime(animeGenre, tag);
+			if (anime.length === 0 && tag !== null) anime = await fetchAnime(animeGenre, null);
+			if (anime.length === 0 && animeGenre !== null) anime = await fetchAnime(null, null);
+			const [movies, series] = await Promise.all([
+				fetchMovieOrSeries("movie", preferences, tmdbToken),
+				fetchMovieOrSeries("series", preferences, tmdbToken),
+			]);
+			const tmdbTopThree = [...movies, ...series]
+				.sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1) || (b.voteCount ?? 0) - (a.voteCount ?? 0))
+				.slice(0, 3);
+			return [...anime.slice(0, 3), ...tmdbTopThree];
 		}
 
 		if (!tmdbToken) {
@@ -373,8 +471,109 @@ export async function recommendMedia(input: RecommendationInput): Promise<MediaR
 	try {
 		const results = await request;
 		if (results.length > 0) cacheWrite(key, results);
-		return results.slice(0, 3);
+		return results.slice(0, limit);
 	} finally {
 		inFlight.delete(key);
+	}
+}
+
+async function fetchAnimeSearch(query: string): Promise<MediaRecommendation[]> {
+	const payload = await fetchJson("anilist", "https://graphql.anilist.co", anilistResponseSchema, {
+		method: "POST",
+		headers: { Accept: "application/json", "Content-Type": "application/json" },
+		body: JSON.stringify({ query: ANILIST_LOOKUP_QUERY, variables: { search: query, page: 1, perPage: 10 } }),
+	});
+	const mediaList = payload.data?.Page?.media;
+	if (payload.errors?.length || mediaList === undefined) {
+		throw new Error(payload.errors?.[0]?.message ?? "AniList returned no lookup data.");
+	}
+	return mediaList.map(mapAniListMedia);
+}
+
+async function fetchTmdbSearch(
+	type: "movie" | "series",
+	query: string,
+	token: string,
+): Promise<MediaRecommendation[]> {
+	const endpoint = type === "movie" ? "movie" : "tv";
+	const payload = await fetchJson("tmdb", `https://api.themoviedb.org/3/search/${endpoint}`, tmdbResponseSchema, {
+		headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+		query: { query, include_adult: false, language: "en-US", page: 1 },
+	});
+	return payload.results.flatMap((result) => {
+		const title = (result.title ?? result.name ?? "").trim();
+		if (!title) return [];
+		const date = type === "movie" ? result.release_date : result.first_air_date;
+		const yearMatch = date?.match(/^\d{4}/);
+		const poster = result.poster_path ? `https://image.tmdb.org/t/p/w500${result.poster_path}` : null;
+		return [{
+			title,
+			url: buildZangetsuTmdbUrl({ tmdbId: result.id, title, type, cover: poster }),
+			summary: cleanSummary(result.overview) || "No synopsis is available.",
+			year: yearMatch ? Number(yearMatch[0]) : null,
+			rating: result.vote_average == null ? null : Math.round(result.vote_average * 10) / 10,
+			genres: result.genre_ids.map((id) => TMDB_GENRE_NAMES[id]).filter((name): name is string => name !== undefined),
+			poster,
+			source: "TMDB" as const,
+			mediaType: type,
+			voteCount: result.vote_count ?? null,
+			popularity: result.popularity ?? null,
+		}];
+	});
+}
+
+/** Searches AniList and/or TMDB. Lookup results carry catalogue stats and are cached for fifteen minutes. */
+export async function lookupMedia(input: {
+	query: string;
+	type: MediaLookupType;
+	tmdbToken?: string;
+}): Promise<MediaRecommendation[]> {
+	const query = input.query.trim();
+	if (!query || query.length > 100) return [];
+	const cacheKey = `lookup:${input.type}:${query.toLocaleLowerCase()}`;
+	const previous = cacheRead(cacheKey);
+	if (previous !== null) return previous;
+	const pending = inFlight.get(cacheKey);
+	if (pending !== undefined) return pending;
+
+	const request = (async (): Promise<MediaRecommendation[]> => {
+		if (input.type === "anime") return fetchAnimeSearch(query);
+		if (input.type === "movie" || input.type === "series") {
+			if (!input.tmdbToken) throw new Error("TMDB_API_READ_ACCESS_TOKEN is required for movie and series lookups.");
+			return fetchTmdbSearch(input.type, query, input.tmdbToken);
+		}
+		if (!input.tmdbToken) {
+			throw new Error("TMDB_API_READ_ACCESS_TOKEN is required for all-media lookups.");
+		}
+
+		const settled = await Promise.allSettled([
+			fetchAnimeSearch(query),
+			fetchTmdbSearch("movie", query, input.tmdbToken),
+			fetchTmdbSearch("series", query, input.tmdbToken),
+		]);
+		const results = settled.flatMap((entry) => entry.status === "fulfilled" ? entry.value : []);
+		if (results.length === 0) {
+			const firstError = settled.find((entry): entry is PromiseRejectedResult => entry.status === "rejected");
+			if (firstError) throw firstError.reason;
+		}
+
+		const normalized = query.toLocaleLowerCase();
+		const relevance = (item: MediaRecommendation): number => {
+			const title = item.title.toLocaleLowerCase();
+			if (title === normalized) return 0;
+			if (title.startsWith(normalized)) return 1;
+			if (title.includes(normalized)) return 2;
+			return 3;
+		};
+		return results.sort((a, b) => relevance(a) - relevance(b) || (b.rating ?? -1) - (a.rating ?? -1)).slice(0, 30);
+	})();
+
+	inFlight.set(cacheKey, request);
+	try {
+		const results = await request;
+		if (results.length > 0) cacheWrite(cacheKey, results);
+		return results;
+	} finally {
+		inFlight.delete(cacheKey);
 	}
 }
