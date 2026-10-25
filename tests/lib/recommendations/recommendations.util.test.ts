@@ -42,7 +42,6 @@ describe("media recommendation filters", () => {
 	});
 });
 
-
 describe("recommendationEmbeds", () => {
 	it("renders catalogue metadata, links, ratings, and TMDB attribution", () => {
 		const item: MediaRecommendation = {
@@ -108,7 +107,7 @@ describe("recommendMedia", () => {
 	});
 
 	it("fetches anime from AniList, cleans the synopsis, scales ratings, and caches the result", async () => {
-		const fetch = mockJson({ data: { Page: { media: [animeResult] } } });
+		const fetchMock = mockJson({ data: { Page: { media: [animeResult] } } });
 
 		const first = await recommendMedia({ type: "anime", preferences: "fantasy" });
 		const second = await recommendMedia({ type: "anime", preferences: "fantasy" });
@@ -126,9 +125,9 @@ describe("recommendMedia", () => {
 			}),
 		]);
 		expect(second).toEqual(first);
-		expect(fetch).toHaveBeenCalledTimes(1);
-		expect(fetch.mock.calls[0]?.[0]).toBe("https://graphql.anilist.co");
-		expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body)).variables).toEqual({
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(fetchMock.mock.calls[0]?.[0]).toBe("https://graphql.anilist.co");
+		expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)).variables).toEqual({
 			page: 1,
 			perPage: 20,
 			genreIn: ["Fantasy"],
@@ -136,7 +135,7 @@ describe("recommendMedia", () => {
 	});
 
 	it("retries anime without a trope filter when that filter has no results", async () => {
-		const fetch = jest
+		const fetchMock = jest
 			.spyOn(global, "fetch")
 			.mockResolvedValueOnce(
 				new Response(JSON.stringify({ data: { Page: { media: [] } } }), { status: 200 }),
@@ -151,8 +150,8 @@ describe("recommendMedia", () => {
 		});
 
 		expect(results).toHaveLength(1);
-		expect(fetch).toHaveBeenCalledTimes(2);
-		expect(JSON.parse(String(fetch.mock.calls[1]?.[1]?.body)).variables).toEqual({
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+		expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body)).variables).toEqual({
 			page: 1,
 			perPage: 20,
 			genreIn: ["Fantasy"],
@@ -160,7 +159,7 @@ describe("recommendMedia", () => {
 	});
 
 	it("uses TMDB bearer authentication and normalises movie metadata", async () => {
-		const fetch = mockJson({
+		const fetchMock = mockJson({
 			results: [
 				{
 					id: 42,
@@ -192,8 +191,8 @@ describe("recommendMedia", () => {
 				source: "TMDB",
 			}),
 		]);
-		expect(fetch.mock.calls[0]?.[0]).toContain("/discover/movie?");
-		expect(new Headers(fetch.mock.calls[0]?.[1]?.headers).get("Authorization")).toBe("Bearer test-token");
+		expect(fetchMock.mock.calls[0]?.[0]).toContain("/discover/movie?");
+		expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).get("Authorization")).toBe("Bearer test-token");
 	});
 
 	it("uses the TV endpoint and first air date for series", async () => {
@@ -224,20 +223,20 @@ describe("recommendMedia", () => {
 				source: "TMDB",
 			}),
 		);
-		expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/discover/tv?"), expect.any(Object));
+		expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/discover/tv?"), expect.any(Object));
 	});
 
 	it("refuses movie recommendations without a TMDB token before making a request", async () => {
-		const fetch = jest.spyOn(global, "fetch");
+		const fetchMock = jest.spyOn(global, "fetch");
 
 		await expect(recommendMedia({ type: "movie", preferences: "" })).rejects.toThrow(
 			"TMDB_API_READ_ACCESS_TOKEN is required",
 		);
-		expect(fetch).not.toHaveBeenCalled();
+		expect(fetchMock).not.toHaveBeenCalled();
 	});
 
 	it("returns no results without caching an empty catalogue", async () => {
-		const fetch = mockJson({ results: [] });
+		const fetchMock = mockJson({ results: [] });
 
 		expect(await recommendMedia({ type: "movie", preferences: "fantasy", tmdbToken: "test-token" })).toEqual(
 			[],
@@ -245,6 +244,6 @@ describe("recommendMedia", () => {
 		expect(await recommendMedia({ type: "movie", preferences: "fantasy", tmdbToken: "test-token" })).toEqual(
 			[],
 		);
-		expect(fetch).toHaveBeenCalledTimes(2);
+		expect(fetchMock).toHaveBeenCalledTimes(2);
 	});
 });
