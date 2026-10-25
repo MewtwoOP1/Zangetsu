@@ -103,6 +103,12 @@ export function fields(isDev: boolean): Field[] {
 			check: discordId,
 		},
 		{
+			key: "TMDB_API_READ_ACCESS_TOKEN",
+			message: "TMDB API Read Access Token for movie and TV recommendations",
+			hint: "Free for non-commercial projects; leave blank if only using anime recommendations",
+			required: false,
+		},
+		{
 			key: "SUPPORT_AI_API_KEY",
 			message: "Anthropic API key for the support assistant",
 			hint: "Blank answers questions by search alone and contacts nobody",
