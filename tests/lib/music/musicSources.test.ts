@@ -19,8 +19,8 @@ const youtubeLink: Query = { kind: "url", url: "https://youtu.be/abc", source: "
 const soundCloudLink: Query = { kind: "url", url: "https://soundcloud.com/a/b", source: "soundcloud" };
 
 describe("normaliseMusicSources", () => {
-	/** A bot that has never been configured keeps playing from both, which is what it did before there was a choice. */
-	it("reads nothing stored as both, and says it is the default", () => {
+	/** A fresh bot uses the new SoundCloud-only default. */
+	it("reads no setting as SoundCloud-only by default", () => {
 		expect(normaliseMusicSources(null)).toEqual({ sources: "soundcloud", configured: false });
 		expect(normaliseMusicSources({ musicSources: "soundcloud" })).toEqual({ sources: "soundcloud", configured: true });
 	});
@@ -39,7 +39,7 @@ describe("allowsSource", () => {
 	});
 
 	/** The switch is about two services; a link to anywhere else was never the owner's to refuse. */
-	it("never refuses another site", () => {
+	it("rejects non-SoundCloud sources", () => {
 		expect(allowsSource("youtube", "other")).toBe(false);
 		expect(allowsSource("soundcloud", "other")).toBe(false);
 	});
@@ -53,11 +53,11 @@ describe("withinSources", () => {
 		expect(searchSourceFor("soundcloud")).toBe("soundcloud");
 	});
 
-	it("keeps a service the reader named, while the owner allows it", () => {
+	it("keeps a named SoundCloud search in SoundCloud-only mode", () => {
 		const named: Query = { kind: "search", terms: "x", source: "soundcloud", named: true };
 
 		expect(withinSources(named, "both")).toBe(named);
-		expect(() => withinSources(named, "youtube")).toThrow(/SoundCloud is the only enabled music source/);
+		expect(withinSources(named, "youtube")).toBe(named);
 	});
 
 	/** Turning a service off has to cover links as well, or pasting one would walk straight past the switch. */
