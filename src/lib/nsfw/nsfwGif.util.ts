@@ -114,7 +114,7 @@ const DEFAULT_API_BASES = [
 const API_TIMEOUT_MS = 2_500;
 const INSTANCE_INDEX_TIMEOUT_MS = 1_500;
 const INSTANCE_CACHE_TTL_MS = 5 * 60_000;
-const MAX_API_BASES = 4;
+const MAX_API_BASES = 5;
 
 let cachedApiBases: string[] = [...DEFAULT_API_BASES];
 let cachedApiBasesUntil = 0;
@@ -169,19 +169,28 @@ async function discoverApiBases(): Promise<string[]> {
 		if (response.ok && contentType.toLowerCase().includes("json")) {
 			const payload: unknown = await response.json();
 			if (isRecord(payload) && Array.isArray(payload.instances)) {
-				const listedBases = payload.instances.flatMap((entry): string[] => {
+				const healthyBases: string[] = [];
+				const unknownBases: string[] = [];
+				for (const entry of payload.instances) {
 					if (
 						!isRecord(entry) ||
 						typeof entry.url !== "string" ||
 						entry.schema === false ||
 						entry.images === false
 					) {
-						return [];
+						continue;
 					}
 					const base = normalizeApiBase(entry.url);
-					return base ? [base] : [];
-				});
-				candidates = [PRIMARY_API_BASE, ...listedBases, ...DEFAULT_API_BASES.slice(1)];
+					if (!base) continue;
+					if (entry.schema === true && entry.images === true) healthyBases.push(base);
+					else unknownBases.push(base);
+				}
+				candidates = [
+					PRIMARY_API_BASE,
+					...healthyBases,
+					...DEFAULT_API_BASES.slice(1),
+					...unknownBases,
+				];
 			}
 		}
 	} catch {
