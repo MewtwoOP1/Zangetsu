@@ -40,6 +40,7 @@ export default defineCommand({
 		{
 			name: "audit-webhooks",
 			description: "List server webhooks without revealing their tokens.",
+			permissions: [PermissionFlagsBits.ManageWebhooks],
 			async run(interaction) {
 				const guild = inGuild(interaction);
 				const webhooks = await guild.fetchWebhooks().catch(() => {

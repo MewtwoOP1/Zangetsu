@@ -3,7 +3,7 @@ import { type CommandInput, defineCommand, inGuild } from "@core/command";
 import { UserFacingError } from "@core/errors";
 import { NsfwConsent, NsfwGuildConfig } from "@database/models/nsfw.schema";
 import { embed, reply } from "@lib/discord";
-import { canUseNsfwAction, type NsfwConsentState } from "@lib/security";
+import { canUseNsfwTarget, type NsfwConsentState } from "@lib/security";
 
 const ACTIONS = [
 	{ name: "hug", text: "shares a friendly hug with", suggestive: false },
@@ -274,13 +274,17 @@ export default defineCommand({
 				const target = interaction.options.getUser("target", true);
 				if (target.bot) throw new UserFacingError("Bot accounts cannot be interaction targets.");
 				if (target.id === interaction.user.id) throw new UserFacingError("Choose another person who has opted in.");
+				const targetMember = await guild.members.fetch(target.id).catch(() => null);
+				if (!targetMember) {
+					throw new UserFacingError("That person must currently be a member of this server before they can be an interaction target.");
+				}
 				const targetConsent = await NsfwConsent.findOne({ guildId: guild.id, userId: target.id }).lean().exec();
 				if (targetConsent?.optedIn !== true) {
 					throw new UserFacingError(
 						"That person has not opted in for this server. Do not pressure them; they can choose /nsfw opt-in themselves.",
 					);
 				}
-				if (!canUseNsfwAction(action.suggestive, actorConsent, targetConsent)) {
+				if (!canUseNsfwTarget(targetMember !== null, action.suggestive, actorConsent, targetConsent)) {
 					if (action.suggestive === true && actorConsent.allowSuggestive !== true) {
 						throw new UserFacingError("Use /nsfw opt-in-suggestive to separately opt in before using this action.");
 					}

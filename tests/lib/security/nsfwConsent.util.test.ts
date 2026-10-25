@@ -1,4 +1,4 @@
-import { canUseNsfwAction, type NsfwConsentState } from "@lib/security/nsfwConsent.util";
+import { canUseNsfwAction, canUseNsfwTarget, type NsfwConsentState } from "@lib/security/nsfwConsent.util";
 
 const optedIn: NsfwConsentState = { optedIn: true, allowSuggestive: false };
 const optedInSuggestive: NsfwConsentState = { optedIn: true, allowSuggestive: true };
@@ -24,5 +24,11 @@ describe("NSFW interaction consent", () => {
 	it("rejects consent from missing records", () => {
 		expect(canUseNsfwAction(true, undefined, undefined)).toBe(false);
 		expect(canUseNsfwAction(false, undefined, undefined)).toBe(false);
+	});
+
+	it("does not let a stored consent record authorize a target who is no longer a server member", () => {
+		expect(canUseNsfwTarget(false, false, optedIn, optedIn)).toBe(false);
+		expect(canUseNsfwTarget(false, true, optedInSuggestive, optedInSuggestive)).toBe(false);
+		expect(canUseNsfwTarget(true, false, optedIn, optedIn)).toBe(true);
 	});
 });
