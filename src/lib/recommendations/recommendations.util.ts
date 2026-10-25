@@ -99,8 +99,8 @@ const anilistMediaSchema = z.object({
 	rankings: z.array(z.object({
 		rank: z.number(),
 		type: z.string(),
-		context: z.string().optional(),
-		allTime: z.boolean().optional(),
+		context: z.string().nullable().optional(),
+		allTime: z.boolean().nullable().optional(),
 	})).nullable().optional(),
 	genres: z.array(z.string()).default([]),
 	seasonYear: z.number().nullable().optional(),
