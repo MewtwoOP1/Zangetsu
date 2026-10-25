@@ -144,6 +144,7 @@ export default defineCommand({
 		{
 			name: "consent",
 			description: "Choose whether other members may target you in NSFW action captions.",
+			private: true,
 			options: [
 				{
 					name: "enabled",
@@ -191,9 +192,16 @@ export default defineCommand({
 
 				const target = interaction.options.getUser("target");
 				if (target && target.id !== interaction.user.id) {
-					const targetConsent = await NsfwTargetConsent.findOne({ guildId: guild.id, userId: target.id }).lean().exec();
+					const targetConsent = await NsfwTargetConsent.findOne({
+						guildId: guild.id,
+						userId: target.id,
+					})
+						.lean()
+						.exec();
 					if (targetConsent?.enabled !== true) {
-						throw new UserFacingError(`${target.username} has not opted in to NSFW action captions. They can opt in with /nsfw consent enabled:true.`);
+						throw new UserFacingError(
+							`${target.username} has not opted in to NSFW action captions. They can opt in with /nsfw consent enabled:true.`,
+						);
 					}
 				}
 
