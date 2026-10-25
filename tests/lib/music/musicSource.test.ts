@@ -349,7 +349,7 @@ describe("resolveTracks", () => {
 			formats: [expect.objectContaining({ format_id: "251" })],
 		});
 
-		expect(readFileSync(counter, "utf8").trim().split("\\n")).toHaveLength(1);
+		expect(readFileSync(counter, "utf8").trim().split("\n")).toHaveLength(1);
 	});
 	it("returns nothing when the search found nothing", async () => {
 		const binary = fakeYtDlp("empty", "printf ''");
