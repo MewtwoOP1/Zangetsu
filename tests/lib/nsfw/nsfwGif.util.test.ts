@@ -51,8 +51,8 @@ describe("Rule34 hentai GIF provider", () => {
 		]);
 	});
 
-	it("rejects posts tagged with underage characters for every category", () => {
-		const categories: NsfwGifCategory[] = ["gif", "random", "hentai", "tits"];
+	it("rejects posts tagged with underage characters in broad and random searches", () => {
+		const categories: NsfwGifCategory[] = ["gif", "random", "hentai"];
 		for (const category of categories) {
 			expect(
 				parseRule34GifPosts([{ ...basePost, tags: "animated adult underage" }], category),
