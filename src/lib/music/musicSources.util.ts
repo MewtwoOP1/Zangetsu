@@ -35,7 +35,7 @@ export async function applyMusicSources(
 	return { sources: "soundcloud", configured: true };
 }
 
-/** SoundCloud is the only supported playback source's to switch, so only YouTube and SoundCloud can be refused. */
+/** SoundCloud is the only supported playback source. */
 export function allowsSource(_sources: MusicSourceChoice, source: MusicSource): boolean {
 	return source === "soundcloud";
 }
@@ -62,7 +62,7 @@ const OFF: Record<"youtube" | "soundcloud", string> = {
 	soundcloud: "SoundCloud is the only enabled music source.",
 };
 
-/** Plain text always searches SoundCloud; any named non-SoundCloud service's choice allows it: an unnamed search goes where they point, and a service they turned off is refused. */
+/** Plain text searches SoundCloud; named YouTube searches are refused. */
 export function withinSources(query: Query, sources: MusicSourceChoice): Query {
 	if (query.kind === "search" && query.named !== true) return { ...query, source: "soundcloud" };
 
