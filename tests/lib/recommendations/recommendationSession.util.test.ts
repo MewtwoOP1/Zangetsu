@@ -29,6 +29,46 @@ const anime: MediaRecommendation = {
 	popularityRank: 21,
 };
 
+const manga: MediaRecommendation = {
+	title: "Test Manga",
+	url: "https://zangetsu.online/open/?s=zm&u=zm%3A%2F%2Fmanga%2Fmal%3A2&t=Test+Manga&y=g",
+	summary: "A test manga.",
+	year: 2023,
+	rating: 8.4,
+	genres: ["Fantasy", "Adventure"],
+	poster: "https://example.com/manga.jpg",
+	source: "AniList",
+	mediaType: "manga",
+	status: "RELEASING",
+	format: "MANGA",
+	chapters: 120,
+	volumes: 14,
+	popularity: 5_000,
+	favourites: 400,
+	rank: 12,
+	popularityRank: 30,
+};
+
+const novel: MediaRecommendation = {
+	title: "Test Light Novel",
+	url: "https://zangetsu.online/open/?s=zm&u=zm%3A%2F%2Fnovel%2Fmal%3A3&t=Test+Light+Novel&y=n",
+	summary: "A test light novel.",
+	year: 2022,
+	rating: 8.7,
+	genres: ["Fantasy", "Romance"],
+	poster: null,
+	source: "AniList",
+	mediaType: "novel",
+	status: "FINISHED",
+	format: "NOVEL",
+	chapters: 80,
+	volumes: 9,
+	popularity: 3_000,
+	favourites: 300,
+	rank: 15,
+	popularityRank: 40,
+};
+
 const movie: MediaRecommendation = {
 	title: "Test Movie",
 	url: "https://zangetsu.online/open/?s=zm&u=zm%3A%2F%2Fmovie%2Ftmdb%3A42&t=Test+Movie&y=m",
@@ -87,6 +127,31 @@ describe("interactive media sessions", () => {
 		const next = changeMediaSession(sessionId ?? "", ownerId, "next");
 		expect(next.embeds).toHaveLength(1);
 		expect(next.embeds[0]?.data.title).toContain("Movie  |  Test Movie");
+	});
+
+	it("labels manga and light novels correctly and keeps their Zangetsu open links", () => {
+		const initial = createMediaSession({
+			userId: ownerId,
+			items: [manga, novel],
+			mode: "recommendation",
+		});
+
+		expect(initial.embeds[0]?.data.title).toContain("Manga  |  Test Manga");
+		expect(initial.embeds[0]?.data.fields).toEqual(expect.arrayContaining([
+			expect.objectContaining({ name: "📖 Chapters", value: "120" }),
+			expect.objectContaining({ name: "📚 Volumes", value: "14" }),
+		]));
+		let openButton = initial.components[0]?.components[2] as ButtonBuilder;
+		expect(openButton.data.label).toBe("Open in Zangetsu");
+		expect(openButton.data.url).toBe(manga.url);
+
+		const nextButton = initial.components[0]?.components[0] as ButtonBuilder;
+		const sessionId = parseCustomId(nextButton.data.custom_id ?? "").args[0] ?? "";
+		const next = changeMediaSession(sessionId, ownerId, "next");
+		expect(next.embeds[0]?.data.title).toContain("Light Novel  |  Test Light Novel");
+		openButton = next.components[0]?.components[2] as ButtonBuilder;
+		expect(openButton.data.label).toBe("Open in Zangetsu");
+		expect(openButton.data.url).toBe(novel.url);
 	});
 
 	it("exposes AniList ranking and TMDB vote statistics in the full-stats view", () => {
