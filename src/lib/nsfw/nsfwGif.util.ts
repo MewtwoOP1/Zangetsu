@@ -104,11 +104,106 @@ const EXCLUDED_TAGS = [
 	"bestiality",
 ] as const;
 
-const API_BASE = "https://api.waifu-im.workers.dev/";
-const API_TIMEOUT_MS = 8_000;
+const PRIMARY_API_BASE = "https://waifu-api-031n.onrender.com/";
+const INSTANCE_INDEX_URL = new URL("instances", PRIMARY_API_BASE).toString();
+const DEFAULT_API_BASES = [
+	PRIMARY_API_BASE,
+	"https://api.marek-server.com/",
+	"https://waifu.best/",
+] as const;
+const API_TIMEOUT_MS = 2_500;
+const INSTANCE_INDEX_TIMEOUT_MS = 1_500;
+const INSTANCE_CACHE_TTL_MS = 5 * 60_000;
+const MAX_API_BASES = 4;
+
+let cachedApiBases: string[] = [...DEFAULT_API_BASES];
+let cachedApiBasesUntil = 0;
+let apiBaseDiscovery: Promise<string[]> | null = null;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+/** Normalize an HTTPS API origin while rejecting URL credentials and local hosts. */
+function normalizeApiBase(value: string): string | null {
+	try {
+		const url = new URL(value);
+		const hostname = url.hostname.toLowerCase();
+		if (
+			url.protocol !== "https:" ||
+			url.username ||
+			url.password ||
+			url.search ||
+			url.hash ||
+			!hostname ||
+			hostname === "localhost" ||
+			hostname.endsWith(".localhost") ||
+			hostname.endsWith(".local") ||
+			hostname.endsWith(".internal") ||
+			hostname.startsWith("[") ||
+			/^\d{1,3}(?:\.\d{1,3}){3}$/.test(hostname)
+		) {
+			return null;
+		}
+
+		url.pathname = url.pathname.endsWith("/") ? url.pathname : url.pathname + "/";
+		return url.toString();
+	} catch {
+		return null;
+	}
+}
+
+/** Read the fork's public instance index; registered URLs are validated before use. */
+async function discoverApiBases(): Promise<string[]> {
+	let candidates: string[] = [...DEFAULT_API_BASES];
+
+	try {
+		const response = await fetch(INSTANCE_INDEX_URL, {
+			headers: {
+				accept: "application/json",
+				"user-agent": "ZangetsuDiscordBot/2.0 (+https://zangetsu.online)",
+			},
+			signal: AbortSignal.timeout(INSTANCE_INDEX_TIMEOUT_MS),
+		});
+		const contentType = response.headers.get("content-type") ?? "";
+		if (response.ok && contentType.toLowerCase().includes("json")) {
+			const payload: unknown = await response.json();
+			if (isRecord(payload) && Array.isArray(payload.instances)) {
+				const listedBases = payload.instances.flatMap((entry): string[] => {
+					if (
+						!isRecord(entry) ||
+						typeof entry.url !== "string" ||
+						entry.schema === false ||
+						entry.images === false
+					) {
+						return [];
+					}
+					const base = normalizeApiBase(entry.url);
+					return base ? [base] : [];
+				});
+				candidates = [PRIMARY_API_BASE, ...listedBases, ...DEFAULT_API_BASES.slice(1)];
+			}
+		}
+	} catch {
+		// The index can be asleep or unavailable; use the known fallback bases.
+	}
+
+	cachedApiBases = [
+		...new Set(candidates.map((base) => normalizeApiBase(base)).filter((base): base is string => base !== null)),
+	].slice(0, MAX_API_BASES);
+	cachedApiBasesUntil = Date.now() + INSTANCE_CACHE_TTL_MS;
+	return cachedApiBases;
+}
+
+async function getApiBases(): Promise<string[]> {
+	if (Date.now() < cachedApiBasesUntil) return cachedApiBases;
+	if (!apiBaseDiscovery) apiBaseDiscovery = discoverApiBases();
+
+	try {
+		return await apiBaseDiscovery;
+	} finally {
+		apiBaseDiscovery = null;
+	}
 }
 
 function normalizeTag(value: string): string {
@@ -134,11 +229,6 @@ function getTags(value: Record<string, unknown>): Set<string> {
 	return new Set();
 }
 
-function isAllowedWaifuHost(url: URL): boolean {
-	const hostname = url.hostname.toLowerCase();
-	return hostname === "api.waifu-im.workers.dev" || hostname === "cdn.waifu.im" || hostname.endsWith(".waifu.im");
-}
-
 function getGifUrl(value: Record<string, unknown>): string | null {
 	const rawUrl = typeof value.url === "string" ? value.url :
 		typeof value.file_url === "string" ? value.file_url : "";
@@ -146,7 +236,8 @@ function getGifUrl(value: Record<string, unknown>): string | null {
 
 	try {
 		const url = new URL(rawUrl);
-		if (url.protocol !== "https:" || !isAllowedWaifuHost(url)) return null;
+		// Compatible API instances may serve media from different CDNs.
+		if (url.protocol !== "https:" || url.username || url.password) return null;
 
 		const extension = typeof value.extension === "string"
 			? value.extension.toLowerCase().replace(/^\./, "")
@@ -217,22 +308,32 @@ export function parseWaifuGifImages(payload: unknown): NsfwGifPost[] {
 	});
 }
 
-/** Build a Waifu.im worker search URL. Tags are constants, never user input. */
-export function buildWaifuGifSearchUrl(category: NsfwGifCategory, useCategoryTag = true): string {
-	const url = new URL("search", API_BASE);
-	url.searchParams.set("is_nsfw", "true");
-	url.searchParams.set("gif", "true");
-	url.searchParams.set("many", "true");
-	url.searchParams.set("order_by", "RANDOM");
+/** Build a compatible instance's animated NSFW image-search URL. */
+export function buildWaifuGifSearchUrl(
+	category: NsfwGifCategory,
+	useCategoryTag = true,
+	apiBase = PRIMARY_API_BASE,
+): string {
+	const normalizedBase = normalizeApiBase(apiBase);
+	if (!normalizedBase) throw new Error("Invalid Waifu API base URL");
+	const url = new URL("images", normalizedBase);
+	url.searchParams.set("isNsfw", "True");
+	url.searchParams.set("isAnimated", "True");
+	url.searchParams.set("orderBy", "Random");
+	url.searchParams.set("pageSize", "30");
 
 	if (useCategoryTag) {
-		for (const tag of CATEGORY_TAGS[category]) url.searchParams.append("included_tags", tag);
+		for (const tag of CATEGORY_TAGS[category]) url.searchParams.append("includedTags", tag);
 	}
 	return url.toString();
 }
 
-async function requestWaifuGifSearch(category: NsfwGifCategory, useCategoryTag: boolean): Promise<NsfwGifPost[]> {
-	const response = await fetch(buildWaifuGifSearchUrl(category, useCategoryTag), {
+async function requestWaifuGifSearch(
+	apiBase: string,
+	category: NsfwGifCategory,
+	useCategoryTag: boolean,
+): Promise<NsfwGifPost[]> {
+	const response = await fetch(buildWaifuGifSearchUrl(category, useCategoryTag, apiBase), {
 		headers: {
 			accept: "application/json",
 			"user-agent": "ZangetsuDiscordBot/2.0 (+https://zangetsu.online)",
@@ -240,32 +341,62 @@ async function requestWaifuGifSearch(category: NsfwGifCategory, useCategoryTag: 
 		signal: AbortSignal.timeout(API_TIMEOUT_MS),
 	});
 
-	// A tag may not exist in the catalogue; the caller can retry broadly.
 	if (!response.ok) {
+		// A category tag may not exist on an instance; the caller can retry broadly.
 		if (useCategoryTag && (response.status === 400 || response.status === 404)) return [];
-		throw new Error("Waifu.im API request failed with HTTP " + response.status);
+		throw new Error(new URL(apiBase).host + " returned HTTP " + response.status);
 	}
 
 	const contentType = response.headers.get("content-type") ?? "";
 	if (!contentType.toLowerCase().includes("json")) {
-		throw new Error("Waifu.im API returned non-JSON content (HTTP " + response.status + ", content-type: " + (contentType || "missing") + ")");
+		throw new Error(
+			new URL(apiBase).host +
+				" returned non-JSON content (HTTP " +
+				response.status +
+				", content-type: " +
+				(contentType || "missing") +
+				")",
+		);
 	}
 
 	let payload: unknown;
 	try {
 		payload = await response.json();
 	} catch {
-		throw new Error("Waifu.im API returned invalid JSON");
+		throw new Error(new URL(apiBase).host + " returned invalid JSON");
 	}
 	return parseWaifuGifImages(payload);
 }
 
-/** Returns a validated NSFW GIF, falling back to the full catalogue for broad tags. */
+/** Tries the primary API and healthy registered mirrors, retrying broad tags when needed. */
 export async function fetchNsfwGif(category: NsfwGifCategory): Promise<NsfwGifPost | null> {
-	let results = await requestWaifuGifSearch(category, true);
-	if (results.length === 0 && CATEGORY_TAGS[category].length > 0) {
-		results = await requestWaifuGifSearch(category, false);
+	let lastError: unknown;
+	const apiBases = await getApiBases();
+
+	for (const apiBase of apiBases) {
+		try {
+			let results = await requestWaifuGifSearch(apiBase, category, true);
+			if (results.length === 0 && CATEGORY_TAGS[category].length > 0) {
+				results = await requestWaifuGifSearch(apiBase, category, false);
+			}
+			if (results.length > 0) {
+				return results[Math.floor(Math.random() * results.length)] ?? null;
+			}
+		} catch (error) {
+			lastError = error;
+		}
 	}
-	if (results.length === 0) return null;
-	return results[Math.floor(Math.random() * results.length)] ?? null;
+
+	if (lastError !== undefined) {
+		const detail =
+			typeof lastError === "object" &&
+			lastError !== null &&
+			"message" in lastError &&
+			typeof lastError.message === "string"
+				? lastError.message
+				: "Unknown provider error";
+		throw new Error("All compatible Waifu API instances failed. Last error: " + detail);
+	}
+
+	return null;
 }
