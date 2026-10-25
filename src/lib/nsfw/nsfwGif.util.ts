@@ -1,3 +1,5 @@
+import { loadEnv } from "@config/env";
+
 export const NSFW_GIF_CATEGORIES = [
 	"gif",
 	"random",
@@ -59,6 +61,18 @@ const EXCLUDED_TAGS = [
 
 const API_ENDPOINT = "https://api.rule34.xxx/index.php";
 
+export interface Rule34ApiCredentials {
+  apiKey: string;
+  userId: string;
+}
+
+export class NsfwGifConfigurationError extends Error {
+  constructor() {
+    super("Hentai GIF search is not configured. Set RULE34_API_KEY and RULE34_USER_ID in the bot host environment.");
+    this.name = "NsfwGifConfigurationError";
+  }
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return value !== null && typeof value === "object" && !Array.isArray(value);
 }
@@ -110,7 +124,10 @@ export function parseRule34GifPosts(payload: unknown, category: NsfwGifCategory)
 }
 
 /** Builds the documented Rule34 DAPI search URL without accepting arbitrary user-supplied tags. */
-export function buildRule34GifSearchUrl(category: NsfwGifCategory): string {
+export function buildRule34GifSearchUrl(
+  category: NsfwGifCategory,
+  credentials?: Rule34ApiCredentials,
+): string {
 	const url = new URL(API_ENDPOINT);
 	const tags = [
 		...CATEGORY_TAGS[category],
@@ -129,12 +146,21 @@ export function buildRule34GifSearchUrl(category: NsfwGifCategory): string {
 	url.searchParams.set("json", "1");
 	url.searchParams.set("limit", "100");
 	url.searchParams.set("tags", tags.join(" "));
+	if (credentials) {
+		url.searchParams.set("api_key", credentials.apiKey);
+		url.searchParams.set("user_id", credentials.userId);
+	}
 	return url.toString();
 }
 
 /** Requests one randomized page and returns a validated animated GIF, or null if none matched. */
 export async function fetchNsfwGif(category: NsfwGifCategory): Promise<NsfwGifPost | null> {
-	const response = await fetch(buildRule34GifSearchUrl(category), {
+	const env = loadEnv();
+	const apiKey = env.RULE34_API_KEY;
+	const userId = env.RULE34_USER_ID;
+	if (!apiKey || !userId) throw new NsfwGifConfigurationError();
+
+	const response = await fetch(buildRule34GifSearchUrl(category, { apiKey, userId }), {
 		headers: {
 			accept: "application/json",
 			"user-agent": "ZangetsuDiscordBot/2.0 (+https://zangetsu.online)",
