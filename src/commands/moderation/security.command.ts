@@ -135,6 +135,10 @@ export default defineCommand({
 			async run(interaction) {
 				const guild = inGuild(interaction);
 				const channel = inTextChannel(interaction);
+				if (!("permissionOverwrites" in channel)) {
+					throw new UserFacingError("Panic locks only work in channels with their own permission overwrites, not threads.");
+				}
+
 				const me = guild.members.me;
 				if (!me || !me.permissionsIn(channel).has(PermissionFlagsBits.ManageRoles)) {
 					throw new UserFacingError("I need Manage Roles permission in this channel to apply a panic lock.");
@@ -197,6 +201,10 @@ export default defineCommand({
 			async run(interaction) {
 				const guild = inGuild(interaction);
 				const channel = inTextChannel(interaction);
+				if (!("permissionOverwrites" in channel)) {
+					throw new UserFacingError("Panic locks can only be restored from a channel with its own permission overwrites.");
+				}
+
 				const me = guild.members.me;
 				if (!me || !me.permissionsIn(channel).has(PermissionFlagsBits.ManageRoles)) {
 					throw new UserFacingError("I need Manage Roles permission in this channel to restore a panic lock.");
