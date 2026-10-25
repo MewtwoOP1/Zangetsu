@@ -9,7 +9,7 @@ import { refusalEmbed, replyTemporarily } from "@lib/discord";
 
 /** Lets natural-language recommendation requests reach intent parsing instead of positional type parsing. */
 export function shouldDeferRecommendationToIntent(parsedName: string, args: string[]): boolean {
-	return parsedName === "recommend" && !["anime", "movie", "series"].includes(args[0] ?? "");
+	return parsedName === "recommend" && !["anime", "movie", "series", "all"].includes(args[0] ?? "");
 }
 
 /** Runs `t?ban @someone` through the same code and checks as `/ban`. */
