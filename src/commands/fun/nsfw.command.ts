@@ -155,11 +155,14 @@ export default defineCommand({
 				await requireEnabledNsfwChannel(interaction, guild.id);
 
 				const target = interaction.options.getUser("target");
-								let result: Awaited<ReturnType<typeof fetchNsfwGif>>;
+				let result: Awaited<ReturnType<typeof fetchNsfwGif>>;
 				try {
 					result = await fetchNsfwGif(category);
 				} catch (error) {
-					const detail = error instanceof Error ? error.message : "Unknown provider error";
+					const detail =
+						typeof error === "object" && error !== null && "message" in error && typeof error.message === "string"
+							? error.message
+							: "Unknown provider error";
 					throw new UserFacingError(
 						"The GIF provider is temporarily unavailable. Please try again shortly. (" + detail + ")",
 					);
