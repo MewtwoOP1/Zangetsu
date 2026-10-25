@@ -32,7 +32,7 @@ export function resolveQuery(raw: string): Query | null {
 		}
 	}
 
-	return { kind: "search", terms: trimmed, source: "youtube" };
+	return { kind: "search", terms: trimmed, source: "soundcloud" };
 }
 
 /** Only http(s): a `file:` or `data:` argument must read as search text rather than as something to open. */

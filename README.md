@@ -2,18 +2,17 @@
 
 **A community-customized Discord bot, built on Testify v2.**
 
-Zangetsu is our own tailored build of the Testify v2 codebase. We customize its
-commands, appearance, music experience, media discovery, and server tools for
-our community. This is not an official Testify release.
+Zangetsu is our community build, with custom commands, shared branding, moderation, server tools, media discovery, and music.
 
 ## Features
 
 - Moderation, server settings, logging, verification, and tickets
 - Community tools, welcome features, giveaways, games, and levelling
-- YouTube and SoundCloud music search with a live playback panel
-- Ranked anime recommendations and movie / TV catalogue lookups
+- SoundCloud-only music search and playback with `/play` title search
+- Anime recommendations and movie / TV catalogue lookups
 - Economy, leaderboards, and an optional web dashboard
 - Slash commands and configurable prefix commands
+- Shared Zangetsu logo on command embeds and help responses
 
 ## Local development
 
@@ -31,15 +30,12 @@ For production, run `npm run setup`, then `npm run build` and `npm start`.
 
 ## Music and media
 
-Run `npm run music:setup` if yt-dlp is missing or outdated. Use
-`/music status` to inspect the host setup. FFmpeg is required for transcoding,
-volume adjustment, and seeking.
+`/play query:lofi beats` searches SoundCloud. You can also provide a SoundCloud track or set URL. YouTube and other music sources are not supported by the bot's playback flow.
 
-Anime uses AniList. Movie and TV lookups use TMDB and require
-`TMDB_API_READ_ACCESS_TOKEN`.
+The bot still uses **yt-dlp** internally to resolve SoundCloud streams. Do not remove the `youtube-dl-exec` package solely because YouTube playback is disabled: it provides the yt-dlp executable used by SoundCloud playback. FFmpeg is needed for transcoding, volume adjustment, and seeking.
+
+Anime uses AniList. Movie and TV lookups use TMDB and require `TMDB_API_READ_ACCESS_TOKEN`.
 
 ## Safety and attribution
 
-Never commit bot tokens, database credentials, or `.env` files. Zangetsu
-inherits parts of its foundation from Testify v2; retain the license and
-attribution notices when adapting or redistributing the code. See [LICENSE](LICENSE).
+Never commit bot tokens, database credentials, or `.env` files. Zangetsu inherits parts of its foundation from Testify v2; retain the license and attribution notices when adapting or redistributing the code. See [LICENSE](LICENSE).

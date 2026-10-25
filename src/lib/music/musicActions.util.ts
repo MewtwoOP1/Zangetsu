@@ -46,10 +46,8 @@ export function sameChannelAs(session: MusicSession, member: GuildMember): void 
 export function requestedQuery(raw: string): Query {
 	const query = resolveQuery(raw);
 	if (query === null) throw new UserFacingError("Say what to play — a link, or a few words to search for.");
-	if (query.source === "spotify") {
-		throw new UserFacingError(
-			"Spotify streams are DRM-protected, so nothing can play them. Search for the track by name instead.",
-		);
+	if (query.source !== "soundcloud") {
+		throw new UserFacingError("Zangetsu music is SoundCloud-only. Search by title or paste a SoundCloud link.");
 	}
 
 	return query;

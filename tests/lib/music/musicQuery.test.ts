@@ -17,7 +17,7 @@ describe("resolveQuery", () => {
 		expect(resolveQuery("never gonna give you up")).toEqual({
 			kind: "search",
 			terms: "never gonna give you up",
-			source: "youtube",
+			source: "soundcloud",
 		});
 	});
 

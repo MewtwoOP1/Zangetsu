@@ -19,59 +19,59 @@ const youtubeLink: Query = { kind: "url", url: "https://youtu.be/abc", source: "
 const soundCloudLink: Query = { kind: "url", url: "https://soundcloud.com/a/b", source: "soundcloud" };
 
 describe("normaliseMusicSources", () => {
-	/** A bot that has never been configured keeps playing from both, which is what it did before there was a choice. */
-	it("reads nothing stored as both, and says it is the default", () => {
-		expect(normaliseMusicSources(null)).toEqual({ sources: "both", configured: false });
+	/** A fresh bot uses the new SoundCloud-only default. */
+	it("reads no setting as SoundCloud-only by default", () => {
+		expect(normaliseMusicSources(null)).toEqual({ sources: "soundcloud", configured: false });
 		expect(normaliseMusicSources({ musicSources: "soundcloud" })).toEqual({ sources: "soundcloud", configured: true });
 	});
 });
 
 describe("allowsSource", () => {
 	it.each([
-		["both", "youtube", true],
+		["both", "youtube", false],
 		["both", "soundcloud", true],
-		["youtube", "soundcloud", false],
+		["youtube", "soundcloud", true],
 		["soundcloud", "youtube", false],
-		["youtube", "youtube", true],
+		["youtube", "youtube", false],
 		["soundcloud", "soundcloud", true],
 	] as const)("with %s, %s is allowed: %s", (sources, source, allowed) => {
 		expect(allowsSource(sources, source)).toBe(allowed);
 	});
 
 	/** The switch is about two services; a link to anywhere else was never the owner's to refuse. */
-	it("never refuses another site", () => {
-		expect(allowsSource("youtube", "other")).toBe(true);
-		expect(allowsSource("soundcloud", "other")).toBe(true);
+	it("rejects non-SoundCloud sources", () => {
+		expect(allowsSource("youtube", "other")).toBe(false);
+		expect(allowsSource("soundcloud", "other")).toBe(false);
 	});
 });
 
 describe("withinSources", () => {
 	it("sends a plain search wherever the owner points", () => {
 		expect(withinSources(plain, "soundcloud")).toMatchObject({ source: "soundcloud" });
-		expect(withinSources(plain, "youtube")).toMatchObject({ source: "youtube" });
-		expect(withinSources(plain, "both")).toMatchObject({ source: "youtube" });
+		expect(withinSources(plain, "youtube")).toMatchObject({ source: "soundcloud" });
+		expect(withinSources(plain, "both")).toMatchObject({ source: "soundcloud" });
 		expect(searchSourceFor("soundcloud")).toBe("soundcloud");
 	});
 
-	it("keeps a service the reader named, while the owner allows it", () => {
+	it("keeps a named SoundCloud search in SoundCloud-only mode", () => {
 		const named: Query = { kind: "search", terms: "x", source: "soundcloud", named: true };
 
 		expect(withinSources(named, "both")).toBe(named);
-		expect(() => withinSources(named, "youtube")).toThrow(/SoundCloud off/);
+		expect(withinSources(named, "youtube")).toBe(named);
 	});
 
 	/** Turning a service off has to cover links as well, or pasting one would walk straight past the switch. */
 	it("refuses a link to a service that is switched off, and says which is left", () => {
 		expect(() => withinSources(youtubeLink, "soundcloud")).toThrow(UserFacingError);
-		expect(() => withinSources(youtubeLink, "soundcloud")).toThrow(/SoundCloud only/);
-		expect(() => withinSources(soundCloudLink, "youtube")).toThrow(/YouTube only/);
+		expect(() => withinSources(youtubeLink, "soundcloud")).toThrow(/SoundCloud-only/);
+		expect(withinSources(soundCloudLink, "youtube")).toBe(soundCloudLink);
 		expect(withinSources(soundCloudLink, "both")).toBe(soundCloudLink);
 	});
 });
 
 describe("fallsBackToSoundCloud", () => {
 	it("moves only a plain YouTube search, and only while both are allowed", () => {
-		expect(fallsBackToSoundCloud(plain, "both")).toBe(true);
+		expect(fallsBackToSoundCloud(plain, "both")).toBe(false);
 		expect(fallsBackToSoundCloud(plain, "youtube")).toBe(false);
 		expect(fallsBackToSoundCloud(youtubeLink, "both")).toBe(false);
 		expect(fallsBackToSoundCloud({ ...plain, named: true }, "both")).toBe(false);
@@ -80,8 +80,8 @@ describe("fallsBackToSoundCloud", () => {
 
 describe("sourcesLine", () => {
 	it("tells a server which services it gets", () => {
-		expect(sourcesLine("both")).toMatch(/YouTube and SoundCloud/);
-		expect(sourcesLine("youtube")).toMatch(/YouTube only/);
+		expect(sourcesLine("both")).toMatch(/SoundCloud only/);
+		expect(sourcesLine("youtube")).toMatch(/SoundCloud only/);
 		expect(sourcesLine("soundcloud")).toMatch(/SoundCloud only/);
 	});
 });
