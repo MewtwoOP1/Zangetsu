@@ -5,9 +5,9 @@ import { defineEvent } from "@core/event";
 import { getAutoRoles, getWelcome } from "@database/repositories/settingsRepository";
 import { countMove } from "@lib/info";
 import { writeAuditLog } from "@lib/moderation";
+import { handleRaidShieldJoin } from "@lib/security";
 import { syncVoiceCounters } from "@lib/settings";
 import { greetingFor, normaliseWelcome } from "@lib/welcome";
-import { handleRaidShieldJoin } from "@lib/security";
 
 export default defineEvent({
 	name: Events.GuildMemberAdd,
