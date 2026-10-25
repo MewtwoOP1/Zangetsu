@@ -16,7 +16,7 @@ export interface MediaRecommendation {
 	source: "AniList" | "TMDB";
 }
 
-interface RecommendationInput {
+export interface RecommendationInput {
 	type: RecommendationType;
 	preferences: string;
 	tmdbToken?: string;
@@ -237,11 +237,12 @@ async function fetchAnime(genre: string | null, tag: string | null): Promise<Med
 		body: JSON.stringify({ query: ANILIST_QUERY, variables }),
 	});
 
-	if (payload.errors?.length || !payload.data?.Page) {
+	const mediaList = payload.data?.Page?.media;
+	if (payload.errors?.length || mediaList === undefined) {
 		throw new Error(payload.errors?.[0]?.message ?? "AniList returned no catalogue data.");
 	}
 
-	return payload.data.Page.media.map((media) => ({
+	return mediaList.map((media) => ({
 		title: media.title.english?.trim() || media.title.romaji,
 		url: media.siteUrl,
 		summary: cleanSummary(media.description) || "No synopsis is available.",
