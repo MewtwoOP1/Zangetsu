@@ -195,8 +195,7 @@ describe("lookupMedia", () => {
 			source: "AniList",
 			mediaType: "anime",
 			rating: 8.5,
-			meanScore: undefined,
-			popularity: 120_000,
+ 			popularity: 120_000,
 			favourites: 12_000,
 			episodes: 24,
 			duration: 24,
@@ -212,6 +211,54 @@ describe("lookupMedia", () => {
 });
 
 describe("recommendMedia", () => {
+	beforeEach(() => {
+		clearRecommendationCache();
+		jest.restoreAllMocks();
+	});
+
+	afterEach(() => {
+		clearRecommendationCache();
+		jest.restoreAllMocks();
+	});
+
+	it("returns exactly three ranked AniList picks and three top-rated TMDB picks for all media", async () => {
+		const animeItems = Array.from({ length: 3 }, (_, index) => ({
+			...animeResult,
+			id: index + 1,
+			idMal: 61_990 + index,
+			title: { english: `Top Anime ${index + 1}`, romaji: `Top Anime ${index + 1}`, native: null },
+			averageScore: 96 - index,
+		}));
+		const movieItems = [
+			{ id: 101, title: "Top Movie", overview: "Movie synopsis.", poster_path: null, vote_average: 9.2, vote_count: 1_200, popularity: 80, genre_ids: [14], release_date: "2024-01-01" },
+			{ id: 102, title: "Second Movie", overview: "Movie synopsis.", poster_path: null, vote_average: 8.7, vote_count: 900, popularity: 50, genre_ids: [14], release_date: "2023-01-01" },
+			{ id: 103, title: "Third Movie", overview: "Movie synopsis.", poster_path: null, vote_average: 8.5, vote_count: 700, popularity: 40, genre_ids: [14], release_date: "2022-01-01" },
+		];
+		const seriesItems = [
+			{ id: 201, name: "Top Series", overview: "Series synopsis.", poster_path: null, vote_average: 9.1, vote_count: 2_000, popularity: 90, genre_ids: [10765], first_air_date: "2024-01-01" },
+			{ id: 202, name: "Second Series", overview: "Series synopsis.", poster_path: null, vote_average: 8.9, vote_count: 800, popularity: 60, genre_ids: [10765], first_air_date: "2023-01-01" },
+			{ id: 203, name: "Third Series", overview: "Series synopsis.", poster_path: null, vote_average: 8.4, vote_count: 600, popularity: 30, genre_ids: [10765], first_air_date: "2022-01-01" },
+		];
+
+		const fetchMock = jest.spyOn(global, "fetch").mockImplementation(async (input) => {
+			const url = String(input);
+			const payload = url.includes("graphql.anilist.co")
+				? { data: { Page: { media: animeItems } } }
+				: url.includes("/discover/movie?")
+					? { results: movieItems }
+					: { results: seriesItems };
+			return new Response(JSON.stringify(payload), { status: 200, headers: { "content-type": "application/json" } });
+		});
+
+		const results = await recommendMedia({ type: "all", preferences: "", tmdbToken: "test-token" });
+
+		expect(results).toHaveLength(6);
+		expect(results.slice(0, 3).every((item) => item.source === "AniList" && item.mediaType === "anime")).toBe(true);
+		expect(results.slice(3).every((item) => item.source === "TMDB")).toBe(true);
+		expect(results.slice(3).map((item) => item.title)).toEqual(["Top Movie", "Top Series", "Second Series"]);
+		expect(fetchMock).toHaveBeenCalledTimes(3);
+	});
+
 	beforeEach(() => {
 		clearRecommendationCache();
 		jest.restoreAllMocks();
