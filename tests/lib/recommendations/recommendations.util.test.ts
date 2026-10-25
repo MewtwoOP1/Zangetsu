@@ -118,7 +118,7 @@ describe("recommendMedia", () => {
 				url: "https://anilist.co/anime/1",
 				summary: "A story & test",
 				year: 2024,
-				rating: 85,
+				rating: 8.5,
 				genres: ["Fantasy"],
 				poster: "https://example.com/anime.jpg",
 				source: "AniList",
@@ -196,7 +196,7 @@ describe("recommendMedia", () => {
 	});
 
 	it("uses the TV endpoint and first air date for series", async () => {
-		mockJson({
+		const fetchMock = mockJson({
 			results: [
 				{
 					id: 55,
