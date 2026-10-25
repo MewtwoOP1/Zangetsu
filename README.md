@@ -9,7 +9,7 @@ Zangetsu is our community build, with custom commands, shared branding, moderati
 ## Features
 
 - Moderation, server settings, logging, verification, tickets, permission audits, panic-lock recovery, and Raid Shield alerts
-- Consent-gated, text-only interactions for age-restricted channels
+- Adult hentai GIF retrieval in age-restricted channels
 - Community tools, welcome features, giveaways, games, and levelling
 - SoundCloud-only music search and playback with `/play` title search
 - Anime recommendations and movie / TV catalogue lookups
@@ -39,9 +39,9 @@ For production, run `npm run setup`, then `npm run build` and `npm start`.
 - `/security panic` temporarily locks the current channel; `/security restore` restores the saved message permission overrides.
 - `/security raid-shield-enable` and `/security raid-shield-disable` toggle join-burst alerts. Raid Shield alerts only; it does not automatically punish members.
 
-## Consent-gated text interactions
+## Adult hentai GIFs
 
-The `/nsfw` module is disabled by default. A server manager must enable it, each participant must opt in separately, and interactions only run in a Discord age-restricted channel. The module contains non-graphic text interactions only; it does not retrieve explicit media. The `/nsfw fuck` and `/nsfw anal` actions also require both participants to use `/nsfw opt-in-suggestive`. Either person can withdraw general consent with `/nsfw opt-out` or withdraw suggestive consent with `/nsfw opt-out-suggestive`.
+The `/nsfw` module is disabled by default. A server manager can enable or disable it with `/nsfw enable` and `/nsfw disable`. GIF commands only run in Discord age-restricted channels and do not target or mention other members, so per-user opt-in is not required. Categories include `/nsfw gif`, `/nsfw fuck`, `/nsfw anal`, `/nsfw blowjob`, `/nsfw tits`, `/nsfw ass`, `/nsfw pussy`, `/nsfw cum`, `/nsfw handjob`, `/nsfw hentai`, `/nsfw lesbian`, `/nsfw threesome`, and `/nsfw random`. The provider is Rule34's documented post API; the bot requests explicit animated posts, accepts GIF files only, rejects common underage and abusive tags, and validates HTTPS media URLs before displaying results. Third-party ratings and tags are not infallible.
 
 ## Music and media
 
