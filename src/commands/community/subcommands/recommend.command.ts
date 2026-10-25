@@ -1,8 +1,7 @@
 import { defineCommand } from "@core/command";
 import { UserFacingError } from "@core/errors";
-import { embed, reply } from "@lib/discord";
-import { truncate } from "@lib/format";
-import { recommendMedia, type RecommendationType } from "@lib/recommendations";
+import { reply } from "@lib/discord";
+import { recommendMedia, recommendationEmbeds, type RecommendationType } from "@lib/recommendations";
 
 const MEDIA_TYPES = [
 	{ name: "Anime", value: "anime" },
@@ -60,29 +59,6 @@ export default defineCommand({
 			throw new UserFacingError("I couldn't find matching titles. Try a broader genre or different preferences.");
 		}
 
-		await reply(interaction, {
-			embeds: recommendations.map((item, index) =>
-				embed({
-					category: "community",
-					title: `${index + 1}. ${item.title}`,
-					url: item.url,
-					description: truncate(item.summary, 700),
-					...(item.poster === null ? {} : { thumbnail: item.poster }),
-					fields: [
-						{
-							name: "Rating",
-							value: item.rating === null ? "Not rated" : `${item.rating.toFixed(1)}/10`,
-							inline: true,
-						},
-						{ name: "Year", value: item.year === null ? "Unknown" : String(item.year), inline: true },
-						{ name: "Genres", value: item.genres.slice(0, 5).join(", ") || "Not listed", inline: true },
-					],
-					footer:
-						item.source === "TMDB"
-							? "This product uses the TMDB API but is not endorsed or certified by TMDB."
-							: "Source: AniList",
-				}),
-			),
-		});
+		await reply(interaction, { embeds: recommendationEmbeds(recommendations) });
 	},
 });
