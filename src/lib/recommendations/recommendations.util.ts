@@ -237,7 +237,7 @@ async function fetchAnime(genre: string | null, tag: string | null): Promise<Med
 		body: JSON.stringify({ query: ANILIST_QUERY, variables }),
 	});
 
-	if (payload.errors?.length || payload.data?.Page === undefined || payload.data.Page === undefined) {
+	if (payload.errors?.length || !payload.data?.Page) {
 		throw new Error(payload.errors?.[0]?.message ?? "AniList returned no catalogue data.");
 	}
 
