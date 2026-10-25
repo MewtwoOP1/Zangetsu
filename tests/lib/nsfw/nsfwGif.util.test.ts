@@ -81,7 +81,7 @@ describe("Rule34 hentai GIF provider", () => {
 
 		for (const [category, expectedTag] of cases) {
 			const url = new URL(buildRule34GifSearchUrl(category));
-			const tags = url.searchParams.get("tags")?.split(/\\s+/) ?? [];
+			const tags = url.searchParams.get("tags")?.split(/\s+/) ?? [];
 			expect(tags).toContain(expectedTag);
 			expect(
 				parseRule34GifPosts(
