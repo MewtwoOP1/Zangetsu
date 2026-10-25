@@ -19,8 +19,9 @@ describe("embed", () => {
 		expect(embed({ footer: "Page 1" }).data.footer?.text).toBe("Page 1");
 	});
 
-	it("uses the configured Zangetsu logo as the default footer icon", () => {
+	it("uses the configured Zangetsu logo as the default footer icon and thumbnail", () => {
 		expect(embed({}).data.footer?.icon_url).toBe(theme.logoUrl);
+		expect(embed({}).data.thumbnail?.url).toBe(theme.logoUrl);
 	});
 
 	it("allows a caller to override or suppress the default footer icon", () => {
