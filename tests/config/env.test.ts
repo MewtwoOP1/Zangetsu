@@ -67,8 +67,6 @@ describe("loadEnv", () => {
 			CHANNEL_SUGGESTION_LOG: "",
 			CHANNEL_EVAL_LOG: "",
 			TMDB_API_READ_ACCESS_TOKEN: "",
-			RULE34_API_KEY: "",
-			RULE34_USER_ID: "",
 		});
 
 		const env = loadEnv();
@@ -76,8 +74,6 @@ describe("loadEnv", () => {
 		expect(env.DISCORD_DEV_GUILD_ID).toBeUndefined();
 		expect(env.CHANNEL_ERROR_LOG).toBeUndefined();
 		expect(env.TMDB_API_READ_ACCESS_TOKEN).toBeUndefined();
-		expect(env.RULE34_API_KEY).toBeUndefined();
-		expect(env.RULE34_USER_ID).toBeUndefined();
 		expect(env.LOG_LEVEL).toBe("info");
 	});
 
