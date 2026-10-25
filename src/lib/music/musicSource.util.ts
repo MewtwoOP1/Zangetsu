@@ -217,7 +217,9 @@ export async function resolveTracks(
 	if (usable.length === 0 && documents.length > 0) throw new MusicProblemError(NOTHING_PLAYABLE);
 
 	// A normal search already returned full formats, so playback can reuse this metadata instead of spawning yt-dlp again.
-	if (!flat) for (const info of usable) rememberDescription(info, binaries);
+	if (!flat) {
+		for (const info of usable) rememberDescription(info, binaries);
+	}
 
 	return usable.flatMap((info) => tracksFromInfo(info, requestedBy, query.source));
 }
@@ -233,8 +235,16 @@ function describedKey(url: string, binary: string): string {
 	return `${binary}\n${url}`;
 }
 
-function rememberDescription(info: TrackInfo, binaries: MusicBinaries, now = Date.now()): void {
-	if (binaries.ytDlp === null || !Array.isArray(info.formats) || info.formats.length === 0) return;
+function rememberDescription(
+	info: TrackInfo,
+	binaries: MusicBinaries,
+	now = Date.now(),
+	requireFormats = true,
+): void {
+	if (
+		binaries.ytDlp === null ||
+		(requireFormats && (!Array.isArray(info.formats) || info.formats.length === 0))
+	) return;
 
 	const url = addressOf(info);
 	if (url === null || url === "") return;
@@ -275,7 +285,7 @@ export async function describeTrack(url: string, binaries: MusicBinaries, now = 
 	const info = parseJsonLines(stdout).at(0) ?? null;
 	if (info === null) return null;
 
-	rememberDescription(info, binaries, now);
+	rememberDescription(info, binaries, now, false);
 
 	return info;
 }
