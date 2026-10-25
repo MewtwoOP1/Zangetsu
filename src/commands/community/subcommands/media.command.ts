@@ -44,7 +44,7 @@ export default defineCommand({
 
 		await interaction.deferReply();
 
-		let results;
+		let results: Awaited<ReturnType<typeof lookupMedia>>;
 		try {
 			results = await lookupMedia({
 				query,
