@@ -11,7 +11,7 @@ const VALID = {
 
 function setEnv(values: Record<string, string | undefined>): void {
 	for (const key of Object.keys(process.env)) {
-		const owned = ["DISCORD_", "CHANNEL_", "DASHBOARD_", "TMDB_", "RULE34_", "SUPPORT_AI_"].some((prefix) => key.startsWith(prefix));
+		const owned = ["DISCORD_", "CHANNEL_", "DASHBOARD_", "TMDB_", "SUPPORT_AI_"].some((prefix) => key.startsWith(prefix));
 		if (owned || key === "MONGODB_URI") delete process.env[key];
 	}
 	for (const [key, value] of Object.entries(values)) {
