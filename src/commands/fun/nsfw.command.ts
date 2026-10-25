@@ -7,7 +7,6 @@ import {
 	buildNsfwActionLine,
 	fetchNsfwGif,
 	NSFW_GIF_CATEGORIES,
-	NsfwGifConfigurationError,
 	type NsfwGifCategory,
 } from "@lib/nsfw/nsfwGif.util";
 
@@ -160,10 +159,10 @@ export default defineCommand({
 				try {
 					result = await fetchNsfwGif(category);
 				} catch (error) {
-					if (error instanceof NsfwGifConfigurationError) {
-						throw new UserFacingError(error.message);
-					}
-					throw new UserFacingError("The GIF provider is temporarily unavailable. Please try again shortly.");
+					const detail = error instanceof Error ? error.message : "Unknown provider error";
+					throw new UserFacingError(
+						"The GIF provider is temporarily unavailable. Please try again shortly. (" + detail + ")",
+					);
 				}
 
 				if (!result) {
