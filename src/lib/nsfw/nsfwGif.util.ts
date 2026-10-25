@@ -62,15 +62,17 @@ const EXCLUDED_TAGS = [
 const API_ENDPOINT = "https://api.rule34.xxx/index.php";
 
 export interface Rule34ApiCredentials {
-  apiKey: string;
-  userId: string;
+	apiKey: string;
+	userId: string;
 }
 
 export class NsfwGifConfigurationError extends Error {
-  constructor() {
-    super("Hentai GIF search is not configured. Set RULE34_API_KEY and RULE34_USER_ID in the bot host environment.");
-    this.name = "NsfwGifConfigurationError";
-  }
+	constructor() {
+		super(
+			"Hentai GIF search is not configured. Set RULE34_API_KEY and RULE34_USER_ID in the bot host environment.",
+		);
+		this.name = "NsfwGifConfigurationError";
+	}
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -125,8 +127,8 @@ export function parseRule34GifPosts(payload: unknown, category: NsfwGifCategory)
 
 /** Builds the documented Rule34 DAPI search URL without accepting arbitrary user-supplied tags. */
 export function buildRule34GifSearchUrl(
-  category: NsfwGifCategory,
-  credentials?: Rule34ApiCredentials,
+	category: NsfwGifCategory,
+	credentials?: Rule34ApiCredentials,
 ): string {
 	const url = new URL(API_ENDPOINT);
 	const tags = [
