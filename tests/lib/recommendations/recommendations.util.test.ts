@@ -1,10 +1,14 @@
 import {
 	buildZangetsuAnimeUrl,
+	buildZangetsuAniListUrl,
 	buildZangetsuTmdbUrl,
 	clearRecommendationCache,
 	detectAnimeTag,
 	detectRecommendationGenre,
+	detectRecommendationGenres,
 	lookupMedia,
+	rankRecommendationsHeuristically,
+	rankRecommendationsWithAI,
 	recommendMedia,
 	recommendationEmbeds,
 	type MediaRecommendation,
@@ -37,6 +41,9 @@ describe("media recommendation filters", () => {
 		expect(detectRecommendationGenre("scifi series", "series")).toBe("Sci-Fi");
 		expect(detectRecommendationGenre("horror", "series")).toBeNull();
 		expect(detectRecommendationGenre("something different", "movie")).toBeNull();
+		expect(detectRecommendationGenres("fantasy romance with mystery", "manga")).toEqual([
+			"Fantasy", "Romance", "Mystery",
+		]);
 	});
 
 	it("detects common anime tropes without requiring an AI call", () => {
@@ -125,6 +132,37 @@ describe("buildZangetsuAnimeUrl", () => {
 	});
 });
 
+describe("buildZangetsuAniListUrl", () => {
+	it.each([
+		["manga", "zm://manga/mal:42", "g"],
+		["novel", "zm://novel/mal:42", "n"],
+	] as const)("builds the Zangetsu deep link for %s", (mediaType, showUrl, kindCode) => {
+		const result = new URL(buildZangetsuAniListUrl({
+			anilistId: 9_999,
+			malId: 42,
+			title: "A good title",
+			mediaType,
+			cover: "https://example.com/cover.jpg",
+		}));
+
+		expect(result.origin + result.pathname).toBe("https://zangetsu.online/open/");
+		expect(result.searchParams.get("s")).toBe("zm");
+		expect(result.searchParams.get("u")).toBe(showUrl);
+		expect(result.searchParams.get("y")).toBe(kindCode);
+		expect(result.searchParams.get("t")).toBe("A good title");
+	});
+
+	it("uses the AniList ID when a MAL ID is unavailable", () => {
+		const result = new URL(buildZangetsuAniListUrl({
+			anilistId: 30013,
+			title: "Manga without MAL",
+			mediaType: "manga",
+		}));
+		expect(result.searchParams.get("u")).toBe("zm://manga/al:30013");
+		expect(result.searchParams.has("c")).toBe(false);
+	});
+});
+
 describe("buildZangetsuTmdbUrl", () => {
 	it("builds the app hand-off URL from the TMDB movie format", () => {
 		const result = new URL(
@@ -206,7 +244,54 @@ describe("lookupMedia", () => {
 		}));
 		const body = JSON.parse(String(jest.mocked(global.fetch).mock.calls[0]?.[1]?.body));
 		expect(body.query).toContain("SEARCH_MATCH");
-		expect(body.variables).toEqual({ search: "Test Anime", page: 1, perPage: 10 });
+		expect(body.variables).toEqual({ search: "Test Anime", page: 1, perPage: 10, mediaType: "ANIME" });
+	});
+});
+
+describe("recommendation ranking", () => {
+	const baseItem = (overrides: Partial<MediaRecommendation>): MediaRecommendation => ({
+		title: "Generic Title",
+		url: "https://anilist.co/anime/1",
+		summary: "A story.",
+		year: 2024,
+		rating: 8,
+		genres: [],
+		poster: null,
+		source: "AniList",
+		mediaType: "anime",
+		...overrides,
+	});
+
+	it("ranks relevant genre and synopsis matches above popularity-only choices", () => {
+		const fantasy = baseItem({ title: "Fantasy Quest", genres: ["Fantasy"], rating: 9.8 });
+		const romance = baseItem({
+			title: "Quiet Spring",
+			summary: "A slow burn story about two people slowly falling in love.",
+			genres: ["Romance", "Slice of Life"],
+			rating: 8.1,
+		});
+		expect(rankRecommendationsHeuristically([fantasy, romance], "slow burn romance")[0]).toBe(romance);
+	});
+
+	it("uses AI to reorder only the supplied catalogue IDs, then keeps unranked titles", async () => {
+		const first = baseItem({ title: "First", url: "https://example.com/1" });
+		const second = baseItem({ title: "Second", url: "https://example.com/2" });
+		jest.spyOn(global, "fetch").mockResolvedValue(new Response(JSON.stringify({
+			choices: [{ message: { content: '{"rankedIds":[1,0]}' } }],
+		}), { status: 200, headers: { "content-type": "application/json" } }));
+
+		const result = await rankRecommendationsWithAI([first, second], "slow burn romance", "test-key");
+
+		expect(result.map((item) => item.title)).toEqual(["Second", "First"]);
+		expect(String(jest.mocked(global.fetch).mock.calls[0]?.[0])).toContain("openrouter.ai/api/v1/chat/completions");
+	});
+
+	it("does not call a hosted AI service when no optional key is configured", async () => {
+		const fetchMock = jest.spyOn(global, "fetch");
+		const items = [baseItem({ title: "One" }), baseItem({ title: "Two" })];
+
+		expect(await rankRecommendationsWithAI(items, "fantasy")).toEqual(items);
+		expect(fetchMock).not.toHaveBeenCalled();
 	});
 });
 
@@ -221,91 +306,78 @@ describe("recommendMedia", () => {
 		jest.restoreAllMocks();
 	});
 
-	it("returns exactly three ranked AniList picks and three top-rated TMDB picks for all media", async () => {
+	it("returns relevant anime, manga, light novels, and TMDB picks for all media", async () => {
 		const animeItems = Array.from({ length: 3 }, (_, index) => ({
 			...animeResult,
 			id: index + 1,
 			idMal: 61_990 + index,
 			title: { english: `Top Anime ${index + 1}`, romaji: `Top Anime ${index + 1}`, native: null },
 			averageScore: 96 - index,
+			format: "TV",
+		}));
+		const mangaItems = Array.from({ length: 3 }, (_, index) => ({
+			...animeResult,
+			id: 100 + index,
+			idMal: 20_000 + index,
+			title: { english: `Top Manga ${index + 1}`, romaji: `Top Manga ${index + 1}`, native: null },
+			averageScore: 95 - index,
+			format: "MANGA",
+			chapters: 100 + index,
+			volumes: 12 + index,
+		}));
+		const novelItems = Array.from({ length: 3 }, (_, index) => ({
+			...animeResult,
+			id: 200 + index,
+			idMal: 30_000 + index,
+			title: { english: `Top Novel ${index + 1}`, romaji: `Top Novel ${index + 1}`, native: null },
+			averageScore: 94 - index,
+			format: "NOVEL",
+			chapters: 150 + index,
+			volumes: 8 + index,
 		}));
 		const movieItems = [
 			{
-				id: 101,
-				title: "Top Movie",
-				overview: "Movie synopsis.",
-				poster_path: null,
-				vote_average: 9.2,
-				vote_count: 1_200,
-				popularity: 80,
-				genre_ids: [14],
-				release_date: "2024-01-01",
+				id: 101, title: "Top Movie", overview: "Movie synopsis.", poster_path: null,
+				vote_average: 9.2, vote_count: 1_200, popularity: 80, genre_ids: [14], release_date: "2024-01-01",
 			},
 			{
-				id: 102,
-				title: "Second Movie",
-				overview: "Movie synopsis.",
-				poster_path: null,
-				vote_average: 8.7,
-				vote_count: 900,
-				popularity: 50,
-				genre_ids: [14],
-				release_date: "2023-01-01",
+				id: 102, title: "Second Movie", overview: "Movie synopsis.", poster_path: null,
+				vote_average: 8.7, vote_count: 900, popularity: 50, genre_ids: [14], release_date: "2023-01-01",
 			},
 			{
-				id: 103,
-				title: "Third Movie",
-				overview: "Movie synopsis.",
-				poster_path: null,
-				vote_average: 8.5,
-				vote_count: 700,
-				popularity: 40,
-				genre_ids: [14],
-				release_date: "2022-01-01",
+				id: 103, title: "Third Movie", overview: "Movie synopsis.", poster_path: null,
+				vote_average: 8.5, vote_count: 700, popularity: 40, genre_ids: [14], release_date: "2022-01-01",
 			},
 		];
 		const seriesItems = [
 			{
-				id: 201,
-				name: "Top Series",
-				overview: "Series synopsis.",
-				poster_path: null,
-				vote_average: 9.1,
-				vote_count: 2_000,
-				popularity: 90,
-				genre_ids: [10765],
-				first_air_date: "2024-01-01",
+				id: 201, name: "Top Series", overview: "Series synopsis.", poster_path: null,
+				vote_average: 9.1, vote_count: 2_000, popularity: 90, genre_ids: [10765], first_air_date: "2024-01-01",
 			},
 			{
-				id: 202,
-				name: "Second Series",
-				overview: "Series synopsis.",
-				poster_path: null,
-				vote_average: 8.9,
-				vote_count: 800,
-				popularity: 60,
-				genre_ids: [10765],
-				first_air_date: "2023-01-01",
+				id: 202, name: "Second Series", overview: "Series synopsis.", poster_path: null,
+				vote_average: 8.9, vote_count: 800, popularity: 60, genre_ids: [10765], first_air_date: "2023-01-01",
 			},
 			{
-				id: 203,
-				name: "Third Series",
-				overview: "Series synopsis.",
-				poster_path: null,
-				vote_average: 8.4,
-				vote_count: 600,
-				popularity: 30,
-				genre_ids: [10765],
-				first_air_date: "2022-01-01",
+				id: 203, name: "Third Series", overview: "Series synopsis.", poster_path: null,
+				vote_average: 8.4, vote_count: 600, popularity: 30, genre_ids: [10765], first_air_date: "2022-01-01",
 			},
 		];
-		const fetchMock = jest.spyOn(global, "fetch").mockImplementation(async (input) => {
+		const fetchMock = jest.spyOn(global, "fetch").mockImplementation(async (input, init) => {
 			const url = String(input);
-			const payload = url.includes("graphql.anilist.co")
-				? { data: { Page: { media: animeItems } } }
-				: url.includes("/discover/movie?")
-					? { results: movieItems }
-					: { results: seriesItems };
+			let payload: unknown;
+			if (url.includes("graphql.anilist.co")) {
+				const body = JSON.parse(String(init?.body));
+				const variables = body.variables as { mediaType: string; formatIn?: string[] };
+				const media = variables.mediaType === "ANIME"
+					? animeItems
+					: variables.formatIn?.includes("NOVEL")
+						? novelItems
+						: mangaItems;
+				payload = { data: { Page: { media } } };
+			} else {
+				payload = url.includes("/discover/movie?") ? { results: movieItems } : { results: seriesItems };
+			}
 			return new Response(JSON.stringify(payload), {
 				status: 200,
 				headers: { "content-type": "application/json" },
@@ -314,15 +386,15 @@ describe("recommendMedia", () => {
 
 		const results = await recommendMedia({ type: "all", preferences: "", tmdbToken: "test-token" });
 
-		expect(results).toHaveLength(6);
-		expect(results.slice(0, 3).every((item) => item.source === "AniList" && item.mediaType === "anime")).toBe(
-			true,
-		);
-		expect(results.slice(3).every((item) => item.source === "TMDB")).toBe(true);
-		expect(results.slice(3).map((item) => item.title)).toEqual(["Top Movie", "Top Series", "Second Series"]);
-		expect(fetchMock).toHaveBeenCalledTimes(3);
+		expect(results).toHaveLength(10);
+		expect(results.filter((item) => item.mediaType === "anime")).toHaveLength(2);
+		expect(results.filter((item) => item.mediaType === "manga")).toHaveLength(2);
+		expect(results.filter((item) => item.mediaType === "novel")).toHaveLength(2);
+		expect(results.filter((item) => item.mediaType === "movie" || item.mediaType === "series")).toHaveLength(4);
+		expect(results.find((item) => item.mediaType === "manga")?.url).toContain("zm%3A%2F%2Fmanga%2Fmal%3A");
+		expect(results.find((item) => item.mediaType === "novel")?.url).toContain("zm%3A%2F%2Fnovel%2Fmal%3A");
+		expect(fetchMock).toHaveBeenCalledTimes(5);
 	});
-
 	it("fetches anime from AniList, cleans the synopsis, scales ratings, and caches the result", async () => {
 		const fetchMock = mockJson({ data: { Page: { media: [animeResult] } } });
 
@@ -342,44 +414,37 @@ describe("recommendMedia", () => {
 			}),
 		]);
 		expect(second).toEqual(first);
-		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(fetchMock).toHaveBeenCalledTimes(2);
 		expect(fetchMock.mock.calls[0]?.[0]).toBe("https://graphql.anilist.co");
 		expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)).variables).toEqual({
 			page: 1,
-			perPage: 20,
+			perPage: 50,
+			mediaType: "ANIME",
 			genreIn: ["Fantasy"],
 		});
 	});
 
 	it("deduplicates concurrent requests for the same recommendation filter", async () => {
-		let resolveFetch: ((response: Response) => void) | undefined;
-		const fetchMock = jest.spyOn(global, "fetch").mockImplementation(
-			() =>
-				new Promise<Response>((resolve) => {
-					resolveFetch = resolve;
-				}),
+		const fetchMock = jest.spyOn(global, "fetch").mockImplementation(async () =>
+			new Response(JSON.stringify({ data: { Page: { media: [animeResult] } } }), {
+				status: 200,
+				headers: { "content-type": "application/json" },
+			}),
 		);
 
 		const first = recommendMedia({ type: "anime", preferences: "fantasy" });
 		const second = recommendMedia({ type: "anime", preferences: "fantasy" });
 
-		expect(fetchMock).toHaveBeenCalledTimes(1);
-		resolveFetch?.(
-			new Response(JSON.stringify({ data: { Page: { media: [animeResult] } } }), { status: 200 }),
-		);
 		await expect(Promise.all([first, second])).resolves.toHaveLength(2);
-		expect(fetchMock).toHaveBeenCalledTimes(1);
+		// One filtered and one broad catalogue request are shared by both callers.
+		expect(fetchMock).toHaveBeenCalledTimes(2);
 	});
 
 	it("retries anime without a trope filter when that filter has no results", async () => {
-		const fetchMock = jest
-			.spyOn(global, "fetch")
-			.mockResolvedValueOnce(
-				new Response(JSON.stringify({ data: { Page: { media: [] } } }), { status: 200 }),
-			)
-			.mockResolvedValueOnce(
-				new Response(JSON.stringify({ data: { Page: { media: [animeResult] } } }), { status: 200 }),
-			);
+		const fetchMock = jest.spyOn(global, "fetch")
+			.mockResolvedValueOnce(new Response(JSON.stringify({ data: { Page: { media: [] } } }), { status: 200 }))
+			.mockResolvedValueOnce(new Response(JSON.stringify({ data: { Page: { media: [animeResult] } } }), { status: 200 }))
+			.mockResolvedValueOnce(new Response(JSON.stringify({ data: { Page: { media: [animeResult] } } }), { status: 200 }));
 
 		const results = await recommendMedia({
 			type: "anime",
@@ -387,10 +452,11 @@ describe("recommendMedia", () => {
 		});
 
 		expect(results).toHaveLength(1);
-		expect(fetchMock).toHaveBeenCalledTimes(2);
+		expect(fetchMock).toHaveBeenCalledTimes(3);
 		expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body)).variables).toEqual({
 			page: 1,
-			perPage: 20,
+			perPage: 50,
+			mediaType: "ANIME",
 			genreIn: ["Fantasy"],
 		});
 	});
