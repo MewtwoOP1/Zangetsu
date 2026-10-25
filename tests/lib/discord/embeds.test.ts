@@ -14,9 +14,9 @@ describe("embed", () => {
 	});
 
 	it("always sets a footer, because Discord rejects an empty one", () => {
-		expect(embed({}).data.footer?.text).toBe(botName());
-		expect(embed({ footer: "" }).data.footer?.text).toBe(botName());
-		expect(embed({ footer: "Page 1" }).data.footer?.text).toBe("Page 1");
+		expect(embed({}).data.footer?.text).toBe(`${botName()} • zangetsu.online`);
+		expect(embed({ footer: "" }).data.footer?.text).toBe(`${botName()} • zangetsu.online`);
+		expect(embed({ footer: "Page 1" }).data.footer?.text).toBe("Page 1 • zangetsu.online");
 	});
 
 	it("uses the shared Zangetsu banner on every embed and the logo as its default thumbnail", () => {
@@ -83,7 +83,7 @@ describe("withPageFooter", () => {
 
 	it("keeps whatever footer was already there", () => {
 		const built = withPageFooter(embed({ footer: "12 items" }), 0, 3);
-		expect(built.data.footer?.text).toBe("Page 1 of 3 • 12 items");
+		expect(built.data.footer?.text).toBe("Page 1 of 3 • 12 items • zangetsu.online");
 	});
 });
 
