@@ -55,7 +55,7 @@ export default defineCommand({
 							title: "NSFW GIF commands",
 							description:
 								"Fetch adult anime/hentai GIFs with /nsfw gif, /nsfw fuck, /nsfw anal, /nsfw blowjob, /nsfw tits, /nsfw ass, /nsfw pussy, /nsfw cum, /nsfw handjob, /nsfw hentai, /nsfw lesbian, /nsfw threesome, or /nsfw random. " +
-								"GIF commands do not need a user opt-in and never target or mention another member. The server module must be enabled, and commands only work in age-restricted Discord channels. Adult-only filtering is applied, but external tags and ratings are not infallible.",
+								"GIF commands are standalone searches and never target or mention another member. The server module must be enabled, and commands only work in age-restricted Discord channels. Adult-only filtering is applied, but external tags and ratings are not infallible.",
 						}),
 					],
 					allowedMentions: { parse: [] },
