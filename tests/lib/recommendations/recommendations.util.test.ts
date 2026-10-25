@@ -1,5 +1,6 @@
 import {
 	buildZangetsuAnimeUrl,
+	buildZangetsuTmdbUrl,
 	clearRecommendationCache,
 	detectAnimeTag,
 	detectRecommendationGenre,
@@ -48,7 +49,7 @@ describe("recommendationEmbeds", () => {
 	it("renders catalogue metadata, links, ratings, and TMDB attribution", () => {
 		const item: MediaRecommendation = {
 			title: "Test Movie",
-			url: "https://www.themoviedb.org/movie/42",
+			url: "https://zangetsu.online/open/?s=zm&u=zm%3A%2F%2Fmovie%2Ftmdb%3A42&t=Test+Movie&y=m&c=https%3A%2F%2Fimage.tmdb.org%2Ft%2Fp%2Fw500%2Fposter.jpg",
 			summary: "A test synopsis.",
 			year: 2024,
 			rating: 8.1,
@@ -119,6 +120,36 @@ describe("buildZangetsuAnimeUrl", () => {
 
 	it("omits the cover parameter when no cover image is available", () => {
 		const result = new URL(buildZangetsuAnimeUrl({ malId: 61990, title: "Test Anime" }));
+		expect(result.searchParams.has("c")).toBe(false);
+	});
+});
+
+describe("buildZangetsuTmdbUrl", () => {
+	it("builds the app hand-off URL from the TMDB movie format", () => {
+		const result = new URL(
+			buildZangetsuTmdbUrl({
+				tmdbId: 1101412,
+				title: "Fall 2: Deadpoint",
+				type: "movie",
+				cover: "https://image.tmdb.org/t/p/w500/fgSm5ylwiXbIHn8UbUXDjk9RRu4.jpg",
+			}),
+		);
+
+		expect(result.origin + result.pathname).toBe("https://zangetsu.online/open/");
+		expect(result.searchParams.get("s")).toBe("zm");
+		expect(result.searchParams.get("u")).toBe("zm://movie/tmdb:1101412");
+		expect(result.searchParams.get("t")).toBe("Fall 2: Deadpoint");
+		expect(result.searchParams.get("y")).toBe("m");
+		expect(result.searchParams.get("c")).toBe(
+			"https://image.tmdb.org/t/p/w500/fgSm5ylwiXbIHn8UbUXDjk9RRu4.jpg",
+		);
+	});
+
+	it("builds a TV hand-off URL and omits an unavailable cover", () => {
+		const result = new URL(buildZangetsuTmdbUrl({ tmdbId: 55, title: "Test Series", type: "series" }));
+
+		expect(result.searchParams.get("u")).toBe("zm://tv/tmdb:55");
+		expect(result.searchParams.get("y")).toBe("t");
 		expect(result.searchParams.has("c")).toBe(false);
 	});
 });
@@ -263,7 +294,7 @@ describe("recommendMedia", () => {
 		expect(results[0]).toEqual(
 			expect.objectContaining({
 				title: "Test Series",
-				url: "https://www.themoviedb.org/tv/55",
+				url: "https://zangetsu.online/open/?s=zm&u=zm%3A%2F%2Ftv%2Ftmdb%3A55&t=Test+Series&y=t",
 				year: 2021,
 				rating: 7.5,
 				genres: ["Sci-fi & fantasy"],
