@@ -6,7 +6,7 @@ import { DEFAULT_MUSIC_SOURCES, type MusicSourceChoice, type MusicSourceSetting 
 /** Which services the player takes music from, as the bot's owner chose for every server at once. */
 
 export function normaliseMusicSources(stored: StoredBotSettings): MusicSourceSetting {
-	return { sources: stored?.musicSources ?? DEFAULT_MUSIC_SOURCES, configured: stored !== null };
+	return { sources: "soundcloud", configured: stored !== null };
 }
 
 export async function readMusicSourceSetting(): Promise<MusicSourceSetting> {
@@ -24,55 +24,47 @@ const NAMES: Record<MusicSourceChoice, string> = {
 };
 
 export function sourcesName(sources: MusicSourceChoice): string {
-	return NAMES[sources];
+	return NAMES.soundcloud;
 }
 
 export async function applyMusicSources(
 	sources: MusicSourceChoice,
 	actorId: string | null,
 ): Promise<MusicSourceSetting> {
-	await saveBotSettings({ musicSources: sources }, actorId);
-	return { sources, configured: true };
+	await saveBotSettings({ musicSources: "soundcloud" }, actorId);
+	return { sources: "soundcloud", configured: true };
 }
 
 /** Links to any other site are not the owner's to switch, so only YouTube and SoundCloud can be refused. */
 export function allowsSource(sources: MusicSourceChoice, source: MusicSource): boolean {
-	if (source === "youtube") return sources !== "soundcloud";
-	if (source === "soundcloud") return sources !== "youtube";
-
-	return true;
+	return source === "soundcloud";
 }
 
-const SOURCE_LINES: Record<MusicSourceChoice, string> = {
-	both: "🎵 **Sources** — YouTube and SoundCloud. `/play` suggests from both, and falls back to SoundCloud when YouTube refuses.",
-	youtube: "🎵 **Sources** — YouTube only. The bot's owner has switched SoundCloud off.",
-	soundcloud: "🎵 **Sources** — SoundCloud only. The bot's owner has switched YouTube off.",
-};
+const SOURCE_LINE = "🎵 **Source** — SoundCloud only. `/play` searches SoundCloud by title or accepts a SoundCloud link.";
 
 /** What `/music status` says about the owner's choice. */
 export function sourcesLine(sources: MusicSourceChoice): string {
-	return SOURCE_LINES[sources];
+	return SOURCE_LINE;
 }
 
 /** Where a search that names no service goes. */
 export function searchSourceFor(sources: MusicSourceChoice): MusicSource {
-	return sources === "soundcloud" ? "soundcloud" : "youtube";
+	return "soundcloud";
 }
 
 /** Only a plain search on YouTube moves to SoundCloud, and only while the owner allows both. */
 export function fallsBackToSoundCloud(query: Query, sources: MusicSourceChoice): boolean {
-	return sources === "both" && query.kind === "search" && query.named !== true && query.source === "youtube";
+	return false;
 }
 
 const OFF: Record<"youtube" | "soundcloud", string> = {
-	youtube: "The bot's owner has switched YouTube off, so music comes from SoundCloud only. Search by name instead.",
-	soundcloud:
-		"The bot's owner has switched SoundCloud off, so music comes from YouTube only. Search by name with `/play`.",
+	youtube: "Zangetsu music is SoundCloud-only. Search by title or paste a SoundCloud link.",
+	soundcloud: "SoundCloud is the only enabled music source.",
 };
 
 /** The query as the owner's choice allows it: an unnamed search goes where they point, and a service they turned off is refused. */
 export function withinSources(query: Query, sources: MusicSourceChoice): Query {
-	if (query.kind === "search" && query.named !== true) return { ...query, source: searchSourceFor(sources) };
+	if (query.kind === "search" && query.named !== true) return { ...query, source: "soundcloud" };
 
 	if (query.source === "youtube" || query.source === "soundcloud") {
 		if (!allowsSource(sources, query.source)) throw new UserFacingError(OFF[query.source]);
