@@ -160,7 +160,6 @@ export default defineCommand({
 							title: `${categoryLabel(category)} hentai GIF`,
 							description: "Adult anime media from Rule34. Open the source post for tags and attribution.",
 							url: result.postUrl,
-							thumbnail: result.fileUrl,
 						}),
 					],
 					allowedMentions: { parse: [] },
