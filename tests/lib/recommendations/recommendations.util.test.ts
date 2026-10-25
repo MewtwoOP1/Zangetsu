@@ -261,7 +261,7 @@ describe("recommendMedia", () => {
 		expect(results).toEqual([
 			expect.objectContaining({
 				title: "Test Movie",
-				url: "https://www.themoviedb.org/movie/42",
+				url: "https://zangetsu.online/open/?s=zm&u=zm%3A%2F%2Fmovie%2Ftmdb%3A42&t=Test+Movie&y=m&c=https%3A%2F%2Fimage.tmdb.org%2Ft%2Fp%2Fw500%2Fposter.jpg",
 				summary: "A test movie.",
 				year: 2024,
 				rating: 8.1,
