@@ -1,4 +1,5 @@
 import {
+	buildZangetsuAnimeUrl,
 	clearRecommendationCache,
 	detectAnimeTag,
 	detectRecommendationGenre,
@@ -9,6 +10,7 @@ import {
 
 const animeResult = {
 	id: 1,
+	idMal: 61990,
 	title: { english: "Test Anime", romaji: "Test Anime", native: null },
 	description: "<br/>A story &amp; test</p>",
 	coverImage: { large: "https://example.com/anime.jpg" },
@@ -95,6 +97,32 @@ describe("recommendationEmbeds", () => {
 	});
 });
 
+describe("buildZangetsuAnimeUrl", () => {
+	it("builds the app hand-off URL with encoded MAL ID, title, and cover", () => {
+		const result = new URL(
+			buildZangetsuAnimeUrl({
+				malId: 61990,
+				title: "Cyberpunk: Edgerunners 2",
+				cover: "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/test.png",
+			}),
+		);
+
+		expect(result.origin + result.pathname).toBe("https://zangetsu.online/open/");
+		expect(result.searchParams.get("s")).toBe("zm");
+		expect(result.searchParams.get("u")).toBe("zm://anime/mal:61990");
+		expect(result.searchParams.get("t")).toBe("Cyberpunk: Edgerunners 2");
+		expect(result.searchParams.get("y")).toBe("a");
+		expect(result.searchParams.get("c")).toBe(
+			"https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/test.png",
+		);
+	});
+
+	it("omits the cover parameter when no cover image is available", () => {
+		const result = new URL(buildZangetsuAnimeUrl({ malId: 61990, title: "Test Anime" }));
+		expect(result.searchParams.has("c")).toBe(false);
+	});
+});
+
 describe("recommendMedia", () => {
 	beforeEach(() => {
 		clearRecommendationCache();
@@ -115,7 +143,7 @@ describe("recommendMedia", () => {
 		expect(first).toEqual([
 			expect.objectContaining({
 				title: "Test Anime",
-				url: "https://anilist.co/anime/1",
+				url: "https://zangetsu.online/open/?s=zm&u=zm%3A%2F%2Fanime%2Fmal%3A61990&t=Test+Anime&y=a&c=https%3A%2F%2Fexample.com%2Fanime.jpg",
 				summary: "A story & test",
 				year: 2024,
 				rating: 8.5,
