@@ -404,7 +404,7 @@ async function fetchMovieOrSeries(
 		const date = type === "movie" ? result.release_date : result.first_air_date;
 		const yearMatch = date?.match(/^\d{4}/);
 		const genres = result.genre_ids.map((id) => TMDB_GENRE_NAMES[id]).filter((name): name is string => name !== undefined);
-		const poster = result.poster_path ? `https://image.tmdb.org/t/p/w500${result.poster_path}` : null;
+		const poster = result.poster_path ? `https://image.tmdb.org/t/p/w342${result.poster_path}` : null;
 		return [
 			{
 				title,
@@ -519,7 +519,7 @@ async function fetchTmdbSearch(
 		if (!title) return [];
 		const date = type === "movie" ? result.release_date : result.first_air_date;
 		const yearMatch = date?.match(/^\d{4}/);
-		const poster = result.poster_path ? `https://image.tmdb.org/t/p/w500${result.poster_path}` : null;
+		const poster = result.poster_path ? `https://image.tmdb.org/t/p/w342${result.poster_path}` : null;
 		return [
 			{
 				title,
