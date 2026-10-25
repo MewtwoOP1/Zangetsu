@@ -333,6 +333,7 @@ query ($search: String, $page: Int, $perPage: Int, $mediaType: MediaType!, $form
       duration
       rankings { rank type context allTime }
       genres
+      tags { name }
       seasonYear
       startDate { year }
       siteUrl
