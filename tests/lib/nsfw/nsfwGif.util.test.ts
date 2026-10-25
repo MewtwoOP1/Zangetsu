@@ -9,7 +9,7 @@ const basePost = {
 	id: 12345,
 	file_url: "https://img.rule34.xxx/images/12345/example.gif",
 	rating: "explicit",
-	tags: "animated sex adult female_only",
+	tags: "animated fuck sex adult female_only",
 };
 
 describe("Rule34 hentai GIF provider", () => {
@@ -31,7 +31,7 @@ describe("Rule34 hentai GIF provider", () => {
 		expect(tags).toContain("rating:explicit");
 		expect(tags).toContain("animated");
 		expect(tags).toContain("sort:random");
-		expect(tags).toContain("sex");
+		expect(tags).toContain("fuck");
 		expect(tags).toContain("-loli");
 		expect(tags).toContain("-underage");
 		expect(tags).toContain("-rape");
@@ -76,7 +76,7 @@ describe("Rule34 hentai GIF provider", () => {
 			["boobjob", "boobjob"],
 			["bz", "boobjob"],
 			["anal", "anal"],
-			["fuck", "sex"],
+			["fuck", "fuck"],
 		];
 
 		for (const [category, expectedTag] of cases) {
