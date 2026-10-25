@@ -1,4 +1,25 @@
-import { clearRecommendationCooldowns, parseRecommendationRequest } from "@events/message/recommendation.event";
+import {
+	clearRecommendationCooldowns,
+	parseRecommendationRequest,
+	parseRecommendationTypeChoice,
+} from "@events/message/recommendation.event";
+
+
+describe("parseRecommendationTypeChoice", () => {
+	it.each([
+		["anime", "anime"],
+		["movie", "movie"],
+		["films!", "movie"],
+		["TV series", "series"],
+		["shows.", "series"],
+	] as const)("parses the follow-up type %s", (value, expected) => {
+		expect(parseRecommendationTypeChoice(value)).toBe(expected);
+	});
+
+	it("rejects text that is not a standalone media type", () => {
+		expect(parseRecommendationTypeChoice("I like anime")).toBeNull();
+	});
+});
 
 describe("parseRecommendationRequest", () => {
 	it.each([
