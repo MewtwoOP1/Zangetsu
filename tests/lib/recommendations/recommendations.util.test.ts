@@ -4,6 +4,7 @@ import {
 	clearRecommendationCache,
 	detectAnimeTag,
 	detectRecommendationGenre,
+	lookupMedia,
 	recommendMedia,
 	recommendationEmbeds,
 	type MediaRecommendation,
@@ -154,6 +155,62 @@ describe("buildZangetsuTmdbUrl", () => {
 	});
 });
 
+describe("lookupMedia", () => {
+	beforeEach(() => {
+		clearRecommendationCache();
+		jest.restoreAllMocks();
+	});
+
+	afterEach(() => {
+		clearRecommendationCache();
+		jest.restoreAllMocks();
+	});
+
+	it("searches AniList by title and returns ranking and popularity statistics", async () => {
+		mockJson({
+			data: {
+				Page: {
+					media: [{
+						...animeResult,
+						meanScore: 84,
+						popularity: 120_000,
+						favourites: 12_000,
+						format: "TV",
+						status: "FINISHED",
+						episodes: 24,
+						duration: 24,
+						rankings: [
+							{ rank: 7, type: "RATED", context: "highest rated all time", allTime: true },
+							{ rank: 21, type: "POPULAR", context: "most popular all time", allTime: true },
+						],
+					}],
+				},
+			},
+		});
+
+		const results = await lookupMedia({ query: "Test Anime", type: "anime" });
+
+		expect(results[0]).toEqual(expect.objectContaining({
+			title: "Test Anime",
+			source: "AniList",
+			mediaType: "anime",
+			rating: 8.5,
+			meanScore: undefined,
+			popularity: 120_000,
+			favourites: 12_000,
+			episodes: 24,
+			duration: 24,
+			rank: 7,
+			popularityRank: 21,
+			status: "FINISHED",
+			format: "TV",
+		}));
+		const body = JSON.parse(String(jest.mocked(global.fetch).mock.calls[0]?.[1]?.body));
+		expect(body.query).toContain("SEARCH_MATCH");
+		expect(body.variables).toEqual({ search: "Test Anime", page: 1, perPage: 10 });
+	});
+});
+
 describe("recommendMedia", () => {
 	beforeEach(() => {
 		clearRecommendationCache();
@@ -235,6 +292,27 @@ describe("recommendMedia", () => {
 			perPage: 20,
 			genreIn: ["Fantasy"],
 		});
+	});
+
+	it("uses vote-average ranking for genre-filtered TMDB recommendations", async () => {
+		const fetchMock = mockJson({
+			results: [{
+				id: 42,
+				title: "Test Movie",
+				overview: "A test movie.",
+				poster_path: null,
+				vote_average: 8.1,
+				vote_count: 1_200,
+				popularity: 42,
+				genre_ids: [878],
+				release_date: "2024-01-02",
+			}],
+		});
+
+		await recommendMedia({ type: "movie", preferences: "sci-fi", tmdbToken: "test-token" });
+
+		expect(fetchMock.mock.calls[0]?.[0]).toContain("sort_by=vote_average.desc");
+		expect(fetchMock.mock.calls[0]?.[0]).toContain("with_genres=878");
 	});
 
 	it("uses TMDB bearer authentication and normalises movie metadata", async () => {
