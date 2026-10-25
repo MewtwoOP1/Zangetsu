@@ -96,13 +96,13 @@ function cardFor(session: MediaSession): ReturnType<typeof embed> {
 			{ name: "📺 Episodes", value: item.episodes == null ? "Not listed" : String(item.episodes), inline: true },
 			{
 				name: "⏱️ Runtime",
-				value: item.duration == null ? "Not listed" : \`\${item.duration} min/episode\`,
+				value: item.duration == null ? "Not listed" : `${item.duration} min/episode`,
 				inline: true,
 			},
-			{ name: "🏆 AniList rank", value: item.rank == null ? "Not ranked" : \`#\${count(item.rank)}\`, inline: true },
+			{ name: "🏆 AniList rank", value: item.rank == null ? "Not ranked" : `#${count(item.rank)}`, inline: true },
 			{
 				name: "🔥 Popularity rank",
-				value: item.popularityRank == null ? "Not ranked" : \`#\${count(item.popularityRank)}\`,
+				value: item.popularityRank == null ? "Not ranked" : `#${count(item.popularityRank)}`,
 				inline: true,
 			},
 			{ name: "👥 Popularity", value: count(item.popularity), inline: true },
