@@ -27,6 +27,13 @@ describe("the setup questions", () => {
 		expect(required).toEqual(["DISCORD_TOKEN", "DISCORD_CLIENT_ID", "DISCORD_OWNER_IDS", "MONGODB_URI"]);
 	});
 
+	it("offers optional free-AI recommendation settings without making them required", () => {
+		const questions = fields(false);
+		expect(field(questions, "OPENROUTER_API_KEY").required).toBe(false);
+		expect(field(questions, "RECOMMENDATION_AI_MODEL").required).toBe(false);
+		expect(field(questions, "RECOMMENDATION_AI_MODEL").initial).toBe("openrouter/free");
+	});
+
 	it("suggests a separate local database for a development bot", () => {
 		expect(field(fields(true), "MONGODB_URI").initial).toBe("mongodb://localhost:27017/testify-dev");
 	});
