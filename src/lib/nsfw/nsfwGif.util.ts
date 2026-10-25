@@ -229,7 +229,6 @@ export function buildWaifuGifSearchUrl(category: NsfwGifCategory, useCategoryTag
 	if (useCategoryTag) {
 		for (const tag of CATEGORY_TAGS[category]) url.searchParams.append("included_tags", tag);
 	}
-	for (const tag of EXCLUDED_TAGS) url.searchParams.append("excluded_tags", tag);
 	return url.toString();
 }
 
