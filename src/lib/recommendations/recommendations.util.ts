@@ -68,6 +68,7 @@ const ANILIST_TAG_RULES: { pattern: RegExp; tag: string }[] = [
 
 const anilistMediaSchema = z.object({
 	id: z.number(),
+	idMal: z.number().nullable().optional(),
 	title: z.object({
 		english: z.string().nullable().optional(),
 		romaji: z.string(),
@@ -213,6 +214,7 @@ query ($page: Int, $perPage: Int, $genreIn: [String], $tagIn: [String]) {
   Page(page: $page, perPage: $perPage) {
     media(type: ANIME, isAdult: false, genre_in: $genreIn, tag_in: $tagIn, sort: [SCORE_DESC, POPULARITY_DESC]) {
       id
+      idMal
       title { english romaji native }
       description(asHtml: false)
       coverImage { large }
@@ -223,6 +225,21 @@ query ($page: Int, $perPage: Int, $genreIn: [String], $tagIn: [String]) {
     }
   }
 }`;
+
+/** Builds the Zangetsu hand-off URL from a MAL ID, title, and optional cover image. */
+export function buildZangetsuAnimeUrl(input: {
+	malId: number;
+	title: string;
+	cover?: string | null;
+}): string {
+	const url = new URL("https://zangetsu.online/open/");
+	url.searchParams.set("s", "zm");
+	url.searchParams.set("u", `zm://anime/mal:${input.malId}`);
+	url.searchParams.set("t", input.title);
+	url.searchParams.set("y", "a");
+	if (input.cover) url.searchParams.set("c", input.cover);
+	return url.toString();
+}
 
 async function fetchAnime(genre: string | null, tag: string | null): Promise<MediaRecommendation[]> {
 	const genreFilter = genre === null ? null : genreValue(genre, "anime");
@@ -246,7 +263,14 @@ async function fetchAnime(genre: string | null, tag: string | null): Promise<Med
 
 	return mediaList.map((media) => ({
 		title: media.title.english?.trim() || media.title.romaji,
-		url: media.siteUrl,
+		url:
+			media.idMal == null
+				? media.siteUrl
+				: buildZangetsuAnimeUrl({
+						malId: media.idMal,
+						title: media.title.english?.trim() || media.title.romaji,
+						cover: media.coverImage?.large,
+				  }),
 		summary: cleanSummary(media.description) || "No synopsis is available.",
 		year: media.seasonYear ?? null,
 		rating: media.averageScore == null ? null : Math.round(media.averageScore) / 10,
