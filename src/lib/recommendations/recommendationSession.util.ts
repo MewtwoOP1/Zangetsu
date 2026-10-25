@@ -34,7 +34,7 @@ function formatEnum(value: string | null | undefined): string {
 	return value
 		.replace(/[_-]+/g, " ")
 		.toLocaleLowerCase()
-		.replace(/\\b\\w/g, (letter) => letter.toUpperCase());
+		.replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function count(value: number | null | undefined): string {
