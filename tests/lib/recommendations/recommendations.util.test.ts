@@ -283,6 +283,13 @@ describe("lookupMedia", () => {
 });
 
 describe("recommendation ranking", () => {
+	beforeEach(() => {
+		jest.restoreAllMocks();
+	});
+
+	afterEach(() => {
+		jest.restoreAllMocks();
+	});
 	const baseItem = (overrides: Partial<MediaRecommendation>): MediaRecommendation => ({
 		title: "Generic Title",
 		url: "https://anilist.co/anime/1",
