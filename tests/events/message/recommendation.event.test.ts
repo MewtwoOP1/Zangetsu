@@ -1,4 +1,4 @@
-import { clearRecommendationCooldowns, parseRecommendationRequest } from "../../../src/events/message/recommendation.event";
+import { clearRecommendationCooldowns, parseRecommendationRequest } from "@events/message/recommendation.event";
 
 describe("parseRecommendationRequest", () => {
 	it.each([
