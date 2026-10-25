@@ -185,7 +185,7 @@ export function detectAnimeTag(preferences: string): string | null {
 	return matches[0]?.tag ?? null;
 }
 
-function genreValue(name: string | null, type: RecommendationType): string | number | null {
+function genreValue(name: string | null, type: MediaType): string | number | null {
 	if (name === null) return null;
 	const rule = GENRE_RULES.find((candidate) => candidate.name === name);
 	if (rule === undefined) return null;
