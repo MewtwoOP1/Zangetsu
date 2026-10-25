@@ -695,16 +695,17 @@ export async function recommendMedia(input: RecommendationInput): Promise<MediaR
 					.sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1) || (b.voteCount ?? 0) - (a.voteCount ?? 0))
 					.slice(0, 12);
 			}
-			// Interleave the catalogues before reranking so the no-AI fallback still exposes
-			// manga and light novels near the top instead of filling the panel with anime only.
+			// Interleave the catalogues before reranking. When TMDB is configured, use two
+			// film/TV candidates per round so all four catalogue families reach the first page.
 			const results: MediaRecommendation[] = [];
-			const groups = [anime, manga, novels, tmdbTop];
-			const groupDepth = Math.max(...groups.map((group) => group.length));
+			const anilistGroups = [anime, manga, novels];
+			const groupDepth = Math.max(...anilistGroups.map((group) => group.length));
 			for (let index = 0; index < groupDepth; index += 1) {
-				for (const group of groups) {
+				for (const group of anilistGroups) {
 					const item = group[index];
 					if (item) results.push(item);
 				}
+				for (const item of tmdbTop.slice(index * 2, index * 2 + 2)) results.push(item);
 			}
 			if (results.length === 0) {
 				const failures = anilistTasks.filter(
