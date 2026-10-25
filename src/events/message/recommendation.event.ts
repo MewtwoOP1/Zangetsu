@@ -54,7 +54,7 @@ export function parseRecommendationTypeChoice(content: string): RecommendationTy
 	const text = content.trim().toLowerCase().replace(/[.!?]+$/, "").trim();
 	if (text === "anime") return "anime";
 	if (text === "movie" || text === "movies" || text === "film" || text === "films") return "movie";
-	if (text === "series" || text === "tv series" || text === "show" || text === "shows" || text === "tv show" || text === "tv shows") return "series";
+	if (["series", "tv series", "show", "shows", "tv show", "tv shows"].includes(text)) return "series";
 	return null;
 }
 
@@ -81,6 +81,8 @@ export default defineMessageHandler({
 					pendingTypes.delete(message.author.id);
 				} else if (request?.type === null) {
 					return true;
+				} else if (request !== null) {
+					pendingTypes.delete(message.author.id);
 				}
 			} else {
 				pendingTypes.delete(message.author.id);
