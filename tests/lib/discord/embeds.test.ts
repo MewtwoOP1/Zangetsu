@@ -19,23 +19,23 @@ describe("embed", () => {
 		expect(embed({ footer: "Page 1" }).data.footer?.text).toBe("Page 1 • zangetsu.online");
 	});
 
-	it("uses the shared Zangetsu banner on every embed and the logo as its default thumbnail", () => {
+	it("uses the Zangetsu logo as the compact thumbnail without a banner image", () => {
 		const built = embed({});
 		expect(built.data.footer?.icon_url).toBe(theme.logoUrl);
 		expect(built.data.thumbnail?.url).toBe(theme.logoUrl);
-		expect(built.data.image?.url).toBe(theme.bannerUrl);
+		expect(built.data.image).toBeUndefined();
 	});
 
-	it("keeps a command-provided image as the thumbnail while preserving the shared banner", () => {
+	it("renders a command-provided image in the main image slot and keeps the logo thumbnail", () => {
 		const built = embed({ image: "https://example.com/poster.png" });
-		expect(built.data.image?.url).toBe(theme.bannerUrl);
-		expect(built.data.thumbnail?.url).toBe("https://example.com/poster.png");
+		expect(built.data.image?.url).toBe("https://example.com/poster.png");
+		expect(built.data.thumbnail?.url).toBe(theme.logoUrl);
 	});
 
-	it("preserves an explicit thumbnail and still applies the shared banner", () => {
+	it("allows an explicit thumbnail to override the default logo", () => {
 		const built = embed({ thumbnail: "https://example.com/custom.png" });
 		expect(built.data.thumbnail?.url).toBe("https://example.com/custom.png");
-		expect(built.data.image?.url).toBe(theme.bannerUrl);
+		expect(built.data.image).toBeUndefined();
 	});
 
 	it("allows a caller to override or suppress the default footer icon", () => {
