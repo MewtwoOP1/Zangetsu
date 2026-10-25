@@ -34,7 +34,6 @@ import {
 import { type Category } from "@config/categories";
 import { type TestifyClient } from "@core/client";
 import { UserFacingError } from "@core/errors";
-import { withCommandBannerPayload } from "@lib/canvas/commandBanner.util";
 
 /** What a command is allowed to ask of whoever invoked it. */
 export interface CommandInput {
@@ -164,37 +163,6 @@ void _slashSatisfiesCommandInput;
 /** Wraps a command so TypeScript checks it as you write it. */
 export function defineCommand(command: Command): Command {
 	return command;
-}
-
-/** Wraps command replies so every command embed receives a compact banner labeled with its command/subcommand. */
-export function withCommandBanner(interaction: CommandInput, command: Command): CommandInput {
-	// The dashboard serializes payloads into browser UI and cannot host Discord attachment URLs.
-	if ("captured" in interaction) return interaction;
-
-	const selected = chosenSubcommand(interaction, command);
-	const bannerName = `/${command.name}${selected ? ` ${selected}` : ""}`;
-
-	return new Proxy(interaction, {
-		get(target, property) {
-			const value: unknown = Reflect.get(target, property, target);
-			if ((property === "reply" || property === "editReply" || property === "followUp") && typeof value === "function") {
-				return async (options: InteractionReplyOptions | InteractionEditReplyOptions | string) => {
-					const payload = await withCommandBannerPayload(options, bannerName);
-					return (value as (input: unknown) => unknown).call(target, payload);
-				};
-			}
-
-			// Private prefix-command errors use replyBriefly; route them through reply to attach the same banner file.
-			if (property === "replyBriefly" && typeof value === "function") {
-				return async (content: EmbedBuilder) => {
-					const payload = await withCommandBannerPayload({ embeds: [content] }, bannerName);
-					return target.reply(payload as InteractionReplyOptions);
-				};
-			}
-
-			return typeof value === "function" ? (value as (...args: unknown[]) => unknown).bind(target) : value;
-		},
-	});
 }
 
 export function subcommandsOf(command: Command): Subcommand[] {
