@@ -7,11 +7,19 @@ import { countMove } from "@lib/info";
 import { writeAuditLog } from "@lib/moderation";
 import { syncVoiceCounters } from "@lib/settings";
 import { greetingFor, normaliseWelcome } from "@lib/welcome";
+import { handleRaidShieldJoin } from "@lib/security/raidShield.util";
 
 export default defineEvent({
 	name: Events.GuildMemberAdd,
 	async run(client: TestifyClient, member: GuildMember) {
 		countMove(client, member, "join");
+
+		await handleRaidShieldJoin(client, member.guild).catch((error: unknown) => {
+			client.logger.warn(
+				{ err: toError(error), guildId: member.guild.id },
+				"Raid Shield join processing failed",
+			);
+		});
 
 		await writeAuditLog(client, member.guild, {
 			event: "memberJoin",
