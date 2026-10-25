@@ -335,6 +335,22 @@ describe("resolveTracks", () => {
 		expect(tracks[0]?.durationMs).toBe(100_000);
 	});
 
+	it("reuses full metadata from a search when playback describes the selected track", async () => {
+		const counter = join(directory, "search-cache-runs");
+		const binary = fakeYtDlp(
+			"search-cache",
+			"echo run >> '" + counter + "'\nprintf '{\"webpage_url\":\"https://youtu.be/metadata-cache\",\"title\":\"Cache me\",\"formats\":[{\"format_id\":\"251\",\"acodec\":\"opus\",\"vcodec\":\"none\",\"ext\":\"webm\"}]}\\n'",
+		);
+		const binaries = { ytDlp: binary, ffmpeg: null };
+
+		const tracks = await resolveTracks(query, USER, binaries, { results: 1 });
+		expect(tracks[0]?.url).toBe("https://youtu.be/metadata-cache");
+		await expect(describeTrack("https://youtu.be/metadata-cache", binaries)).resolves.toMatchObject({
+			formats: [expect.objectContaining({ format_id: "251" })],
+		});
+
+		expect(readFileSync(counter, "utf8").trim().split("\\n")).toHaveLength(1);
+	});
 	it("returns nothing when the search found nothing", async () => {
 		const binary = fakeYtDlp("empty", "printf ''");
 
