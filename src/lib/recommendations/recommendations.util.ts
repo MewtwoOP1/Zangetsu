@@ -281,6 +281,7 @@ function cacheWrite(key: string, results: MediaRecommendation[]): void {
 export function clearRecommendationCache(): void {
 	cache.clear();
 	inFlight.clear();
+	openRouterCooldownUntil = 0;
 }
 
 const ANILIST_QUERY = `
@@ -602,6 +603,10 @@ const openRouterRankingResponseSchema = z.object({
 	})).optional(),
 });
 
+let openRouterCooldownUntil = 0;
+const OPENROUTER_QUOTA_COOLDOWN_MS = 6 * 60 * 60_000;
+const OPENROUTER_ERROR_COOLDOWN_MS = 60_000;
+
 /**
  * Optional OpenRouter free-model reranking. The model only ranks known catalogue IDs;
  * titles and descriptions always come from AniList or TMDB, never from generated output.
@@ -613,7 +618,9 @@ export async function rankRecommendationsWithAI(
 	apiKey?: string,
 	model = "openrouter/free",
 ): Promise<MediaRecommendation[]> {
-	if (!apiKey || !preferences.trim() || items.length < 2) return [...items];
+	if (!apiKey || !preferences.trim() || items.length < 2 || Date.now() < openRouterCooldownUntil) {
+		return [...items];
+	}
 
 	// Limit prompt size so free models can consistently return valid JSON even under token caps.
 	const aiItems = items.slice(0, Math.min(items.length, 40));
@@ -654,26 +661,45 @@ export async function rankRecommendationsWithAI(
 			}),
 			signal: AbortSignal.timeout(7_000),
 		});
-		if (!response.ok) return [...items];
+		if (!response.ok) {
+			openRouterCooldownUntil = Date.now() + (
+				response.status === 429 ? OPENROUTER_QUOTA_COOLDOWN_MS : OPENROUTER_ERROR_COOLDOWN_MS
+			);
+			return [...items];
+		}
 		const parsed = openRouterRankingResponseSchema.safeParse(await response.json());
 		const content = parsed.success ? parsed.data.choices?.[0]?.message.content : undefined;
-		if (typeof content !== "string") return [...items];
+		if (typeof content !== "string") {
+			openRouterCooldownUntil = Date.now() + OPENROUTER_ERROR_COOLDOWN_MS;
+			return [...items];
+		}
 		const firstBrace = content.indexOf("{");
 		const lastBrace = content.lastIndexOf("}");
-		if (firstBrace < 0 || lastBrace <= firstBrace) return [...items];
+		if (firstBrace < 0 || lastBrace <= firstBrace) {
+			openRouterCooldownUntil = Date.now() + OPENROUTER_ERROR_COOLDOWN_MS;
+			return [...items];
+		}
 		const result = JSON.parse(content.slice(firstBrace, lastBrace + 1)) as { rankedIds?: unknown };
-		if (!Array.isArray(result.rankedIds)) return [...items];
+		if (!Array.isArray(result.rankedIds)) {
+			openRouterCooldownUntil = Date.now() + OPENROUTER_ERROR_COOLDOWN_MS;
+			return [...items];
+		}
 		const indices = result.rankedIds.filter(
 			(value): value is number => Number.isInteger(value) && value >= 0 && value < aiItems.length,
 		);
 		const unique = [...new Set(indices)];
-		if (unique.length < Math.min(2, aiItems.length)) return [...items];
+		if (unique.length < Math.min(2, aiItems.length)) {
+			openRouterCooldownUntil = Date.now() + OPENROUTER_ERROR_COOLDOWN_MS;
+			return [...items];
+		}
+		openRouterCooldownUntil = 0;
 		return [
 			...unique.map((index) => aiItems[index]!),
 			...aiItems.filter((_, index) => !unique.includes(index)),
 			...items.slice(aiItems.length),
 		];
 	} catch {
+		openRouterCooldownUntil = Date.now() + OPENROUTER_ERROR_COOLDOWN_MS;
 		return [...items];
 	}
 }
