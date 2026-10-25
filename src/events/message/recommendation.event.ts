@@ -6,7 +6,7 @@ const INTENT =
 	/\b(?:recommend(?:ation|ations|ed|ing)?|suggest(?:ion|ions|ed|ing)?|what\s+should\s+i\s+(?:watch|read)|what\s+to\s+(?:watch|read)|anything\s+(?:good\s+)?to\s+(?:watch|read)|something\s+(?:good\s+)?to\s+(?:watch|read)|what\s+(?:(?:tv\s+)?(?:series|shows?)|anime|manga|light\s+novels?|novels?|movies?|films?)\s+should\s+i\s+(?:watch|read))\b/i;
 const ANIME = /\banime\b/i;
 const MANGA = /\b(?:manga|manhwa|manhua|webtoons?|comics?)\b/i;
-const NOVEL = /\b(?:light\s*novels?|web\s+novels?|novels?|\blns?\b)\b/i;
+const NOVEL = /\b(?:light\s*novels?|web\s+novels?|novels?|lns?)\b/i;
 const MOVIE = /\bmovies?\b|\bfilms?\b/i;
 const SERIES = /\b(?:tv\s+)?series\b|\bshows?\b|\bk-?dramas?\b/i;
 const ALL_MEDIA =
@@ -118,7 +118,7 @@ export default defineMessageHandler({
 				embeds: [
 					embed({
 						category: "community",
-						title: "What would you like to watch?",
+						title: "What would you like to watch or read?",
 						description: "Choose **anime**, **manga**, **light novel**, **movie**, **TV series**, or **all media**. Add genres, tropes, mood, pacing, or things you want to avoid.",
 					}),
 				],
