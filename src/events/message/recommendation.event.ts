@@ -71,11 +71,7 @@ export default defineMessageHandler({
 		if (!message.channel.isSendable()) return;
 		const text = message.content.trim();
 
-		// Prefix commands already invoke the same recommendation service. Never answer them twice.
-		if (/^t\?/i.test(text)) return;
-
-		// Mention-based "recommend ..." messages are deferred by prefixCommands so natural language
-		// can select the intended media type instead of treating words like "me" as a type argument.
+		// Explicit type-first prefix commands are handled earlier; allow natural-language requests through.
 		const requestText = client.user?.id === undefined ? text : stripBotMention(text, client.user.id);
 		const now = Date.now();
 		const pending = pendingTypes.get(message.author.id);
