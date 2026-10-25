@@ -37,19 +37,19 @@ export default defineEvent({
 				return;
 			}
 
-			// /play can spend several seconds in database-backed checks before yt-dlp even starts.
-			// Acknowledge only this slow command up front; other commands and private subcommands keep their existing flow.
-			if (command.name === "play") {
+			// /play and /nsfw can take several seconds before they can answer: music checks and remote provider calls.
+			// Acknowledge these up front; other commands and private subcommands keep their existing flow.
+			if (command.name === "play" || command.name === "nsfw") {
 				try {
 					await interaction.deferReply();
 				} catch (error) {
 					const ageMs = Date.now() - interaction.createdTimestamp;
 					if (error instanceof DiscordAPIError && error.code === RESTJSONErrorCodes.UnknownInteraction) {
-						client.logger.trace({ command: command.name, ageMs }, "Play interaction expired before acknowledgement");
+						client.logger.trace({ command: command.name, ageMs }, "Command interaction expired before acknowledgement");
 					} else {
 						client.logger.warn(
 							{ err: toError(error), command: command.name, ageMs },
-							"Could not acknowledge play interaction; skipping work",
+							"Could not acknowledge command interaction; skipping work",
 						);
 					}
 					return;
@@ -60,11 +60,18 @@ export default defineEvent({
 			try {
 				refusal = await runChecks(interaction, command, client);
 			} catch (error) {
-				// Do not strand /play's public deferred reply if a database check fails.
-				if (command.name !== "play") throw error;
+				// Do not strand a public deferred reply if a database-backed check fails.
+				if (command.name !== "play" && command.name !== "nsfw") throw error;
 
-				client.logger.error({ err: toError(error), command: command.name }, "Play command checks failed");
-				await tell(interaction, errorEmbed("I could not verify whether music can be played right now. Please try again."));
+				client.logger.error(
+					{ err: toError(error), command: command.name },
+					"Command checks failed after acknowledgement",
+				);
+				const message =
+					command.name === "nsfw"
+						? "I could not verify whether NSFW commands can be used right now. Please try again."
+						: "I could not verify whether music can be played right now. Please try again.";
+				await tell(interaction, errorEmbed(message));
 				return;
 			}
 
