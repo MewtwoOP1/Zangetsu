@@ -2,11 +2,14 @@
 
 **A community-customized Discord bot, built on Testify v2.**
 
-Zangetsu is our community build, with custom commands, shared branding, moderation, server tools, media discovery, and music.\n\n[Visit zangetsu.online](https://zangetsu.online) · [Download Zangetsu Now](https://zangetsu.online)
+Zangetsu is our community build, with custom commands, shared branding, moderation, server tools, media discovery, and music.
+
+[Visit zangetsu.online](https://zangetsu.online) · [Download Zangetsu Now](https://zangetsu.online)
 
 ## Features
 
-- Moderation, server settings, logging, verification, tickets, permission audits, panic-lock recovery, and Raid Shield alerts\n- Consent-gated, text-only interactions for age-restricted channels
+- Moderation, server settings, logging, verification, tickets, permission audits, panic-lock recovery, and Raid Shield alerts
+- Consent-gated, text-only interactions for age-restricted channels
 - Community tools, welcome features, giveaways, games, and levelling
 - SoundCloud-only music search and playback with `/play` title search
 - Anime recommendations and movie / TV catalogue lookups
