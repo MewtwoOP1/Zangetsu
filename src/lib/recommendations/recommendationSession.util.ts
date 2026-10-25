@@ -216,7 +216,11 @@ function mediaSessionPayload(
 					emoji: "📊",
 					style: ButtonStyle.Secondary,
 				}),
-				linkButton("Open in Zangetsu", item.url, "▶️"),
+				linkButton(
+					item.url.startsWith("https://zangetsu.online/open/") ? "Open in Zangetsu" : "Open on AniList",
+					item.url,
+					"▶️",
+				),
 			),
 		],
 	};
