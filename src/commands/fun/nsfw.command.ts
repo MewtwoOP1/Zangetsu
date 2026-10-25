@@ -160,13 +160,13 @@ export default defineCommand({
 				}
 
 				await reply(interaction, {
-					content: result.fileUrl,
 					embeds: [
 						embed({
 							category: "fun",
 							title: `${categoryLabel(category)} hentai GIF`,
-							description: "Adult anime media from Rule34. Open the source post for tags and attribution.",
+							description: "Animated adult GIF. Click the title to view the source post.",
 							url: result.postUrl,
+							image: result.fileUrl,
 						}),
 					],
 					allowedMentions: { parse: [] },
