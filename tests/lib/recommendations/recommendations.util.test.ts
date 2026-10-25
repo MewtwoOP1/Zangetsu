@@ -4,6 +4,7 @@ import {
 	buildZangetsuTmdbUrl,
 	clearRecommendationCache,
 	detectAnimeTag,
+	detectExcludedAnimeTags,
 	detectRecommendationGenre,
 	detectRecommendationGenres,
 	lookupMedia,
@@ -50,6 +51,8 @@ describe("media recommendation filters", () => {
 		expect(detectAnimeTag("fantasy with an overpowered MC")).toBe("Overpowered Main Characters");
 		expect(detectAnimeTag("isekai with reincarnation")).toBe("Isekai");
 		expect(detectAnimeTag("give me a cozy romance")).toBe("Iyashikei");
+		expect(detectAnimeTag("fantasy but no harem")).toBeNull();
+		expect(detectExcludedAnimeTags("fantasy without harem")).toEqual(["Harem"]);
 	});
 });
 
@@ -302,6 +305,9 @@ describe("recommendation ranking", () => {
 			rating: 8.1,
 		});
 		expect(rankRecommendationsHeuristically([fantasy, romance], "slow burn romance")[0]).toBe(romance);
+		const harem = baseItem({ title: "Harem Academy", genres: ["Romance"], tags: ["Harem"] });
+		const noHarem = baseItem({ title: "Quiet Academy", genres: ["Fantasy"], tags: ["School", "Magic"] });
+		expect(rankRecommendationsHeuristically([harem, noHarem], "fantasy, no harem")[0]).toBe(noHarem);
 	});
 
 	it("uses AI to reorder only the supplied catalogue IDs, then keeps unranked titles", async () => {
