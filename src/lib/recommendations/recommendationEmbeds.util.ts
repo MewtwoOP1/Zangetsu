@@ -19,6 +19,14 @@ export function recommendationEmbeds(items: readonly MediaRecommendation[]) {
 				},
 				{ name: "Year", value: item.year === null ? "Unknown" : String(item.year), inline: true },
 				{ name: "Genres", value: item.genres.slice(0, 5).join(", ") || "Not listed", inline: true },
+				...(item.mediaType === "manga" || item.mediaType === "novel"
+					? [
+							{ name: "Chapters", value: item.chapters == null ? "Unknown" : new Intl.NumberFormat("en-US").format(item.chapters), inline: true },
+							{ name: "Volumes", value: item.volumes == null ? "Unknown" : new Intl.NumberFormat("en-US").format(item.volumes), inline: true },
+						]
+					: item.mediaType === "anime"
+						? [{ name: "Episodes", value: item.episodes == null ? "Unknown" : String(item.episodes), inline: true }]
+						: []),
 			],
 			footer:
 				item.source === "TMDB"
