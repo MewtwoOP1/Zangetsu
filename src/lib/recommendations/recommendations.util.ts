@@ -269,7 +269,7 @@ async function fetchAnime(genre: string | null, tag: string | null): Promise<Med
 				: buildZangetsuAnimeUrl({
 						malId: media.idMal,
 						title: media.title.english?.trim() || media.title.romaji,
-						cover: media.coverImage?.large,
+						cover: media.coverImage?.large ?? null,
 				  }),
 		summary: cleanSummary(media.description) || "No synopsis is available.",
 		year: media.seasonYear ?? null,
