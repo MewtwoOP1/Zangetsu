@@ -1,5 +1,5 @@
 import { PermissionFlagsBits } from "discord.js";
-import { defineCommand, inGuild, inTextChannel, textChannelOption } from "@core/command";
+import { asMember, defineCommand, inGuild, inTextChannel, textChannelOption } from "@core/command";
 import { UserFacingError } from "@core/errors";
 import { PanicLock, RaidShieldConfig } from "@database/models/securityFeatures.schema";
 import { embed, reply } from "@lib/discord";
@@ -76,9 +76,20 @@ export default defineCommand({
 			async run(interaction) {
 				const guild = inGuild(interaction);
 				const channel = textChannelOption(interaction, "channel") ?? inTextChannel(interaction);
+				const actorPermissions = channel.permissionsFor(asMember(interaction));
+				if (
+					!actorPermissions?.has(PermissionFlagsBits.ViewChannel) ||
+					!actorPermissions.has(PermissionFlagsBits.ReadMessageHistory)
+				) {
+					throw new UserFacingError("You need View Channel and Read Message History permissions there to export messages.");
+				}
+
 				const me = guild.members.me;
-				const permissions = me ? channel.permissionsFor(me) : null;
-				if (!permissions?.has(PermissionFlagsBits.ViewChannel) || !permissions.has(PermissionFlagsBits.ReadMessageHistory)) {
+				const botPermissions = me ? channel.permissionsFor(me) : null;
+				if (
+					!botPermissions?.has(PermissionFlagsBits.ViewChannel) ||
+					!botPermissions.has(PermissionFlagsBits.ReadMessageHistory)
+				) {
 					throw new UserFacingError("I need View Channel and Read Message History permissions there to export messages.");
 				}
 

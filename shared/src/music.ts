@@ -30,7 +30,7 @@ export const MUSIC_SOURCE_CHOICES = ["both", "youtube", "soundcloud"] as const;
 
 export type MusicSourceChoice = (typeof MUSIC_SOURCE_CHOICES)[number];
 
-/** Both until the owner chooses, which is what the player did before there was a choice. */
+/** SoundCloud-only is the default for this community build. */
 export const DEFAULT_MUSIC_SOURCES: MusicSourceChoice = "soundcloud";
 
 export interface MusicSourceSetting {
