@@ -7,7 +7,7 @@ import { countMove } from "@lib/info";
 import { writeAuditLog } from "@lib/moderation";
 import { syncVoiceCounters } from "@lib/settings";
 import { greetingFor, normaliseWelcome } from "@lib/welcome";
-import { handleRaidShieldJoin } from "@lib/security/raidShield.util";
+import { handleRaidShieldJoin } from "@lib/security";
 
 export default defineEvent({
 	name: Events.GuildMemberAdd,

@@ -3,7 +3,7 @@ import { type CommandInput, defineCommand, inGuild } from "@core/command";
 import { UserFacingError } from "@core/errors";
 import { NsfwConsent, NsfwGuildConfig } from "@database/models/nsfw.schema";
 import { embed, reply } from "@lib/discord";
-import { canUseNsfwAction, type NsfwConsentState } from "@lib/security/nsfwConsent.util";
+import { canUseNsfwAction, type NsfwConsentState } from "@lib/security";
 
 const ACTIONS = [
 	{ name: "hug", text: "shares a friendly hug with", suggestive: false },

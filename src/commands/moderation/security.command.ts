@@ -3,7 +3,7 @@ import { asMember, defineCommand, inGuild, inTextChannel, textChannelOption } fr
 import { UserFacingError } from "@core/errors";
 import { PanicLock, RaidShieldConfig } from "@database/models/securityFeatures.schema";
 import { embed, reply } from "@lib/discord";
-import { channelExportCsv, MAX_CHANNEL_EXPORT_MESSAGES, permissionOverrideState } from "@lib/security/security.util";
+import { channelExportCsv, MAX_CHANNEL_EXPORT_MESSAGES, permissionOverrideState } from "@lib/security";
 
 export default defineCommand({
 	name: "security",
