@@ -52,9 +52,9 @@ export function clearRecommendationCooldowns(): void {
 /** Accept a short answer to the type prompt, e.g. "anime", "movie", or "series". */
 export function parseRecommendationTypeChoice(content: string): RecommendationType | null {
 	const text = content.trim().toLowerCase().replace(/[.!?]+$/, "").trim();
-	if (text === "anime") return "anime";
-	if (text === "movie" || text === "movies" || text === "film" || text === "films") return "movie";
-	if (["series", "tv series", "show", "shows", "tv show", "tv shows"].includes(text)) return "series";
+	if (/^(?:(?:i (?:want|prefer|would like) )?)(?:an? )?anime(?: please)?$/.test(text)) return "anime";
+	if (/^(?:(?:i (?:want|prefer|would like) )?)(?:a )?(?:movies?|films?)(?: please)?$/.test(text)) return "movie";
+	if (/^(?:(?:i (?:want|prefer|would like) )?)(?:a )?(?:tv )?(?:series|shows?)(?: please)?$/.test(text)) return "series";
 	return null;
 }
 
@@ -63,7 +63,7 @@ export default defineMessageHandler({
 	order: 90,
 
 	async run(message, client) {
-		if (!message.guild || !message.channel.isSendable()) return;
+		if (!message.channel.isSendable()) return;
 		const text = message.content.trim();
 
 		// Prefix commands already invoke the same recommendation service. Never answer them twice.
