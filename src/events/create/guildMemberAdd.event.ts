@@ -14,7 +14,7 @@ export default defineEvent({
 	async run(client: TestifyClient, member: GuildMember) {
 		countMove(client, member, "join");
 
-		await handleRaidShieldJoin(client, member.guild).catch((error: unknown) => {
+		void handleRaidShieldJoin(client, member.guild).catch((error: unknown) => {
 			client.logger.warn(
 				{ err: toError(error), guildId: member.guild.id },
 				"Raid Shield join processing failed",
