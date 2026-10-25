@@ -6,6 +6,9 @@ export const NSFW_GIF_CATEGORIES = [
 	"fuck",
 	"anal",
 	"blowjob",
+	"bj",
+	"boobjob",
+	"bz",
 	"tits",
 	"ass",
 	"pussy",
@@ -24,21 +27,49 @@ export interface NsfwGifPost {
 	postUrl: string;
 }
 
-const CATEGORY_TAGS: Record<NsfwGifCategory, string[]> = {
+/** Tags are native Rule34.xxx tags; aliases deliberately share the canonical category. */
+export const CATEGORY_TAGS: Readonly<Record<NsfwGifCategory, readonly string[]>> = {
 	gif: [],
 	random: [],
 	fuck: ["sex"],
 	anal: ["anal"],
 	blowjob: ["blowjob"],
+	bj: ["blowjob"],
+	boobjob: ["boobjob"],
+	bz: ["boobjob"],
 	tits: ["breasts"],
 	ass: ["ass"],
 	pussy: ["pussy"],
 	cum: ["cum"],
 	handjob: ["handjob"],
 	hentai: [],
-	lesbian: ["yuri"],
+	lesbian: ["lesbian"],
 	threesome: ["threesome"],
 };
+
+/** The caption is deterministic and never depends on untrusted input besides Discord IDs. */
+const ACTION_VERBS: Readonly<Record<NsfwGifCategory, string>> = {
+	gif: "shares an adult GIF with",
+	random: "shares an adult GIF with",
+	fuck: "fucks",
+	anal: "has anal sex with",
+	blowjob: "gives a blowjob to",
+	bj: "gives a blowjob to",
+	boobjob: "does a boobjob for",
+	bz: "does a boobjob for",
+	tits: "shows their breasts to",
+	ass: "shows their ass to",
+	pussy: "shows their pussy to",
+	cum: "cums on",
+	handjob: "gives a handjob to",
+	hentai: "shares a hentai GIF with",
+	lesbian: "has lesbian sex with",
+	threesome: "has a threesome with",
+};
+
+export function buildNsfwActionLine(category: NsfwGifCategory, actorId: string, targetId: string): string {
+	return `<@${actorId}> ${ACTION_VERBS[category]} <@${targetId}>.`;
+}
 
 const EXCLUDED_TAGS = [
 	"loli",
