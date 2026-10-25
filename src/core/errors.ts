@@ -4,7 +4,7 @@ import { strings } from "@config/strings";
 import { theme } from "@config/theme";
 import { type ComponentInteraction } from "@core/button";
 import { type TestifyClient } from "@core/client";
-import { type Command, type CommandInput, chosenSubcommand, dispatch, givenOptions, withCommandBanner } from "@core/command";
+import { type Command, type CommandInput, chosenSubcommand, dispatch, givenOptions } from "@core/command";
 import { triageRow } from "@lib/bot/errorTriage.util";
 import {
 	logAuthor,
@@ -65,12 +65,11 @@ export function errorReference(): string {
 
 /** Runs a command so the user always gets an answer, and returns whether it finished cleanly. */
 export async function runCommand(interaction: CommandInput, command: Command, client: TestifyClient): Promise<boolean> {
-	const brandedInteraction = withCommandBanner(interaction, command);
 	try {
-		await dispatch(brandedInteraction, command, client);
+		await dispatch(interaction, command, client);
 		return true;
 	} catch (error) {
-		await reportFailure(brandedInteraction, error, client, command.name, `\`/${command.name}\``, command);
+		await reportFailure(interaction, error, client, command.name, `\`/${command.name}\``, command);
 		return false;
 	}
 }
