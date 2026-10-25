@@ -28,8 +28,10 @@ export function embed(options: EmbedOptions): EmbedBuilder {
 	if (options.description !== undefined) builder.setDescription(truncate(options.description, LIMITS.embedDescription));
 	if (options.url !== undefined) builder.setURL(options.url);
 	if (options.fields !== undefined) builder.addFields(...options.fields.map(clampField));
-	builder.setThumbnail(options.thumbnail ?? theme.logoUrl);
-	if (options.image !== undefined) builder.setImage(options.image);
+	// Reserve the embed image slot for the shared banner so command embeds stay consistent.
+	// When a command supplies its own image, retain it as the thumbnail unless one was explicitly provided.
+	builder.setThumbnail(options.thumbnail ?? options.image ?? theme.logoUrl);
+	builder.setImage(theme.bannerUrl);
 
 	if (options.author) {
 		builder.setAuthor({
@@ -44,7 +46,7 @@ export function embed(options: EmbedOptions): EmbedBuilder {
 	builder.setFooter({
 		// Discord rejects an empty footer, so a blank string falls back to the name.
 		text: truncate(
-			options.footer !== undefined && options.footer !== "" ? options.footer : botName(),
+			`${options.footer !== undefined && options.footer !== "" ? options.footer : botName()} • zangetsu.online`,
 			LIMITS.embedTitle,
 		),
 		...(footerIcon !== "" ? { iconURL: footerIcon } : {}),

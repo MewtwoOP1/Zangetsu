@@ -4,6 +4,7 @@ import {
 	changeMediaSession,
 	clearMediaSessions,
 	createMediaSession,
+	shuffleRecommendations,
 	type MediaRecommendation,
 } from "@lib/recommendations";
 
@@ -43,7 +44,21 @@ const movie: MediaRecommendation = {
 };
 
 describe("interactive media sessions", () => {
-	beforeEach(() => clearMediaSessions());
+	beforeEach(() => {
+		clearMediaSessions();
+		jest.spyOn(Math, "random").mockReturnValue(0.999);
+	});
+
+	afterEach(() => jest.restoreAllMocks());
+
+	it("randomizes recommendations without mutating the cached catalogue array", () => {
+		const original = [anime, movie];
+		const shuffled = shuffleRecommendations(original, () => 0);
+
+		expect(shuffled).toEqual([movie, anime]);
+		expect(original).toEqual([anime, movie]);
+		expect(shuffled).not.toBe(original);
+	});
 
 	it("renders one card and updates the same message to the next result", () => {
 		const initial = createMediaSession({

@@ -238,8 +238,9 @@ export function categoryControls(
 
 /** The optional community link, shown under the front page when configured. */
 export function helpLinks(): ReturnType<typeof row>[] {
-	if (!theme.supportServer) return [];
-	return [row(linkButton("Join the support server", theme.supportServer))];
+	const links = [row(linkButton("Download Zangetsu Now", theme.websiteUrl, "⬇️"))];
+	if (theme.supportServer) links.push(row(linkButton("Join the support server", theme.supportServer)));
+	return links;
 }
 
 export function resolveCategory(value: string): Category | null {

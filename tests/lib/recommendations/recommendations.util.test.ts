@@ -55,7 +55,7 @@ describe("recommendationEmbeds", () => {
 			year: 2024,
 			rating: 8.1,
 			genres: ["Science fiction"],
-			poster: "https://image.tmdb.org/t/p/w500/poster.jpg",
+			poster: "https://image.tmdb.org/t/p/w342/poster.jpg",
 			source: "TMDB",
 		};
 
@@ -132,7 +132,7 @@ describe("buildZangetsuTmdbUrl", () => {
 				tmdbId: 1101412,
 				title: "Fall 2: Deadpoint",
 				type: "movie",
-				cover: "https://image.tmdb.org/t/p/w500/fgSm5ylwiXbIHn8UbUXDjk9RRu4.jpg",
+				cover: "https://image.tmdb.org/t/p/w342/fgSm5ylwiXbIHn8UbUXDjk9RRu4.jpg",
 			}),
 		);
 
@@ -142,7 +142,7 @@ describe("buildZangetsuTmdbUrl", () => {
 		expect(result.searchParams.get("t")).toBe("Fall 2: Deadpoint");
 		expect(result.searchParams.get("y")).toBe("m");
 		expect(result.searchParams.get("c")).toBe(
-			"https://image.tmdb.org/t/p/w500/fgSm5ylwiXbIHn8UbUXDjk9RRu4.jpg",
+			"https://image.tmdb.org/t/p/w342/fgSm5ylwiXbIHn8UbUXDjk9RRu4.jpg",
 		);
 	});
 
@@ -445,7 +445,7 @@ describe("recommendMedia", () => {
 				year: 2024,
 				rating: 8.1,
 				genres: ["Science fiction"],
-				poster: "https://image.tmdb.org/t/p/w500/poster.jpg",
+				poster: "https://image.tmdb.org/t/p/w342/poster.jpg",
 				source: "TMDB",
 			}),
 		]);

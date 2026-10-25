@@ -14,14 +14,28 @@ describe("embed", () => {
 	});
 
 	it("always sets a footer, because Discord rejects an empty one", () => {
-		expect(embed({}).data.footer?.text).toBe(botName());
-		expect(embed({ footer: "" }).data.footer?.text).toBe(botName());
-		expect(embed({ footer: "Page 1" }).data.footer?.text).toBe("Page 1");
+		expect(embed({}).data.footer?.text).toBe(`${botName()} • zangetsu.online`);
+		expect(embed({ footer: "" }).data.footer?.text).toBe(`${botName()} • zangetsu.online`);
+		expect(embed({ footer: "Page 1" }).data.footer?.text).toBe("Page 1 • zangetsu.online");
 	});
 
-	it("uses the configured Zangetsu logo as the default footer icon and thumbnail", () => {
-		expect(embed({}).data.footer?.icon_url).toBe(theme.logoUrl);
-		expect(embed({}).data.thumbnail?.url).toBe(theme.logoUrl);
+	it("uses the shared Zangetsu banner on every embed and the logo as its default thumbnail", () => {
+		const built = embed({});
+		expect(built.data.footer?.icon_url).toBe(theme.logoUrl);
+		expect(built.data.thumbnail?.url).toBe(theme.logoUrl);
+		expect(built.data.image?.url).toBe(theme.bannerUrl);
+	});
+
+	it("keeps a command-provided image as the thumbnail while preserving the shared banner", () => {
+		const built = embed({ image: "https://example.com/poster.png" });
+		expect(built.data.image?.url).toBe(theme.bannerUrl);
+		expect(built.data.thumbnail?.url).toBe("https://example.com/poster.png");
+	});
+
+	it("preserves an explicit thumbnail and still applies the shared banner", () => {
+		const built = embed({ thumbnail: "https://example.com/custom.png" });
+		expect(built.data.thumbnail?.url).toBe("https://example.com/custom.png");
+		expect(built.data.image?.url).toBe(theme.bannerUrl);
 	});
 
 	it("allows a caller to override or suppress the default footer icon", () => {
@@ -69,7 +83,7 @@ describe("withPageFooter", () => {
 
 	it("keeps whatever footer was already there", () => {
 		const built = withPageFooter(embed({ footer: "12 items" }), 0, 3);
-		expect(built.data.footer?.text).toBe("Page 1 of 3 • 12 items");
+		expect(built.data.footer?.text).toBe("Page 1 of 3 • 12 items • zangetsu.online");
 	});
 });
 
