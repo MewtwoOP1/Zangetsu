@@ -35,15 +35,15 @@ export async function applyMusicSources(
 	return { sources: "soundcloud", configured: true };
 }
 
-/** Links to any other site are not the owner's to switch, so only YouTube and SoundCloud can be refused. */
-export function allowsSource(sources: MusicSourceChoice, source: MusicSource): boolean {
+/** SoundCloud is the only supported playback source's to switch, so only YouTube and SoundCloud can be refused. */
+export function allowsSource(_sources: MusicSourceChoice, source: MusicSource): boolean {
 	return source === "soundcloud";
 }
 
 const SOURCE_LINE = "🎵 **Source** — SoundCloud only. `/play` searches SoundCloud by title or accepts a SoundCloud link.";
 
 /** What `/music status` says about the owner's choice. */
-export function sourcesLine(sources: MusicSourceChoice): string {
+export function sourcesLine(_sources: MusicSourceChoice): string {
 	return SOURCE_LINE;
 }
 
@@ -52,7 +52,7 @@ export function searchSourceFor(_sources: MusicSourceChoice): MusicSource {
 	return "soundcloud";
 }
 
-/** Only a plain search on YouTube moves to SoundCloud, and only while the owner allows both. */
+/** Kept for callers that share the upstream music interface; fallback is disabled in this build. */
 export function fallsBackToSoundCloud(_query: Query, _sources: MusicSourceChoice): boolean {
 	return false;
 }
@@ -62,7 +62,7 @@ const OFF: Record<"youtube" | "soundcloud", string> = {
 	soundcloud: "SoundCloud is the only enabled music source.",
 };
 
-/** The query as the owner's choice allows it: an unnamed search goes where they point, and a service they turned off is refused. */
+/** Plain text always searches SoundCloud; any named non-SoundCloud service's choice allows it: an unnamed search goes where they point, and a service they turned off is refused. */
 export function withinSources(query: Query, sources: MusicSourceChoice): Query {
 	if (query.kind === "search" && query.named !== true) return { ...query, source: "soundcloud" };
 
