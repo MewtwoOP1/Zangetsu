@@ -134,6 +134,26 @@ describe("recommendMedia", () => {
 		});
 	});
 
+	it("deduplicates concurrent requests for the same recommendation filter", async () => {
+		let resolveFetch: ((response: Response) => void) | undefined;
+		const fetchMock = jest.spyOn(global, "fetch").mockImplementation(
+			() =>
+				new Promise<Response>((resolve) => {
+					resolveFetch = resolve;
+				}),
+		);
+
+		const first = recommendMedia({ type: "anime", preferences: "fantasy" });
+		const second = recommendMedia({ type: "anime", preferences: "fantasy" });
+
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		resolveFetch?.(
+			new Response(JSON.stringify({ data: { Page: { media: [animeResult] } } }), { status: 200 }),
+		);
+		await expect(Promise.all([first, second])).resolves.toHaveLength(2);
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+	});
+
 	it("retries anime without a trope filter when that filter has no results", async () => {
 		const fetchMock = jest
 			.spyOn(global, "fetch")
