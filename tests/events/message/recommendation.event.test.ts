@@ -9,6 +9,10 @@ describe("parseRecommendationTypeChoice", () => {
 	it.each([
 		["anime", "anime"],
 		["anime please", "anime"],
+		["manga", "manga"],
+		["manhwa", "manga"],
+		["light novel", "novel"],
+		["web novel", "novel"],
 		["movie", "movie"],
 		["I want a movie", "movie"],
 		["films!", "movie"],
@@ -48,6 +52,11 @@ describe("parseRecommendationRequest", () => {
 		["Any movie recommendations for a sci-fi fan?", "movie"],
 		["Suggest a good TV series to watch", "series"],
 		["Recommend anime and movies", "all"],
+		["Recommend manga and light novels", "all"],
+		["Recommend me a manhwa", "manga"],
+		["Suggest a slow burn romance manga", "manga"],
+		["Give me a fantasy light novel", "novel"],
+		["What should I read next?", null],
 		["What anime should I watch next?", "anime"],
 	] as const)("detects a %s request", (message, type) => {
 		expect(parseRecommendationRequest(message)).toEqual({
@@ -60,6 +69,10 @@ describe("parseRecommendationRequest", () => {
 		expect(parseRecommendationRequest("Can you recommend something good to watch?")).toEqual({
 			type: null,
 			preferences: "Can you recommend something good to watch?",
+		});
+		expect(parseRecommendationRequest("What should I read next?")).toEqual({
+			type: null,
+			preferences: "What should I read next?",
 		});
 	});
 
