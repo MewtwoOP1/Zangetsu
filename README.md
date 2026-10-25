@@ -41,7 +41,7 @@ For production, run `npm run setup`, then `npm run build` and `npm start`.
 
 ## Consent-gated text interactions
 
-The `/nsfw` module is disabled by default. A server manager must enable it, each participant must opt in separately, and interactions only run in a Discord age-restricted channel. The module contains non-graphic text interactions only; it does not retrieve explicit media. Either person can withdraw consent using `/nsfw opt-out`.
+The `/nsfw` module is disabled by default. A server manager must enable it, each participant must opt in separately, and interactions only run in a Discord age-restricted channel. The module contains non-graphic text interactions only; it does not retrieve explicit media. The `/nsfw fuck` and `/nsfw anal` actions also require both participants to use `/nsfw opt-in-suggestive`. Either person can withdraw general consent with `/nsfw opt-out` or withdraw suggestive consent with `/nsfw opt-out-suggestive`.
 
 ## Music and media
 

@@ -23,6 +23,7 @@ export interface NsfwUserConsent {
 	guildId: string;
 	userId: string;
 	optedIn: boolean;
+	allowSuggestive: boolean;
 	createdAt: Date;
 	updatedAt: Date;
 }
@@ -32,6 +33,7 @@ const nsfwConsentSchema = new Schema<NsfwUserConsent>(
 		guildId: { type: String, required: true },
 		userId: { type: String, required: true },
 		optedIn: { type: Boolean, required: true, default: false },
+		allowSuggestive: { type: Boolean, required: true, default: false },
 	},
 	{ timestamps: true },
 );

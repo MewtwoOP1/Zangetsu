@@ -5,15 +5,15 @@ import { NsfwConsent, NsfwGuildConfig } from "@database/models/nsfw.schema";
 import { embed, reply } from "@lib/discord";
 
 const ACTIONS = [
-	{ name: "hug", text: "shares a friendly hug with" },
-	{ name: "kiss", text: "shares a playful, non-graphic kiss with" },
-	{ name: "cuddle", text: "settles in for a cozy cuddle with" },
-	{ name: "flirt", text: "tries a little harmless flirting with" },
-	{ name: "tease", text: "offers a lighthearted tease to" },
-	{ name: "slap", text: "gives a clearly playful, fictional slap to" },
-	{ name: "rizz", text: "attempts an over-the-top pickup line on" },
-	{ name: "fuck", text: "keeps the scene suggestive and off-screen with" },
-	{ name: "anal", text: "keeps the scene non-graphic and off-screen with" },
+	{ name: "hug", text: "shares a friendly hug with", suggestive: false },
+	{ name: "kiss", text: "shares a playful, non-graphic kiss with", suggestive: false },
+	{ name: "cuddle", text: "settles in for a cozy cuddle with", suggestive: false },
+	{ name: "flirt", text: "tries a little harmless flirting with", suggestive: false },
+	{ name: "tease", text: "offers a lighthearted tease to", suggestive: false },
+	{ name: "slap", text: "gives a clearly playful, fictional slap to", suggestive: false },
+	{ name: "rizz", text: "attempts an over-the-top pickup line on", suggestive: false },
+	{ name: "fuck", text: "keeps the scene suggestive and off-screen with", suggestive: true },
+	{ name: "anal", text: "keeps the scene non-graphic and off-screen with", suggestive: true },
 ] as const;
 
 const RANDOM_LINES = [
@@ -26,6 +26,11 @@ const RANDOM_LINES = [
 async function isOptedIn(guildId: string, userId: string): Promise<boolean> {
 	const consent = await NsfwConsent.findOne({ guildId, userId }).lean().exec();
 	return consent?.optedIn === true;
+}
+
+async function isSuggestiveOptedIn(guildId: string, userId: string): Promise<boolean> {
+	const consent = await NsfwConsent.findOne({ guildId, userId }).lean().exec();
+	return consent?.optedIn === true && consent.allowSuggestive === true;
 }
 
 async function requireEnabledNsfwChannel(interaction: CommandInput, guildId: string): Promise<void> {
@@ -64,7 +69,8 @@ export default defineCommand({
 								"This module is disabled by default and provides text-only, non-graphic interactions. " +
 								"It does not fetch or distribute explicit images or videos. A server manager must enable it, " +
 								"interactions must be in a Discord age-restricted channel, and both people must opt in. " +
-								"Use /nsfw opt-out to withdraw consent at any time.\n\nAvailable interactions: " +
+								"The /nsfw fuck and /nsfw anal commands need an additional /nsfw opt-in-suggestive from both people. " +
+								"Use /nsfw opt-out or /nsfw opt-out-suggestive to withdraw consent.\n\nAvailable interactions: " +
 								ACTIONS.map((action) => action.name).join(", ") +
 								", plus /nsfw random.",
 						}),
@@ -133,7 +139,8 @@ export default defineCommand({
 								"Status: " + (settings?.enabled === true ? "enabled" : "disabled") +
 								"\nContent: text only, non-graphic" +
 								"\nChannel: Discord age-restricted channels only" +
-								"\nConsent: actor and target must opt in" +
+								"\nConsent: both participants opt in" +
+								"\nSuggestive actions: separate opt-in required" +
 								"\nMedia providers: none",
 						}),
 					],
@@ -142,7 +149,7 @@ export default defineCommand({
 		},
 		{
 			name: "opt-in",
-			description: "Opt in to text interactions in this server.",
+			description: "Opt in to non-graphic text interactions in this server.",
 			async run(interaction) {
 				const guild = inGuild(interaction);
 				await NsfwConsent.findOneAndUpdate(
@@ -168,7 +175,7 @@ export default defineCommand({
 				const guild = inGuild(interaction);
 				await NsfwConsent.findOneAndUpdate(
 					{ guildId: guild.id, userId: interaction.user.id },
-					{ $set: { optedIn: false } },
+					{ $set: { optedIn: false, allowSuggestive: false } },
 					{ upsert: true, new: true, setDefaultsOnInsert: true },
 				).exec();
 				await reply(interaction, {
@@ -177,6 +184,56 @@ export default defineCommand({
 							category: "fun",
 							title: "Consent withdrawn",
 							description: "You are opted out. This works even when the module is disabled.",
+						}),
+					],
+				});
+			},
+		},
+		{
+			name: "opt-in-suggestive",
+			description: "Separately opt in to non-graphic suggestive, fade-to-black interactions.",
+			async run(interaction) {
+				const guild = inGuild(interaction);
+				if (!(await isOptedIn(guild.id, interaction.user.id))) {
+					throw new UserFacingError("Use /nsfw opt-in first, then grant this separate opt-in.");
+				}
+
+				await NsfwConsent.findOneAndUpdate(
+					{ guildId: guild.id, userId: interaction.user.id },
+					{ $set: { optedIn: true, allowSuggestive: true } },
+					{ upsert: true, new: true, setDefaultsOnInsert: true },
+				).exec();
+
+				await reply(interaction, {
+					embeds: [
+						embed({
+							category: "fun",
+							title: "Suggestive consent saved",
+							description:
+								"You separately opted in to non-graphic suggestive interactions. Other participants must do the same. " +
+								"Use /nsfw opt-out-suggestive or /nsfw opt-out any time to withdraw consent.",
+						}),
+					],
+				});
+			},
+		},
+		{
+			name: "opt-out-suggestive",
+			description: "Withdraw your separate opt-in to suggestive interactions.",
+			async run(interaction) {
+				const guild = inGuild(interaction);
+				await NsfwConsent.findOneAndUpdate(
+					{ guildId: guild.id, userId: interaction.user.id },
+					{ $set: { allowSuggestive: false } },
+					{ upsert: true, new: true, setDefaultsOnInsert: true },
+				).exec();
+
+				await reply(interaction, {
+					embeds: [
+						embed({
+							category: "fun",
+							title: "Suggestive consent withdrawn",
+							description: "Suggestive interactions are no longer allowed for you. Your basic interaction preference is unchanged.",
 						}),
 					],
 				});
@@ -211,10 +268,21 @@ export default defineCommand({
 				const target = interaction.options.getUser("target", true);
 				if (target.bot) throw new UserFacingError("Bot accounts cannot be interaction targets.");
 				if (target.id === interaction.user.id) throw new UserFacingError("Choose another person who has opted in.");
-				if (!(await isOptedIn(guild.id, target.id))) {
+				const targetConsent = await NsfwConsent.findOne({ guildId: guild.id, userId: target.id }).lean().exec();
+				if (targetConsent?.optedIn !== true) {
 					throw new UserFacingError(
 						"That person has not opted in for this server. Do not pressure them; they can choose /nsfw opt-in themselves.",
 					);
+				}
+				if (action.suggestive === true) {
+					if (!(await isSuggestiveOptedIn(guild.id, interaction.user.id))) {
+						throw new UserFacingError("Use /nsfw opt-in-suggestive to separately opt in before using this action.");
+					}
+					if (targetConsent.allowSuggestive !== true) {
+						throw new UserFacingError(
+							"That person has not separately opted in to suggestive interactions. Do not pressure them.",
+						);
+					}
 				}
 
 				await reply(interaction, {
