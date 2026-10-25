@@ -83,7 +83,7 @@ export default defineMessageHandler({
 
 		if (pending !== undefined) {
 			if (pending.expiresAt > now) {
-				const choice = parseRecommendationTypeChoice(text);
+				const choice = parseRecommendationTypeChoice(requestText);
 				if (choice !== null) {
 					request = { type: choice, preferences: pending.preferences };
 					pendingTypes.delete(message.author.id);
