@@ -12,6 +12,14 @@ const basePost = {
 };
 
 describe("Rule34 hentai GIF provider", () => {
+	it("attaches required API credentials to authenticated searches", () => {
+		const url = new URL(
+			buildRule34GifSearchUrl("gif", { apiKey: "test-api-key", userId: "1234567" }),
+		);
+		expect(url.searchParams.get("api_key")).toBe("test-api-key");
+		expect(url.searchParams.get("user_id")).toBe("1234567");
+	});
+
 	it("requests explicit randomized animated media with adult-safety exclusions", () => {
 		const url = new URL(buildRule34GifSearchUrl("fuck"));
 		const tags = url.searchParams.get("tags") ?? "";
