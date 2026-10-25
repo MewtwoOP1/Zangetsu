@@ -441,7 +441,7 @@ export async function recommendMedia(input: RecommendationInput): Promise<MediaR
 					detectRecommendationGenre(preferences, "series") ?? "all",
 					tag ?? "none",
 				].join(":")
-			: \`\${type}:\${genre ?? "all"}:\${tag ?? "none"}\`;
+			: type + ":" + (genre ?? "all") + ":" + (tag ?? "none");
 	const limit = type === "all" ? 6 : 20;
 	const previous = cacheRead(key);
 	if (previous !== null) return previous.slice(0, limit);
