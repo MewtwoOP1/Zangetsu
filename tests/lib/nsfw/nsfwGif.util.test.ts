@@ -24,8 +24,7 @@ describe("Waifu.im hentai GIF provider", () => {
 		expect(url.searchParams.get("many")).toBe("true");
 		expect(url.searchParams.get("order_by")).toBe("RANDOM");
 		expect(url.searchParams.getAll("included_tags")).toContain("ass");
-		expect(url.searchParams.getAll("excluded_tags")).toContain("underage");
-		expect(url.searchParams.getAll("excluded_tags")).toContain("rape");
+		expect(url.searchParams.getAll("excluded_tags")).toEqual([]);
 	});
 
 	it("maps category aliases to Waifu.im archive tags", () => {
