@@ -306,6 +306,7 @@ describe("lookupMedia", () => {
 
 describe("recommendation ranking", () => {
 	beforeEach(() => {
+		clearRecommendationCache();
 		jest.restoreAllMocks();
 	});
 
@@ -350,6 +351,18 @@ describe("recommendation ranking", () => {
 
 		expect(result.map((item) => item.title)).toEqual(["Second", "First"]);
 		expect(String(jest.mocked(global.fetch).mock.calls[0]?.[0])).toContain("openrouter.ai/api/v1/chat/completions");
+	});
+
+	it("backs off after a rate limit instead of repeatedly hitting the free API", async () => {
+		const fetchMock = jest.spyOn(global, "fetch").mockResolvedValue(
+			new Response(JSON.stringify({ error: { message: "Rate limited" } }), { status: 429 }),
+		);
+		const items = [baseItem({ title: "One" }), baseItem({ title: "Two" })];
+
+		await expect(rankRecommendationsWithAI(items, "fantasy", "test-key")).resolves.toEqual(items);
+		await expect(rankRecommendationsWithAI(items, "romance", "test-key")).resolves.toEqual(items);
+
+		expect(fetchMock).toHaveBeenCalledTimes(1);
 	});
 
 	it("does not call a hosted AI service when no optional key is configured", async () => {
