@@ -286,7 +286,7 @@ export class PrefixInteraction implements CommandInput {
 
 	constructor(
 		private readonly message: Message,
-		command: Command,
+		private readonly command: Command,
 		args: string[],
 	) {
 		this.options = new PrefixOptions(message, command, args);
@@ -321,6 +321,7 @@ export class PrefixInteraction implements CommandInput {
 	}
 
 	tidyAway(): void {
+		if (this.command.keepPrefixReply === true) return;
 		this.deadline ??= Date.now() + PRIVATE_TIDY_MS;
 	}
 
