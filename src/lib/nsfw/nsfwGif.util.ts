@@ -78,7 +78,7 @@ function isRule34GifUrl(value: unknown): value is string {
 	}
 }
 
-function parsePost(value: unknown): NsfwGifPost | null {
+function parsePost(value: unknown, category: NsfwGifCategory): NsfwGifPost | null {
 	if (!isRecord(value)) return null;
 
 	const id = typeof value.id === "number" || typeof value.id === "string" ? String(value.id) : "";
@@ -89,6 +89,7 @@ function parsePost(value: unknown): NsfwGifPost | null {
 	if (!/^\d+$/.test(id)) return null;
 	if (rating !== "explicit" && rating !== "e") return null;
 	if (!tags.has("animated")) return null;
+	if (!CATEGORY_TAGS[category].every((tag) => tags.has(tag))) return null;
 	if (EXCLUDED_TAGS.some((tag) => tags.has(tag))) return null;
 	if (!isRule34GifUrl(value.file_url)) return null;
 
@@ -100,10 +101,10 @@ function parsePost(value: unknown): NsfwGifPost | null {
 }
 
 /** Validates untrusted API data before a media URL can be sent to Discord. */
-export function parseRule34GifPosts(payload: unknown): NsfwGifPost[] {
+export function parseRule34GifPosts(payload: unknown, category: NsfwGifCategory): NsfwGifPost[] {
 	if (!Array.isArray(payload)) return [];
 	return payload.flatMap((post) => {
-		const parsed = parsePost(post);
+		const parsed = parsePost(post, category);
 		return parsed ? [parsed] : [];
 	});
 }
@@ -144,7 +145,7 @@ export async function fetchNsfwGif(category: NsfwGifCategory): Promise<NsfwGifPo
 	if (!response.ok) throw new Error(`Rule34 API request failed with HTTP ${response.status}`);
 
 	const payload: unknown = await response.json();
-	const results = parseRule34GifPosts(payload);
+	const results = parseRule34GifPosts(payload, category);
 	if (results.length === 0) return null;
 
 	return results[Math.floor(Math.random() * results.length)] ?? null;
