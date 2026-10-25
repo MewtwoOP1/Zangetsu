@@ -363,7 +363,7 @@ describe("recommendation ranking", () => {
 		expect(rankRecommendationsHeuristically([harem, noHarem], "fantasy, no harem")[0]).toBe(noHarem);
 	});
 
-	it("uses AI to reorder only the supplied catalogue IDs, then keeps unranked titles", async () => {
+	it("uses Groq AI to reorder only the supplied catalogue IDs, then keeps unranked titles", async () => {
 		const first = baseItem({ title: "First", url: "https://example.com/1" });
 		const second = baseItem({ title: "Second", url: "https://example.com/2" });
 		jest.spyOn(global, "fetch").mockResolvedValue(new Response(JSON.stringify({
@@ -373,7 +373,11 @@ describe("recommendation ranking", () => {
 		const result = await rankRecommendationsWithAI([first, second], "slow burn romance", "test-key");
 
 		expect(result.map((item) => item.title)).toEqual(["Second", "First"]);
-		expect(String(jest.mocked(global.fetch).mock.calls[0]?.[0])).toContain("openrouter.ai/api/v1/chat/completions");
+		expect(String(jest.mocked(global.fetch).mock.calls[0]?.[0])).toContain("api.groq.com/openai/v1/chat/completions");
+		expect(JSON.parse(String(jest.mocked(global.fetch).mock.calls[0]?.[1]?.body))).toEqual(expect.objectContaining({
+			model: "openai/gpt-oss-20b",
+			response_format: { type: "json_object" },
+		}));
 	});
 
 	it("backs off after a rate limit instead of repeatedly hitting the free API", async () => {
