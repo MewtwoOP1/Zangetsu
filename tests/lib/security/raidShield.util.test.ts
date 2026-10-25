@@ -40,6 +40,18 @@ describe("Raid Shield burst detection", () => {
 		expect(recordJoinBurst("guild-c", 3, 10_000, 12_001)).toBe(false);
 	});
 
+	it("does not alert when no settings record exists", async () => {
+		settings(null);
+		const client = { logger: { warn: jest.fn() } };
+		const send = jest.fn();
+		const guild = { id: "guild-unconfigured", systemChannel: { send }, channels: { fetch: jest.fn() } };
+
+		await handleRaidShieldJoin(client as never, guild as never);
+
+		expect(send).not.toHaveBeenCalled();
+		expect(client.logger.warn).not.toHaveBeenCalled();
+	});
+
 	it("does not send alerts when the feature is disabled", async () => {
 		settings({ enabled: false });
 		const send = jest.fn();
@@ -49,6 +61,23 @@ describe("Raid Shield burst detection", () => {
 		await handleRaidShieldJoin(client as never, guild as never);
 
 		expect(send).not.toHaveBeenCalled();
+	});
+
+	it("logs no-channel warning when the configured alert channel cannot be fetched", async () => {
+		settings({ enabled: true, threshold: 3, windowSeconds: 30, alertChannelId: "missing" });
+		const fetch = jest.fn().mockRejectedValue(new Error("Unknown channel"));
+		const client = { logger: { warn: jest.fn() } };
+		const guild = { id: "guild-missing-channel", systemChannel: null, channels: { fetch } };
+
+		await handleRaidShieldJoin(client as never, guild as never);
+		await handleRaidShieldJoin(client as never, guild as never);
+		await handleRaidShieldJoin(client as never, guild as never);
+
+		expect(fetch).toHaveBeenCalledWith("missing");
+		expect(client.logger.warn).toHaveBeenCalledWith(
+			{ guildId: "guild-missing-channel" },
+			"Raid Shield detected a join burst but has no usable alert channel",
+		);
 	});
 
 	it("alerts the system channel once the configured join threshold is reached", async () => {

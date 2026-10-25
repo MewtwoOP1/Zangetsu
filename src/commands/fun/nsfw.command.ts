@@ -233,7 +233,9 @@ export default defineCommand({
 						embed({
 							category: "fun",
 							title: "Suggestive consent withdrawn",
-							description: "Suggestive interactions are no longer allowed for you. Your basic interaction preference is unchanged.",
+							description:
+								"Suggestive interactions are no longer allowed for you. " +
+								"Your basic interaction preference is unchanged.",
 						}),
 					],
 				});
@@ -253,7 +255,9 @@ export default defineCommand({
 		},
 		...ACTIONS.map((action) => ({
 			name: action.name,
-			description: "Run a consent-gated, non-graphic text interaction.",
+			description: action.suggestive
+				? "Run a separately consented, suggestive fade-to-black interaction."
+				: "Run a consent-gated, non-graphic text interaction.",
 			options: [
 				{
 					name: "target",
