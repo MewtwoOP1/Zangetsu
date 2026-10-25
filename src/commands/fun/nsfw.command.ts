@@ -130,8 +130,8 @@ export default defineCommand({
 							description:
 								"Status: " +
 								(settings?.enabled === true ? "enabled" : "disabled") +
-								"\nProvider: Rule34 public post API" +
-								"\nMedia: animated GIF files only" +
+								"\nProvider: Waifu.im Workers API" +
+								"\nMedia: NSFW GIF files only" +
 								"\nRating: explicit only" +
 								"\nChannel: Discord age-restricted channels only" +
 								"\nUser targeting: optional, no consent gate",
@@ -156,15 +156,7 @@ export default defineCommand({
 				await requireEnabledNsfwChannel(interaction, guild.id);
 
 				const target = interaction.options.getUser("target");
-				const actorName =
-					guild.members.cache.get(interaction.user.id)?.displayName ??
-					interaction.user.globalName ??
-					interaction.user.username;
-				const targetName = target
-					? (guild.members.cache.get(target.id)?.displayName ?? target.globalName ?? target.username)
-					: null;
-
-				let result: Awaited<ReturnType<typeof fetchNsfwGif>>;
+								let result: Awaited<ReturnType<typeof fetchNsfwGif>>;
 				try {
 					result = await fetchNsfwGif(category);
 				} catch (error) {
@@ -181,12 +173,12 @@ export default defineCommand({
 				}
 
 				await reply(interaction, {
-					...(targetName ? { content: buildNsfwActionLine(category, actorName, targetName) } : {}),
+					...(target ? { content: buildNsfwActionLine(category, interaction.user.id, target.id) } : {}),
 					embeds: [
 						embed({
 							category: "fun",
 							title: `${categoryLabel(category)} hentai GIF`,
-							description: "Animated adult GIF. Click the title to view the source post.",
+							description: "Animated adult GIF. Click the title to open its source or file.",
 							url: result.postUrl,
 							image: result.fileUrl,
 						}),
