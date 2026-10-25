@@ -26,7 +26,7 @@ export interface NsfwGifPost {
 }
 
 /**
- * Waifu.im's archive uses broad tags rather than every Rule34 action tag.
+ * Waifu.im's archive uses broad tags rather than a separate tag for every action.
  * Prefer a relevant tag when possible, then retry against the full NSFW GIF
  * catalogue if that tag has no matching GIFs.
  */
