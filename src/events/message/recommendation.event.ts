@@ -3,13 +3,15 @@ import { embed } from "@lib/discord";
 import { recommendMedia, recommendationEmbeds, type RecommendationType } from "@lib/recommendations";
 
 const INTENT =
-	/\b(?:recommend(?:ation|ations|ed|ing)?|suggest(?:ion|ions|ed|ing)?|what\s+should\s+i\s+watch|what\s+to\s+watch|anything\s+(?:good\s+)?to\s+watch|something\s+(?:good\s+)?to\s+watch|what\s+(?:anime|movie|film|series|show)\s+should\s+i\s+watch)\b/i;
+	/\b(?:recommend(?:ation|ations|ed|ing)?|suggest(?:ion|ions|ed|ing)?|what\s+should\s+i\s+watch|what\s+to\s+watch|anything\s+(?:good\s+)?to\s+watch|something\s+(?:good\s+)?to\s+watch|what\s+(?:(?:tv\s+)?(?:series|shows?)|anime|movies?|films?)\s+should\s+i\s+watch)\b/i;
 const ANIME = /\banime\b/i;
 const MOVIE = /\bmovies?\b|\bfilms?\b/i;
 const SERIES = /\b(?:tv\s+)?series\b|\bshows?\b|\bk-?dramas?\b/i;
 const USER_COOLDOWN_MS = 30_000;
 const MAX_COOLDOWN_ENTRIES = 2_000;
+const PENDING_TYPE_TTL_MS = 90_000;
 const cooldowns = new Map<string, number>();
+const pendingTypes = new Map<string, { expiresAt: number; preferences: string }>();
 
 export interface RecommendationRequest {
 	type: RecommendationType | null;
@@ -44,6 +46,16 @@ function cooldownActive(userId: string, now: number): boolean {
 
 export function clearRecommendationCooldowns(): void {
 	cooldowns.clear();
+	pendingTypes.clear();
+}
+
+/** Accept a short answer to the type prompt, e.g. "anime", "movie", or "series". */
+export function parseRecommendationTypeChoice(content: string): RecommendationType | null {
+	const text = content.trim().toLowerCase().replace(/[.!?]+$/, "").trim();
+	if (text === "anime") return "anime";
+	if (text === "movie" || text === "movies" || text === "film" || text === "films") return "movie";
+	if (text === "series" || text === "tv series" || text === "show" || text === "shows" || text === "tv show" || text === "tv shows") return "series";
+	return null;
 }
 
 export default defineMessageHandler({
@@ -57,11 +69,35 @@ export default defineMessageHandler({
 		// Prefix commands already invoke the same recommendation service. Never answer them twice.
 		if (/^t\?/i.test(text) || /^<@!?\d+>/.test(text)) return;
 
-		const request = parseRecommendationRequest(text);
+		const now = Date.now();
+		const pending = pendingTypes.get(message.author.id);
+		let request = parseRecommendationRequest(text);
+
+		if (pending !== undefined) {
+			if (pending.expiresAt > now) {
+				const choice = parseRecommendationTypeChoice(text);
+				if (choice !== null) {
+					request = { type: choice, preferences: pending.preferences };
+					pendingTypes.delete(message.author.id);
+				} else if (request?.type === null) {
+					return true;
+				}
+			} else {
+				pendingTypes.delete(message.author.id);
+			}
+		}
+
 		if (request === null) return;
-		if (cooldownActive(message.author.id, Date.now())) return true;
 
 		if (request.type === null) {
+			if (pendingTypes.size >= MAX_COOLDOWN_ENTRIES) {
+				const first = pendingTypes.keys().next().value;
+				if (first !== undefined) pendingTypes.delete(first);
+			}
+			pendingTypes.set(message.author.id, {
+				expiresAt: now + PENDING_TYPE_TTL_MS,
+				preferences: request.preferences,
+			});
 			await message.channel.send({
 				embeds: [
 					embed({
@@ -74,6 +110,8 @@ export default defineMessageHandler({
 			});
 			return true;
 		}
+
+		if (cooldownActive(message.author.id, now)) return true;
 
 		if (request.type !== "anime" && !client.env.TMDB_API_READ_ACCESS_TOKEN) {
 			await message.channel.send({
