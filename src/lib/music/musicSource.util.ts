@@ -275,7 +275,7 @@ export async function describeTrack(url: string, binaries: MusicBinaries, now = 
 	const info = parseJsonLines(stdout).at(0) ?? null;
 	if (info === null) return null;
 
-	rememberDescription({ ...info, formats: info.formats }, binaries, now);
+	rememberDescription(info, binaries, now);
 
 	return info;
 }
