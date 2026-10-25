@@ -38,7 +38,7 @@ export default defineCommand({
 
 		if (type !== "anime" && !client.env.TMDB_API_READ_ACCESS_TOKEN) {
 			throw new UserFacingError(
-				"Movie and TV recommendations need the free TMDB API Read Access Token. Add `TMDB_API_READ_ACCESS_TOKEN` to your `.env` file. Anime recommendations work without it.",
+				"Movie, TV, and all-media recommendations need the TMDB API Read Access Token. Anime recommendations work without it.",
 			);
 		}
 
