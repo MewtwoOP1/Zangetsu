@@ -11,7 +11,7 @@ const ownerId = "111111111111111111";
 
 const anime: MediaRecommendation = {
 	title: "Test Anime",
-	url: "https://anilist.co/anime/1",
+	url: "https://zangetsu.online/open/?s=zm&u=zm%3A%2Fanime%2Fmal%3A1&t=Test+Anime&y=a",
 	summary: "A test fantasy anime.",
 	year: 2024,
 	rating: 8.5,
@@ -54,6 +54,10 @@ describe("interactive media sessions", () => {
 
 		expect(initial.embeds).toHaveLength(1);
 		expect(initial.embeds[0]?.data.title).toContain("Anime  |  Test Anime");
+
+		const openButton = initial.components[0]?.components[2] as ButtonBuilder;
+		expect(openButton.data.label).toBe("Open in Zangetsu");
+		expect(openButton.data.url).toBe(anime.url);
 
 		const component = initial.components[0]?.components[0];
 		expect(component).toBeInstanceOf(ButtonBuilder);
