@@ -4,7 +4,6 @@ import {
 	parseRecommendationTypeChoice,
 } from "@events/message/recommendation.event";
 
-
 describe("parseRecommendationTypeChoice", () => {
 	it.each([
 		["anime", "anime"],
