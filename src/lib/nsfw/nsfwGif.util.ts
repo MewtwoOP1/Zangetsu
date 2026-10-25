@@ -211,6 +211,7 @@ export function parseWaifuGifImages(payload: unknown): NsfwGifPost[] {
 		if (Array.isArray(payload.images)) images = payload.images;
 		else if (Array.isArray(payload.data)) images = payload.data;
 		else if (Array.isArray(payload.results)) images = payload.results;
+		else if (Array.isArray(payload.items)) images = payload.items;
 	}
 	return images.flatMap((image) => {
 		const parsed = parseImage(image);
