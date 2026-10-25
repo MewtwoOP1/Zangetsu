@@ -28,7 +28,7 @@ function categoryLabel(category: NsfwGifCategory): string {
 	const labels: Record<NsfwGifCategory, string> = {
 		gif: "Random hentai",
 		random: "Random hentai",
-		fuck: "Sex",
+		fuck: "Fuck",
 		anal: "Anal",
 		blowjob: "Blowjob",
 		bj: "Blowjob",
@@ -64,7 +64,7 @@ export default defineCommand({
 							category: "fun",
 							title: "NSFW GIF commands",
 							description:
-								"Fetch adult anime/hentai GIFs with /nsfw gif, /nsfw fuck, /nsfw anal, /nsfw blowjob, /nsfw tits, /nsfw ass, /nsfw pussy, /nsfw cum, /nsfw handjob, /nsfw hentai, /nsfw lesbian, /nsfw threesome, or /nsfw random. " +
+								"Fetch adult anime/hentai GIFs with /nsfw gif, /nsfw fuck, /nsfw anal, /nsfw blowjob (or /nsfw bj), /nsfw boobjob (or /nsfw bz), /nsfw tits, /nsfw ass, /nsfw pussy, /nsfw cum, /nsfw handjob, /nsfw hentai, /nsfw lesbian, /nsfw threesome, or /nsfw random. " +
 								"Each GIF command accepts an optional target. Other members must opt in with /nsfw consent enabled:true before they can be targeted; mentions do not send notifications. The server module must be enabled, and commands only work in age-restricted Discord channels. Adult-only filtering is applied, but external tags and ratings are not infallible.",
 						}),
 					],
@@ -135,7 +135,7 @@ export default defineCommand({
 								"\nMedia: animated GIF files only" +
 								"\nRating: explicit only" +
 								"\nChannel: Discord age-restricted channels only" +
-								"\nUser targeting: none",
+								"\nUser targeting: opt-in required",
 						}),
 					],
 				});
@@ -219,7 +219,7 @@ export default defineCommand({
 							category: "fun",
 							title: `${categoryLabel(category)} hentai GIF`,
 							description: target
-								? `${buildNsfwActionLine(category, interaction.user.id, target.id)}\\n\\nAnimated adult GIF. Click the title to view the source post.`
+								? `${buildNsfwActionLine(category, interaction.user.id, target.id)}\n\nAnimated adult GIF. Click the title to view the source post.`
 								: "Animated adult GIF. Click the title to view the source post.",
 							url: result.postUrl,
 							image: result.fileUrl,
