@@ -3,6 +3,7 @@ import { type CommandInput, defineCommand, inGuild } from "@core/command";
 import { UserFacingError } from "@core/errors";
 import { NsfwConsent, NsfwGuildConfig } from "@database/models/nsfw.schema";
 import { embed, reply } from "@lib/discord";
+import { canUseNsfwAction, type NsfwConsentState } from "@lib/security/nsfwConsent.util";
 
 const ACTIONS = [
 	{ name: "hug", text: "shares a friendly hug with", suggestive: false },
@@ -28,12 +29,10 @@ async function isOptedIn(guildId: string, userId: string): Promise<boolean> {
 	return consent?.optedIn === true;
 }
 
-async function isSuggestiveOptedIn(guildId: string, userId: string): Promise<boolean> {
-	const consent = await NsfwConsent.findOne({ guildId, userId }).lean().exec();
-	return consent?.optedIn === true && consent.allowSuggestive === true;
-}
-
-async function requireEnabledNsfwChannel(interaction: CommandInput, guildId: string): Promise<void> {
+async function requireEnabledNsfwChannel(
+	interaction: CommandInput,
+	guildId: string,
+): Promise<NsfwConsentState> {
 	const channel = interaction.channel;
 	if (!channel || !("nsfw" in channel) || channel.nsfw !== true) {
 		throw new UserFacingError("Interactions work only inside a Discord age-restricted channel.");
@@ -44,9 +43,12 @@ async function requireEnabledNsfwChannel(interaction: CommandInput, guildId: str
 		throw new UserFacingError("The server has not enabled this module. A server manager can use /nsfw enable.");
 	}
 
-	if (!(await isOptedIn(guildId, interaction.user.id))) {
+	const consent = await NsfwConsent.findOne({ guildId, userId: interaction.user.id }).lean().exec();
+	if (consent?.optedIn !== true) {
 		throw new UserFacingError("Opt in first with /nsfw opt-in. You can opt out at any time.");
 	}
+
+	return { optedIn: true, allowSuggestive: consent.allowSuggestive === true };
 }
 
 export default defineCommand({
@@ -268,7 +270,7 @@ export default defineCommand({
 			],
 			async run(interaction: CommandInput) {
 				const guild = inGuild(interaction);
-				await requireEnabledNsfwChannel(interaction, guild.id);
+				const actorConsent = await requireEnabledNsfwChannel(interaction, guild.id);
 				const target = interaction.options.getUser("target", true);
 				if (target.bot) throw new UserFacingError("Bot accounts cannot be interaction targets.");
 				if (target.id === interaction.user.id) throw new UserFacingError("Choose another person who has opted in.");
@@ -278,15 +280,16 @@ export default defineCommand({
 						"That person has not opted in for this server. Do not pressure them; they can choose /nsfw opt-in themselves.",
 					);
 				}
-				if (action.suggestive === true) {
-					if (!(await isSuggestiveOptedIn(guild.id, interaction.user.id))) {
+				if (!canUseNsfwAction(action.suggestive, actorConsent, targetConsent)) {
+					if (action.suggestive === true && actorConsent.allowSuggestive !== true) {
 						throw new UserFacingError("Use /nsfw opt-in-suggestive to separately opt in before using this action.");
 					}
-					if (targetConsent.allowSuggestive !== true) {
+					if (action.suggestive === true && targetConsent.allowSuggestive !== true) {
 						throw new UserFacingError(
 							"That person has not separately opted in to suggestive interactions. Do not pressure them.",
 						);
 					}
+					throw new UserFacingError("Both participants must opt in before this interaction can run.");
 				}
 
 				await reply(interaction, {
