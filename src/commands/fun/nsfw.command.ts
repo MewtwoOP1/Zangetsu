@@ -2,7 +2,6 @@ import { PermissionFlagsBits } from "discord.js";
 import { type CommandInput, defineCommand, inGuild } from "@core/command";
 import { UserFacingError } from "@core/errors";
 import { NsfwGuildConfig } from "@database/models/nsfw.schema";
-import { NsfwTargetConsent } from "@database/models/nsfwTargetConsent.schema";
 import { embed, reply } from "@lib/discord";
 import {
 	buildNsfwActionLine,
@@ -65,7 +64,7 @@ export default defineCommand({
 							title: "NSFW GIF commands",
 							description:
 								"Fetch adult anime/hentai GIFs with /nsfw gif, /nsfw fuck, /nsfw anal, /nsfw blowjob (or /nsfw bj), /nsfw boobjob (or /nsfw bz), /nsfw tits, /nsfw ass, /nsfw pussy, /nsfw cum, /nsfw handjob, /nsfw hentai, /nsfw lesbian, /nsfw threesome, or /nsfw random. " +
-								"Each GIF command accepts an optional target. Other members must opt in with /nsfw consent enabled:true before they can be targeted; mentions do not send notifications. The server module must be enabled, and commands only work in age-restricted Discord channels. Adult-only filtering is applied, but external tags and ratings are not infallible.",
+								"Each GIF command accepts an optional target and adds an action caption. Mentions do not send notifications. The server module must be enabled, and commands only work in age-restricted Discord channels. Adult-only filtering is applied, but external tags and ratings are not infallible.",
 						}),
 					],
 					allowedMentions: { parse: [] },
@@ -135,41 +134,7 @@ export default defineCommand({
 								"\nMedia: animated GIF files only" +
 								"\nRating: explicit only" +
 								"\nChannel: Discord age-restricted channels only" +
-								"\nUser targeting: opt-in required",
-						}),
-					],
-				});
-			},
-		},
-		{
-			name: "consent",
-			description: "Choose whether other members may target you in NSFW action captions.",
-			private: true,
-			options: [
-				{
-					name: "enabled",
-					description: "Allow other members to include you in NSFW action captions.",
-					type: "boolean",
-					required: true,
-				},
-			],
-			async run(interaction: CommandInput) {
-				const guild = inGuild(interaction);
-				await requireEnabledNsfwChannel(interaction, guild.id);
-				const enabled = interaction.options.getBoolean("enabled", true);
-				await NsfwTargetConsent.findOneAndUpdate(
-					{ guildId: guild.id, userId: interaction.user.id },
-					{ $set: { enabled } },
-					{ upsert: true, new: true, setDefaultsOnInsert: true },
-				).exec();
-				await reply(interaction, {
-					embeds: [
-						embed({
-							category: "fun",
-							title: enabled ? "NSFW targeting enabled" : "NSFW targeting disabled",
-							description: enabled
-								? "Other members may now target you in NSFW action captions in this server. Use /nsfw consent enabled:false to opt out."
-								: "Other members can no longer target you in NSFW action captions in this server.",
+								"\nUser targeting: optional, no consent gate",
 						}),
 					],
 				});
@@ -191,20 +156,6 @@ export default defineCommand({
 				await requireEnabledNsfwChannel(interaction, guild.id);
 
 				const target = interaction.options.getUser("target");
-				if (target && target.id !== interaction.user.id) {
-					const targetConsent = await NsfwTargetConsent.findOne({
-						guildId: guild.id,
-						userId: target.id,
-					})
-						.lean()
-						.exec();
-					if (targetConsent?.enabled !== true) {
-						throw new UserFacingError(
-							`${target.username} has not opted in to NSFW action captions. They can opt in with /nsfw consent enabled:true.`,
-						);
-					}
-				}
-
 				let result: Awaited<ReturnType<typeof fetchNsfwGif>>;
 				try {
 					result = await fetchNsfwGif(category);
