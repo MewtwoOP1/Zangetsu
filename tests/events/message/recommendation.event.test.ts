@@ -8,7 +8,9 @@ import {
 describe("parseRecommendationTypeChoice", () => {
 	it.each([
 		["anime", "anime"],
+		["anime please", "anime"],
 		["movie", "movie"],
+		["I want a movie", "movie"],
 		["films!", "movie"],
 		["TV series", "series"],
 		["shows.", "series"],
