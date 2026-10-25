@@ -46,7 +46,8 @@ export async function handleRaidShieldJoin(client: TestifyClient, guild: Guild):
 
 	await channel.send({
 		content:
-			"Raid Shield warning: a burst of new joins was detected in this server. Review the member list and audit log; no members were automatically punished.",
+			"Raid Shield warning: a burst of new joins was detected in this server. " +
+			"Review the member list and audit log; no members were automatically punished.",
 		allowedMentions: { parse: [] },
 	}).catch((error: unknown) => {
 		client.logger.warn({ err: toError(error), guildId: guild.id }, "Could not send the Raid Shield alert");

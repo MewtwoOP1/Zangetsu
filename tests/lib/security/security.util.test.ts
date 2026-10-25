@@ -1,5 +1,10 @@
 import { PermissionFlagsBits } from "discord.js";
-import { channelExportCsv, csvCell, MAX_CHANNEL_EXPORT_MESSAGES, permissionOverrideState } from "@lib/security/security.util";
+import {
+	channelExportCsv,
+	csvCell,
+	MAX_CHANNEL_EXPORT_MESSAGES,
+	permissionOverrideState,
+} from "@lib/security/security.util";
 
 describe("security utilities", () => {
 	it("neutralizes spreadsheet formula prefixes while retaining CSV quoting", () => {

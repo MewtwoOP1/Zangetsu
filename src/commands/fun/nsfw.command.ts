@@ -61,7 +61,10 @@ export default defineCommand({
 							category: "fun",
 							title: "NSFW module help",
 							description:
-								"This module is disabled by default and provides text-only, non-graphic interactions. It does not fetch or distribute explicit images or videos. A server manager must enable it, interactions must be in a Discord age-restricted channel, and both people must opt in. Use /nsfw opt-out to withdraw consent at any time.\n\nAvailable interactions: " +
+								"This module is disabled by default and provides text-only, non-graphic interactions. " +
+								"It does not fetch or distribute explicit images or videos. A server manager must enable it, " +
+								"interactions must be in a Discord age-restricted channel, and both people must opt in. " +
+								"Use /nsfw opt-out to withdraw consent at any time.\n\nAvailable interactions: " +
 								ACTIONS.map((action) => action.name).join(", ") +
 								", plus /nsfw random.",
 						}),
@@ -82,7 +85,13 @@ export default defineCommand({
 					{ upsert: true, new: true, setDefaultsOnInsert: true },
 				).exec();
 				await reply(interaction, {
-					embeds: [embed({ category: "fun", title: "NSFW text module enabled", description: "Only non-graphic text interactions are available. Use /nsfw disable to turn the module off." })],
+					embeds: [
+						embed({
+							category: "fun",
+							title: "NSFW text module enabled",
+							description: "Only non-graphic text interactions are available. Use /nsfw disable to turn the module off.",
+						}),
+					],
 				});
 			},
 		},
@@ -98,7 +107,13 @@ export default defineCommand({
 					{ upsert: true, new: true, setDefaultsOnInsert: true },
 				).exec();
 				await reply(interaction, {
-					embeds: [embed({ category: "fun", title: "NSFW text module disabled", description: "All interactions are now disabled for this server." })],
+					embeds: [
+						embed({
+							category: "fun",
+							title: "NSFW text module disabled",
+							description: "All interactions are now disabled for this server.",
+						}),
+					],
 				});
 			},
 		},
@@ -136,7 +151,13 @@ export default defineCommand({
 					{ upsert: true, new: true, setDefaultsOnInsert: true },
 				).exec();
 				await reply(interaction, {
-					embeds: [embed({ category: "fun", title: "Consent saved", description: "You opted in for this server. You can use /nsfw opt-out at any time." })],
+					embeds: [
+						embed({
+							category: "fun",
+							title: "Consent saved",
+							description: "You opted in for this server. You can use /nsfw opt-out at any time.",
+						}),
+					],
 				});
 			},
 		},
@@ -151,7 +172,13 @@ export default defineCommand({
 					{ upsert: true, new: true, setDefaultsOnInsert: true },
 				).exec();
 				await reply(interaction, {
-					embeds: [embed({ category: "fun", title: "Consent withdrawn", description: "You are opted out. This works even when the module is disabled." })],
+					embeds: [
+						embed({
+							category: "fun",
+							title: "Consent withdrawn",
+							description: "You are opted out. This works even when the module is disabled.",
+						}),
+					],
 				});
 			},
 		},
@@ -161,14 +188,21 @@ export default defineCommand({
 			async run(interaction) {
 				const guild = inGuild(interaction);
 				await requireEnabledNsfwChannel(interaction, guild.id);
-				const line = RANDOM_LINES[Math.floor(Math.random() * RANDOM_LINES.length)] ?? RANDOM_LINES[0]!;
+				const line = RANDOM_LINES[Math.floor(Math.random() * RANDOM_LINES.length)] ?? "Keep it playful, non-graphic, and consensual.";
 				await reply(interaction, { embeds: [embed({ category: "fun", title: "Random prompt", description: line })] });
 			},
 		},
 		...ACTIONS.map((action) => ({
 			name: action.name,
 			description: "Run a consent-gated, non-graphic text interaction.",
-			options: [{ name: "target", description: "The other person (they must have opted in too).", type: "user" as const, required: true }],
+			options: [
+				{
+					name: "target",
+					description: "The other person (they must have opted in too).",
+					type: "user" as const,
+					required: true,
+				},
+			],
 			async run(interaction: CommandInput) {
 				const guild = inGuild(interaction);
 				await requireEnabledNsfwChannel(interaction, guild.id);
@@ -176,7 +210,9 @@ export default defineCommand({
 				if (target.bot) throw new UserFacingError("Bot accounts cannot be interaction targets.");
 				if (target.id === interaction.user.id) throw new UserFacingError("Choose another person who has opted in.");
 				if (!(await isOptedIn(guild.id, target.id))) {
-					throw new UserFacingError("That person has not opted in for this server. Do not pressure them; they can choose /nsfw opt-in themselves.");
+					throw new UserFacingError(
+						"That person has not opted in for this server. Do not pressure them; they can choose /nsfw opt-in themselves.",
+					);
 				}
 
 				await reply(interaction, {

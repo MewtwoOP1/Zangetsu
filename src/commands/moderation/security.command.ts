@@ -27,7 +27,9 @@ export default defineCommand({
 							category: "moderation",
 							title: "Administrator role audit",
 							description:
-								"Found " + elevated.length + " role(s) with Administrator access. Review these roles and remove access that is no longer needed.\n\n" +
+								"Found " +
+								elevated.length +
+								" role(s) with Administrator access. Review these roles and remove access that is no longer needed.\n\n" +
 								(details.join("\n") || "No Administrator roles found."),
 						}),
 					],
@@ -43,13 +45,20 @@ export default defineCommand({
 				const webhooks = await guild.fetchWebhooks().catch(() => {
 					throw new UserFacingError("I could not inspect webhooks. Make sure I have the Manage Webhooks permission.");
 				});
-				const lines = [...webhooks.values()].slice(0, 40).map((hook) => {
+				const lines = [...webhooks.values()].slice(0, 18).map((hook) => {
 					const owner = hook.owner?.username ?? "unknown owner";
 					const channel = hook.channelId ? "<#" + hook.channelId + ">" : "unknown channel";
 					return "- " + hook.name + " — " + channel + " — owner: " + owner + " (" + (hook.owner?.id ?? "unknown") + ")";
 				});
 				await reply(interaction, {
-					embeds: [embed({ category: "moderation", title: "Webhook audit (" + webhooks.size + ")", description: lines.join("\n") || "No webhooks found." })],
+					embeds: [
+						embed({
+							category: "moderation",
+							title: "Webhook audit (" + webhooks.size + ")",
+							description: lines.join("\n") || "No webhooks found.",
+							footer: { text: "Showing up to 18 webhooks. Webhook tokens are never displayed." },
+						}),
+					],
 					allowedMentions: { parse: [] },
 				});
 			},
@@ -171,7 +180,10 @@ export default defineCommand({
 						embed({
 							category: "moderation",
 							title: "Panic lock enabled",
-							description: "Sending messages is disabled for @everyone in " + channel + ". Use /security restore in the same channel to restore the previous Send Messages overrides.",
+							description:
+								"Sending messages is disabled for @everyone in " +
+								channel +
+								". Use /security restore in the same channel to restore the previous Send Messages overrides.",
 						}),
 					],
 					allowedMentions: { parse: [] },
@@ -201,7 +213,13 @@ export default defineCommand({
 				await PanicLock.deleteOne({ guildId: guild.id, channelId: channel.id }).exec();
 
 				await reply(interaction, {
-					embeds: [embed({ category: "moderation", title: "Panic lock restored", description: "The previous Send Messages overrides were restored in " + channel + "." })],
+					embeds: [
+						embed({
+							category: "moderation",
+							title: "Panic lock restored",
+							description: "The previous Send Messages overrides were restored in " + channel + ".",
+						}),
+					],
 					allowedMentions: { parse: [] },
 				});
 			},
@@ -242,7 +260,12 @@ export default defineCommand({
 						embed({
 							category: "moderation",
 							title: "Raid Shield enabled",
-							description: "I will alert " + channel + " when " + threshold + " or more joins occur within 30 seconds. No members are automatically kicked or banned.",
+							description:
+								"I will alert " +
+								channel +
+								" when " +
+								threshold +
+								" or more joins occur within 30 seconds. No members are automatically kicked or banned.",
 						}),
 					],
 				});
@@ -259,7 +282,13 @@ export default defineCommand({
 					{ upsert: true, new: true, setDefaultsOnInsert: true },
 				).exec();
 				await reply(interaction, {
-					embeds: [embed({ category: "moderation", title: "Raid Shield disabled", description: "Join-burst alerts are now disabled." })],
+					embeds: [
+						embed({
+							category: "moderation",
+							title: "Raid Shield disabled",
+							description: "Join-burst alerts are now disabled.",
+						}),
+					],
 				});
 			},
 		},
