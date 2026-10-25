@@ -2,8 +2,8 @@ import { defineMessageHandler } from "@core/message";
 import { embed } from "@lib/discord";
 import { createMediaSession, recommendMedia, type RecommendationType } from "@lib/recommendations";
 
-const INTENT =
-	/\b(?:recommend(?:ation|ations|ed|ing)?|suggest(?:ion|ions|ed|ing)?|what\s+should\s+i\s+(?:watch|read)|what\s+to\s+(?:watch|read)|anything\s+(?:good\s+)?to\s+(?:watch|read)|something\s+(?:good\s+)?to\s+(?:watch|read)|what\s+(?:(?:tv\s+)?(?:series|shows?)|anime|manga|light\s+novels?|novels?|movies?|films?)\s+should\s+i\s+(?:watch|read))\b/i;
+const REQUEST_PREFIX = /^\s*(?:suggest|recommend)\b/i;
+const REQUEST_PREFIX_WITH_SPACE = /^\s*(?:suggest|recommend)\b\s*/i;
 const ANIME = /\banime\b/i;
 const MANGA = /\b(?:manga|manhwa|manhua|webtoons?|comics?)\b/i;
 const NOVEL = /\b(?:light\s*novels?|web\s+novels?|novels?|lns?)\b/i;
@@ -30,8 +30,9 @@ export function stripBotMention(content: string, botId: string): string {
 /** Pure intent parsing so natural-language triggers can be tested without Discord. */
 export function parseRecommendationRequest(content: string): RecommendationRequest | null {
 	const text = content.trim();
-	if (!text || text.length > 1_500 || !INTENT.test(text)) return null;
+	if (!text || text.length > 1_500 || !REQUEST_PREFIX.test(text)) return null;
 
+	const query = text.replace(REQUEST_PREFIX_WITH_SPACE, "").trim();
 	let type: RecommendationType | null = null;
 	if (ALL_MEDIA.test(text)) type = "all";
 	else if (ANIME.test(text)) type = "anime";
@@ -39,8 +40,11 @@ export function parseRecommendationRequest(content: string): RecommendationReque
 	else if (NOVEL.test(text)) type = "novel";
 	else if (MOVIE.test(text)) type = "movie";
 	else if (SERIES.test(text)) type = "series";
+	else if (/\b(?:read|reading|chapter|chapters)\b/i.test(query)) type = "manga";
+	else if (query.length > 0) type = "anime";
 
-	return { type, preferences: text.slice(0, 250) };
+	// Preserve the full natural-language prompt so AI can understand nuanced tropes and exclusions.
+	return { type, preferences: text.slice(0, 1_000) };
 }
 
 function cooldownActive(userId: string, now: number): boolean {
@@ -118,8 +122,8 @@ export default defineMessageHandler({
 				embeds: [
 					embed({
 						category: "community",
-						title: "What would you like to watch or read?",
-						description: "Choose **anime**, **manga**, **light novel**, **movie**, **TV series**, or **all media**. Add genres, tropes, mood, pacing, or things you want to avoid.",
+						title: "What should I recommend?",
+						description: "Tell me what you want to watch or read, including genre, main-character traits, tropes, mood, pacing, or exclusions. Start the message with **suggest** or **recommend**.",
 					}),
 				],
 				allowedMentions: { parse: [] },
@@ -148,6 +152,7 @@ export default defineMessageHandler({
 				type: request.type,
 				preferences: request.preferences,
 				tmdbToken: client.env.TMDB_API_READ_ACCESS_TOKEN,
+				groqApiKey: client.env.GROQ_API_KEY,
 				openRouterApiKey: client.env.OPENROUTER_API_KEY,
 				recommendationAiModel: client.env.RECOMMENDATION_AI_MODEL,
 			});
