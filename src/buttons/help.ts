@@ -32,7 +32,7 @@ export default defineButton({
 			if (chosen === HELP_HOME) {
 				await interaction.update({
 					embeds: [helpHome(client, surface, prefix)],
-					components: [categoryMenu(client, surface, null, ownerId), helpLinks()],
+					components: [categoryMenu(client, surface, null, ownerId), ...helpLinks()],
 				});
 				return;
 			}
