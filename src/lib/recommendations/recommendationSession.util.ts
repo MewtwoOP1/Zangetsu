@@ -24,6 +24,16 @@ interface MediaSession {
 
 const sessions = new Map<string, MediaSession>();
 
+/** Randomizes recommendation order without mutating the shared catalogue cache; lookups remain ranked. */
+export function shuffleRecommendations<T>(items: readonly T[], random: () => number = Math.random): T[] {
+	const shuffled = [...items];
+	for (let index = shuffled.length - 1; index > 0; index -= 1) {
+		const target = Math.floor(random() * (index + 1));
+		[shuffled[index], shuffled[target]] = [shuffled[target]!, shuffled[index]!];
+	}
+	return shuffled;
+}
+
 function cleanExpiredSessions(now = Date.now()): void {
 	for (const [id, session] of sessions) {
 		if (session.expiresAt <= now) sessions.delete(id);
@@ -150,7 +160,7 @@ export function createMediaSession(input: {
 		id,
 		userId: input.userId,
 		mode: input.mode,
-		items: input.items,
+		items: input.mode === "recommendation" ? shuffleRecommendations(input.items) : [...input.items],
 		index: 0,
 		showStats: false,
 		...(input.query ? { query: input.query } : {}),
