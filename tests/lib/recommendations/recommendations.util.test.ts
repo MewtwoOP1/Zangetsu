@@ -302,6 +302,29 @@ describe("lookupMedia", () => {
 		expect(body.query).toContain("SEARCH_MATCH");
 		expect(body.variables).toEqual({ search: "Test Anime", page: 1, perPage: 10, mediaType: "ANIME" });
 	});
+
+	it("searches TMDB by title and keeps a sharper Zangetsu cover than Discord thumbnail", async () => {
+		mockJson({
+			results: [{
+				id: 42,
+				title: "Test Movie",
+				overview: "A test movie.",
+				poster_path: "/poster.jpg",
+				vote_average: 8.1,
+				vote_count: 1_200,
+				popularity: 42,
+				genre_ids: [878],
+				release_date: "2024-01-02",
+			}],
+		});
+
+		const results = await lookupMedia({ query: "Test Movie", type: "movie", tmdbToken: "test-token" });
+
+		expect(results[0]).toEqual(expect.objectContaining({
+			url: "https://zangetsu.online/open/?s=zm&u=zm%3A%2F%2Fmovie%2Ftmdb%3A42&t=Test+Movie&y=m&c=https%3A%2F%2Fimage.tmdb.org%2Ft%2Fp%2Fw500%2Fposter.jpg",
+			poster: "https://image.tmdb.org/t/p/w342/poster.jpg",
+		}));
+	});
 });
 
 describe("recommendation ranking", () => {
