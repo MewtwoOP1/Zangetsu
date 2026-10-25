@@ -139,7 +139,7 @@ export default defineCommand({
 				const guild = inGuild(interaction);
 				await requireEnabledNsfwChannel(interaction, guild.id);
 
-				let result;
+				let result: Awaited<ReturnType<typeof fetchNsfwGif>>;
 				try {
 					result = await fetchNsfwGif(category);
 				} catch {
