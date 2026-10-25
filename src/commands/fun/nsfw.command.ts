@@ -125,8 +125,7 @@ export default defineCommand({
 								"\nMedia: animated GIF files only" +
 								"\nRating: explicit only" +
 								"\nChannel: Discord age-restricted channels only" +
-								"\nPer-user opt-in: not required for GIF retrieval" +
-								"\nTargeted member interactions: not provided",
+								"\nUser targeting: none",
 						}),
 					],
 				});
