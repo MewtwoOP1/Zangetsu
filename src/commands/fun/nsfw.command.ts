@@ -3,7 +3,12 @@ import { type CommandInput, defineCommand, inGuild } from "@core/command";
 import { UserFacingError } from "@core/errors";
 import { NsfwGuildConfig } from "@database/models/nsfw.schema";
 import { embed, reply } from "@lib/discord";
-import { fetchNsfwGif, NSFW_GIF_CATEGORIES, type NsfwGifCategory } from "@lib/nsfw/nsfwGif.util";
+import {
+	fetchNsfwGif,
+	NSFW_GIF_CATEGORIES,
+	NsfwGifConfigurationError,
+	type NsfwGifCategory,
+} from "@lib/nsfw/nsfwGif.util";
 
 async function requireEnabledNsfwChannel(interaction: CommandInput, guildId: string): Promise<void> {
 	const channel = interaction.channel;
@@ -141,7 +146,10 @@ export default defineCommand({
 				let result: Awaited<ReturnType<typeof fetchNsfwGif>>;
 				try {
 					result = await fetchNsfwGif(category);
-				} catch {
+				} catch (error) {
+					if (error instanceof NsfwGifConfigurationError) {
+						throw new UserFacingError(error.message);
+					}
 					throw new UserFacingError("The GIF provider is temporarily unavailable. Please try again shortly.");
 				}
 
