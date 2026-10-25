@@ -1,7 +1,7 @@
 import { UserFacingError } from "@core/errors";
 import { getBotSettings, saveBotSettings, type StoredBotSettings } from "@database/repositories/botSettingsRepository";
 import { type MusicSource, type Query } from "@lib/music/music.types";
-import { DEFAULT_MUSIC_SOURCES, type MusicSourceChoice, type MusicSourceSetting } from "@testify/shared";
+import { type MusicSourceChoice, type MusicSourceSetting } from "@testify/shared";
 
 /** Which services the player takes music from, as the bot's owner chose for every server at once. */
 
@@ -23,12 +23,12 @@ const NAMES: Record<MusicSourceChoice, string> = {
 	soundcloud: "SoundCloud only",
 };
 
-export function sourcesName(sources: MusicSourceChoice): string {
+export function sourcesName(_sources: MusicSourceChoice): string {
 	return NAMES.soundcloud;
 }
 
 export async function applyMusicSources(
-	sources: MusicSourceChoice,
+	_sources: MusicSourceChoice,
 	actorId: string | null,
 ): Promise<MusicSourceSetting> {
 	await saveBotSettings({ musicSources: "soundcloud" }, actorId);
@@ -48,12 +48,12 @@ export function sourcesLine(sources: MusicSourceChoice): string {
 }
 
 /** Where a search that names no service goes. */
-export function searchSourceFor(sources: MusicSourceChoice): MusicSource {
+export function searchSourceFor(_sources: MusicSourceChoice): MusicSource {
 	return "soundcloud";
 }
 
 /** Only a plain search on YouTube moves to SoundCloud, and only while the owner allows both. */
-export function fallsBackToSoundCloud(query: Query, sources: MusicSourceChoice): boolean {
+export function fallsBackToSoundCloud(_query: Query, _sources: MusicSourceChoice): boolean {
 	return false;
 }
 
