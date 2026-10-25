@@ -57,18 +57,11 @@ export function fallsBackToSoundCloud(_query: Query, _sources: MusicSourceChoice
 	return false;
 }
 
-const OFF: Record<"youtube" | "soundcloud", string> = {
-	youtube: "Zangetsu music is SoundCloud-only. Search by title or paste a SoundCloud link.",
-	soundcloud: "SoundCloud is the only enabled music source.",
-};
+const ONLY_SOUNDCLOUD = "Zangetsu music is SoundCloud-only. Search by title or paste a SoundCloud link.";
 
-/** Plain text searches SoundCloud; named YouTube searches are refused. */
-export function withinSources(query: Query, sources: MusicSourceChoice): Query {
+/** Plain searches use SoundCloud; explicit sources and pasted URLs must also be SoundCloud. */
+export function withinSources(query: Query, _sources: MusicSourceChoice): Query {
 	if (query.kind === "search" && query.named !== true) return { ...query, source: "soundcloud" };
-
-	if (query.source === "youtube" || query.source === "soundcloud") {
-		if (!allowsSource(sources, query.source)) throw new UserFacingError(OFF[query.source]);
-	}
-
+	if (query.source !== "soundcloud") throw new UserFacingError(ONLY_SOUNDCLOUD);
 	return query;
 }
