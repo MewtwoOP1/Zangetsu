@@ -182,8 +182,8 @@ const TMDB_GENRE_NAMES: Record<number, string> = {
 	10768: "War & politics",
 };
 
-export function detectRecommendationGenre(preferences: string, type: MediaType): string | null {
-	const matches = GENRE_RULES.flatMap((rule) => {
+export function detectRecommendationGenres(preferences: string, type: MediaType): string[] {
+	return GENRE_RULES.flatMap((rule) => {
 		const supported =
 			type === "anime" || type === "manga" || type === "novel"
 				? rule.anilist
@@ -194,9 +194,14 @@ export function detectRecommendationGenre(preferences: string, type: MediaType):
 
 		const match = rule.pattern.exec(preferences);
 		return match === null ? [] : [{ name: rule.name, index: match.index }];
-	}).sort((a, b) => a.index - b.index);
+	})
+		.sort((a, b) => a.index - b.index)
+		.map((match) => match.name);
+}
 
-	return matches[0]?.name ?? null;
+/** Legacy single-genre helper retained for callers that need just one filter. */
+export function detectRecommendationGenre(preferences: string, type: MediaType): string | null {
+	return detectRecommendationGenres(preferences, type)[0] ?? null;
 }
 
 /** AniList tags let anime requests include common tropes such as isekai or an overpowered lead. */
@@ -408,15 +413,17 @@ function mapAniListMedia(
 
 async function fetchAniList(
 	mediaType: AniListMediaType,
-	genre: string | null,
+	genres: readonly string[],
 	tag: string | null,
 ): Promise<MediaRecommendation[]> {
-	const genreFilter = genre === null ? null : genreValue(genre, mediaType);
+	const genreFilters = [...new Set(genres
+		.map((genre) => genreValue(genre, mediaType))
+		.filter((value): value is string => typeof value === "string"))];
 	const variables = {
 		page: 1,
 		perPage: 50,
 		mediaType: mediaType === "anime" ? "ANIME" : "MANGA",
-		...(genreFilter === null ? {} : { genreIn: [genreFilter] }),
+		...(genreFilters.length === 0 ? {} : { genreIn: genreFilters }),
 		...(tag === null ? {} : { tagIn: [tag] }),
 		...(mediaType === "novel" ? { formatIn: ["NOVEL"] } : {}),
 		...(mediaType === "manga" ? { formatNotIn: ["NOVEL"] } : {}),
@@ -438,12 +445,30 @@ async function fetchAniList(
 
 async function fetchAniListWithFallback(
 	mediaType: AniListMediaType,
-	genre: string | null,
+	genres: readonly string[],
 	tag: string | null,
 ): Promise<MediaRecommendation[]> {
-	let results = await fetchAniList(mediaType, genre, tag);
-	if (results.length === 0 && tag !== null) results = await fetchAniList(mediaType, genre, null);
-	if (results.length === 0 && genre !== null) results = await fetchAniList(mediaType, null, null);
+	let results = await fetchAniList(mediaType, genres, tag);
+	if (results.length === 0 && tag !== null) results = await fetchAniList(mediaType, genres, null);
+	if (results.length === 0 && genres.length > 0) results = await fetchAniList(mediaType, [], null);
+
+	// Even a successful genre query can miss niche tropes; mix in broad top-ranked candidates
+	// so local/AI ranking has meaningful alternatives beyond the one detected genre.
+	if (results.length > 0 && (genres.length > 0 || tag !== null)) {
+		try {
+			const broad = await fetchAniList(mediaType, [], null);
+			const seen = new Set(results.map((item) => item.title.toLocaleLowerCase()));
+			for (const item of broad) {
+				const key = item.title.toLocaleLowerCase();
+				if (!seen.has(key)) {
+					seen.add(key);
+					results.push(item);
+				}
+			}
+		} catch {
+			// Keep the filtered catalogue results when the broad discovery request is unavailable.
+		}
+	}
 	return results;
 }
 
@@ -613,12 +638,10 @@ export async function rankRecommendationsWithAI(
  */
 export async function recommendMedia(input: RecommendationInput): Promise<MediaRecommendation[]> {
 	const { type, preferences, tmdbToken, openRouterApiKey, recommendationAiModel } = input;
-	const animeGenre = detectRecommendationGenre(preferences, "anime");
-	const mangaGenre = detectRecommendationGenre(preferences, "manga");
-	const novelGenre = detectRecommendationGenre(preferences, "novel");
-	const movieGenre = detectRecommendationGenre(preferences, "movie");
-	const seriesGenre = detectRecommendationGenre(preferences, "series");
-	const genre = type === "all" ? null : detectRecommendationGenre(preferences, type);
+	const animeGenres = detectRecommendationGenres(preferences, "anime");
+	const mangaGenres = detectRecommendationGenres(preferences, "manga");
+	const novelGenres = detectRecommendationGenres(preferences, "novel");
+	const genres = type === "all" ? [] : detectRecommendationGenres(preferences, type);
 	const tag = ["anime", "manga", "novel", "all"].includes(type) ? detectAnimeTag(preferences) : null;
 	const normalizedPreferences = preferences.trim().toLocaleLowerCase().replace(/\\s+/g, " ");
 	const key = [
@@ -637,18 +660,24 @@ export async function recommendMedia(input: RecommendationInput): Promise<MediaR
 
 	const request = (async (): Promise<MediaRecommendation[]> => {
 		if (type === "anime" || type === "manga" || type === "novel") {
-			return fetchAniListWithFallback(type, genre, tag);
+			return fetchAniListWithFallback(type, genres, tag);
 		}
 
 		if (type === "all") {
 			const anilistTasks = await Promise.allSettled([
-				fetchAniListWithFallback("anime", animeGenre, tag),
-				fetchAniListWithFallback("manga", mangaGenre, tag),
-				fetchAniListWithFallback("novel", novelGenre, tag),
+				fetchAniListWithFallback("anime", animeGenres, tag),
+				fetchAniListWithFallback("manga", mangaGenres, tag),
+				fetchAniListWithFallback("novel", novelGenres, tag),
 			]);
-			const anime = anilistTasks[0]?.status === "fulfilled" ? anilistTasks[0].value.slice(0, 2) : [];
-			const manga = anilistTasks[1]?.status === "fulfilled" ? anilistTasks[1].value.slice(0, 2) : [];
-			const novels = anilistTasks[2]?.status === "fulfilled" ? anilistTasks[2].value.slice(0, 2) : [];
+			const anime = anilistTasks[0]?.status === "fulfilled"
+				? rankRecommendationsHeuristically(anilistTasks[0].value, preferences).slice(0, 6)
+				: [];
+			const manga = anilistTasks[1]?.status === "fulfilled"
+				? rankRecommendationsHeuristically(anilistTasks[1].value, preferences).slice(0, 6)
+				: [];
+			const novels = anilistTasks[2]?.status === "fulfilled"
+				? rankRecommendationsHeuristically(anilistTasks[2].value, preferences).slice(0, 6)
+				: [];
 			let tmdbTop: MediaRecommendation[] = [];
 			if (tmdbToken) {
 				const tmdbTasks = await Promise.allSettled([
@@ -658,12 +687,13 @@ export async function recommendMedia(input: RecommendationInput): Promise<MediaR
 				tmdbTop = tmdbTasks
 					.flatMap((entry) => entry.status === "fulfilled" ? entry.value : [])
 					.sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1) || (b.voteCount ?? 0) - (a.voteCount ?? 0))
-					.slice(0, 4);
+					.slice(0, 12);
 			}
 			const results = [...anime, ...manga, ...novels, ...tmdbTop];
 			if (results.length === 0) {
-				const failures = [...anilistTasks, ...(tmdbToken ? [] : [])]
-					.filter((entry): entry is PromiseRejectedResult => entry.status === "rejected");
+				const failures = anilistTasks.filter(
+					(entry): entry is PromiseRejectedResult => entry.status === "rejected",
+				);
 				if (failures.length === anilistTasks.length && !tmdbToken) throw failures[0]?.reason;
 			}
 			return results;
