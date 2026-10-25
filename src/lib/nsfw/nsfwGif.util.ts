@@ -69,7 +69,7 @@ const ACTION_VERBS: Readonly<Record<NsfwGifCategory, string>> = {
 
 function actionName(username: string): string {
 	// Discord usernames cannot contain whitespace or mention syntax; retain a defensive fallback regardless.
-	const safe = username.replace(/[<>@\\r\\n]/g, "");
+	const safe = username.replace(/[<>@\r\n]/g, "");
 	return `@${safe || "user"}`;
 }
 
