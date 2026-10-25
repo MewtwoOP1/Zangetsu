@@ -25,6 +25,7 @@ export interface RecommendationInput {
 const CACHE_TTL_MS = 15 * 60_000;
 const MAX_CACHE_ENTRIES = 250;
 const cache = new Map<string, { expiresAt: number; results: MediaRecommendation[] }>();
+const inFlight = new Map<string, Promise<MediaRecommendation[]>>();
 
 const GENRE_RULES: {
 	name: string;
@@ -204,6 +205,7 @@ function cacheWrite(key: string, results: MediaRecommendation[]): void {
 /** Clears only the in-memory catalogue cache; exported so tests remain isolated. */
 export function clearRecommendationCache(): void {
 	cache.clear();
+	inFlight.clear();
 }
 
 const ANILIST_QUERY = `
@@ -308,17 +310,30 @@ export async function recommendMedia(input: RecommendationInput): Promise<MediaR
 	const previous = cacheRead(key);
 	if (previous !== null) return previous.slice(0, 3);
 
-	let results: MediaRecommendation[];
-	if (type === "anime") {
-		results = await fetchAnime(genre, tag);
-		if (results.length === 0 && tag !== null) results = await fetchAnime(genre, null);
-		if (results.length === 0 && genre !== null) results = await fetchAnime(null, null);
-	} else {
-		if (!tmdbToken) throw new Error("TMDB_API_READ_ACCESS_TOKEN is required for movie and series recommendations.");
-		results = await fetchMovieOrSeries(type, preferences, tmdbToken);
-	}
+	// Concurrent requests for the same recommendation share one upstream API call.
+	const pending = inFlight.get(key);
+	if (pending !== undefined) return (await pending).slice(0, 3);
 
-	if (results.length === 0) return [];
-	cacheWrite(key, results);
-	return results.slice(0, 3);
+	const request = (async (): Promise<MediaRecommendation[]> => {
+		if (type === "anime") {
+			let results = await fetchAnime(genre, tag);
+			if (results.length === 0 && tag !== null) results = await fetchAnime(genre, null);
+			if (results.length === 0 && genre !== null) results = await fetchAnime(null, null);
+			return results;
+		}
+
+		if (!tmdbToken) {
+			throw new Error("TMDB_API_READ_ACCESS_TOKEN is required for movie and series recommendations.");
+		}
+		return fetchMovieOrSeries(type, preferences, tmdbToken);
+	})();
+
+	inFlight.set(key, request);
+	try {
+		const results = await request;
+		if (results.length > 0) cacheWrite(key, results);
+		return results.slice(0, 3);
+	} finally {
+		inFlight.delete(key);
+	}
 }
