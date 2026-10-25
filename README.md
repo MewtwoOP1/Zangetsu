@@ -13,7 +13,7 @@ Zangetsu is our community build, with custom commands, shared branding, moderati
 - Community tools, welcome features, giveaways, games, and levelling
 - SoundCloud-only music search and playback with `/play` title search
 - Preference-aware recommendations for anime, manga, manhwa/manhua, and light novels, plus movie / TV picks when TMDB is configured
-- Optional AI reranking through OpenRouter's free-model router; local catalogue ranking remains available without an AI key
+- Optional Groq AI reranking for free-form natural-language recommendations; OpenRouter remains supported as a legacy fallback
 - Economy, leaderboards, and an optional web dashboard
 - Slash commands and configurable prefix commands
 - Shared Zangetsu logo on command embeds and help responses
@@ -50,7 +50,7 @@ The `/nsfw` module is disabled by default. A server manager can enable or disabl
 
 The bot still uses **yt-dlp** internally to resolve SoundCloud streams. Do not remove the `youtube-dl-exec` package solely because YouTube playback is disabled: it provides the yt-dlp executable used by SoundCloud playback. FFmpeg is needed for transcoding, volume adjustment, and seeking.
 
-Anime, manga, and light novels use AniList and need no catalogue API key. Movie and TV lookups use TMDB and require `TMDB_API_READ_ACCESS_TOKEN`. For optional AI-ranked recommendations, set `OPENROUTER_API_KEY` and optionally `RECOMMENDATION_AI_MODEL=openrouter/free`. OpenRouter's free models have strict request limits, so the recommender falls back to local preference/tag ranking when AI is unavailable or the quota is exhausted.
+Anime, manga, and light novels use AniList and need no catalogue API key. Movie and TV lookups use TMDB and require `TMDB_API_READ_ACCESS_TOKEN`. For semantic AI-ranked recommendations, set `GROQ_API_KEY` from [GroqCloud](https://console.groq.com/keys); the default model is `openai/gpt-oss-20b`. Messages beginning with `suggest` or `recommend` accept free-form prompts such as “suggest me an MC with no emotions who becomes a demon lord.” The bot detects explicit media types and defaults to anime when no format is named. OpenRouter remains a legacy fallback through `OPENROUTER_API_KEY`. AI only reorders actual AniList/TMDB catalogue candidates; if AI is unavailable or rate-limited, local preference/tag ranking is used.
 
 ## Safety and attribution
 
