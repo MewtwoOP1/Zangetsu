@@ -204,6 +204,37 @@ describe("lookupMedia", () => {
 		jest.restoreAllMocks();
 	});
 
+	it.each([
+		["manga", "MANGA", "zm://manga/mal:61990"],
+		["novel", "MANGA", "zm://novel/mal:61990"],
+	] as const)("searches the AniList %s catalogue and builds a Zangetsu link", async (type, mediaType, expectedUrl) => {
+		mockJson({
+			data: {
+				Page: {
+					media: [{
+						...animeResult,
+						format: type === "novel" ? "NOVEL" : "MANGA",
+						chapters: 100,
+						volumes: 12,
+					}],
+				},
+			},
+		});
+
+		const results = await lookupMedia({ query: "Test Title", type });
+
+		expect(results[0]).toEqual(expect.objectContaining({
+			mediaType: type,
+			chapters: 100,
+			volumes: 12,
+		}));
+		expect(new URL(results[0]!.url).searchParams.get("u")).toBe(expectedUrl);
+		const body = JSON.parse(String(jest.mocked(global.fetch).mock.calls[0]?.[1]?.body));
+		expect(body.variables.mediaType).toBe(mediaType);
+		if (type === "novel") expect(body.variables.formatIn).toEqual(["NOVEL"]);
+		else expect(body.variables.formatNotIn).toEqual(["NOVEL"]);
+	});
+
 	it("searches AniList by title and returns ranking and popularity statistics", async () => {
 		mockJson({
 			data: {
