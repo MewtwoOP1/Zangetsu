@@ -172,7 +172,7 @@ export default defineCommand({
 					await channel.permissionOverwrites.edit(
 						everyone,
 						{ SendMessages: false, SendMessagesInThreads: false },
-						"Emergency channel lockdown requested by " + interaction.user.username,
+						{ reason: "Emergency channel lockdown requested by " + interaction.user.username },
 					);
 				} catch (error) {
 					await PanicLock.deleteOne({ guildId: guild.id, channelId: channel.id }).exec();
@@ -216,7 +216,7 @@ export default defineCommand({
 				await channel.permissionOverwrites.edit(
 					guild.roles.everyone,
 					{ SendMessages: record.sendMessages, SendMessagesInThreads: record.sendMessagesInThreads },
-					"Restored panic-lock overrides by " + interaction.user.username,
+					{ reason: "Restored panic-lock overrides by " + interaction.user.username },
 				);
 				await PanicLock.deleteOne({ guildId: guild.id, channelId: channel.id }).exec();
 
