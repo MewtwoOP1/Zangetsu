@@ -273,7 +273,8 @@ function parseImage(value: unknown): NsfwGifPost | null {
 	if (!isRecord(value)) return null;
 
 	const isNsfw = value.is_nsfw === true || value.isNsfw === true;
-	if (!isNsfw) return null;
+	const animationFlag = value.is_animated ?? value.isAnimated;
+	if (!isNsfw || animationFlag === false) return null;
 
 	const tags = getTags(value);
 	if (EXCLUDED_TAGS.some((tag) => tags.has(normalizeTag(tag)))) return null;
