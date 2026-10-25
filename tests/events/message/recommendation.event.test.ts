@@ -33,7 +33,6 @@ describe("stripBotMention", () => {
 
 	it("removes this bot's leading mention from a natural-language request", () => {
 		const text = stripBotMention(`<@${botId}> recommend me some anime`, botId);
-
 		expect(text).toBe("recommend me some anime");
 		expect(parseRecommendationRequest(text)?.type).toBe("anime");
 	});
@@ -48,38 +47,44 @@ describe("stripBotMention", () => {
 
 describe("parseRecommendationRequest", () => {
 	it.each([
-		["Can you recommend me a fantasy anime?", "anime"],
-		["Any movie recommendations for a sci-fi fan?", "movie"],
-		["Suggest a good TV series to watch", "series"],
-		["Recommend anime and movies", "all"],
-		["Recommend manga and light novels", "all"],
-		["Recommend me a manhwa", "manga"],
-		["Suggest a slow burn romance manga", "manga"],
-		["Give me a fantasy light novel", "novel"],
-		["What should I read next?", null],
-		["What anime should I watch next?", "anime"],
+		["recommend me a fantasy anime?", "anime"],
+		["recommend a sci-fi movie", "movie"],
+		["suggest a good TV series to watch", "series"],
+		["recommend anime and movies", "all"],
+		["recommend manga and light novels", "all"],
+		["recommend me a manhwa", "manga"],
+		["suggest a slow burn romance manga", "manga"],
+		["suggest me a fantasy light novel", "novel"],
+		["suggest me an MC with no emotions who becomes a demon lord", "anime"],
+		["recommend an MC that reincarnates and builds a kingdom", "anime"],
+		["suggest something good", "anime"],
 	] as const)("detects a %s request", (message, type) => {
 		expect(parseRecommendationRequest(message)).toEqual({
 			type,
-			preferences: message.slice(0, 250),
+			preferences: message.slice(0, 1_000),
 		});
 	});
 
-	it("asks for a media type when the request does not specify one", () => {
-		expect(parseRecommendationRequest("Can you recommend something good to watch?")).toEqual({
-			type: null,
-			preferences: "Can you recommend something good to watch?",
-		});
-		expect(parseRecommendationRequest("What should I read next?")).toEqual({
-			type: null,
-			preferences: "What should I read next?",
-		});
+	it("requires suggest or recommend at the beginning of a message", () => {
+		expect(parseRecommendationRequest("I recommend you watch this anime")).toBeNull();
+		expect(parseRecommendationRequest("Can you recommend me a fantasy anime?")).toBeNull();
+		expect(parseRecommendationRequest("I have a suggestion about this manga")).toBeNull();
 	});
 
-	it("ignores ordinary conversation and empty or oversized messages", () => {
+	it("accepts long, free-form preferences up to the request limit", () => {
+		const message = `Suggest me an MC ${"with a complicated backstory ".repeat(30)}`;
+		expect(parseRecommendationRequest(message)?.type).toBe("anime");
+		expect(parseRecommendationRequest(message)?.preferences).toBe(message);
+		expect(parseRecommendationRequest(`recommend ${"a".repeat(1_500)}`)).toBeNull();
+	});
+
+	it("leaves a bare prefix available for the detail prompt", () => {
+		expect(parseRecommendationRequest("suggest")).toEqual({ type: null, preferences: "suggest" });
+	});
+
+	it("ignores ordinary conversation and empty messages", () => {
 		expect(parseRecommendationRequest("I watched a great anime yesterday")).toBeNull();
 		expect(parseRecommendationRequest("")).toBeNull();
-		expect(parseRecommendationRequest("recommend anime ".padEnd(1_501, "a"))).toBeNull();
 	});
 
 	afterEach(() => {
