@@ -32,10 +32,10 @@ function clientWith(count: number, category: "fun" | "owner" = "fun"): TestifyCl
 }
 
 describe("help links", () => {
-	it("shows source code without linking to an unconfigured support server", () => {
-		const components = helpLinks().toJSON().components;
-		expect(components).toHaveLength(1);
-		expect(components[0]?.url).toBe(theme.repository);
+	it("never includes a source-code button", () => {
+		const rendered = JSON.stringify(helpLinks().map((actionRow) => actionRow.toJSON()));
+		expect(rendered).not.toContain("Source code");
+		expect(rendered).not.toContain(theme.repository);
 	});
 });
 
