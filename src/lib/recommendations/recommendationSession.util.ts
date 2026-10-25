@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { ButtonStyle } from "discord.js";
 import { customId } from "@core/button";
-import { button, embed, linkButton, row } from "@lib/discord";
+import { button, linkButton, row } from "@lib/discord/components.util";
+import { embed } from "@lib/discord/embeds.util";
 import type { MediaRecommendation } from "./recommendations.util";
 
 export const MEDIA_SESSION_BUTTON_ID = "mediaSession";
