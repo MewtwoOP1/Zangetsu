@@ -219,7 +219,9 @@ export default defineCommand({
 							category: "fun",
 							title: `${categoryLabel(category)} hentai GIF`,
 							description: target
-								? `${buildNsfwActionLine(category, interaction.user.id, target.id)}\n\nAnimated adult GIF. Click the title to view the source post.`
+								? `${buildNsfwActionLine(category, interaction.user.id, target.id)}
+
+Animated adult GIF. Click the title to view the source post.`
 								: "Animated adult GIF. Click the title to view the source post.",
 							url: result.postUrl,
 							image: result.fileUrl,
