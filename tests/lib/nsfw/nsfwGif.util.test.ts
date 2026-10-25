@@ -1,6 +1,7 @@
 import {
 	buildNsfwActionLine,
 	buildWaifuGifSearchUrl,
+	fetchNsfwGif,
 	parseWaifuGifImages,
 	type NsfwGifCategory,
 } from "@lib/nsfw/nsfwGif.util";
@@ -110,6 +111,64 @@ describe("Waifu API NSFW GIF provider", () => {
 		expect(parseWaifuGifImages({ data: [baseImage] })).toHaveLength(1);
 		expect(parseWaifuGifImages({ images: "bad" })).toEqual([]);
 		expect(parseWaifuGifImages(null)).toEqual([]);
+	});
+
+	it("fails over to a registered mirror when the primary returns HTML", async () => {
+		const fetchSpy = jest.spyOn(global, "fetch").mockImplementation(async (input) => {
+			const url = new URL(String(input));
+
+			if (url.pathname === "/instances") {
+				return new Response(
+					JSON.stringify({
+						instances: [
+							{ url: "https://waifu-api-031n.onrender.com", schema: true, images: true },
+							{ url: "https://mirror.example.net", schema: true, images: true },
+						],
+					}),
+					{ headers: { "content-type": "application/json" } },
+				);
+			}
+
+			if (url.hostname === "waifu-api-031n.onrender.com") {
+				return new Response("<!doctype html><title>Not found</title>", {
+					status: 200,
+					headers: { "content-type": "text/html" },
+				});
+			}
+
+			if (url.hostname === "mirror.example.net") {
+				return new Response(
+					JSON.stringify({
+						items: [
+							{
+								id: 987,
+								url: "https://waifu-cdn.waifu-api.workers.dev/987.gif",
+								extension: ".gif",
+								isNsfw: true,
+								isAnimated: true,
+								source: null,
+								tags: [{ name: "hentai" }],
+							},
+						],
+						totalCount: 1,
+					}),
+					{ headers: { "content-type": "application/json" } },
+				);
+			}
+
+			return new Response("unavailable", { status: 503 });
+		});
+
+		try {
+			await expect(fetchNsfwGif("random")).resolves.toEqual({
+				id: "987",
+				fileUrl: "https://waifu-cdn.waifu-api.workers.dev/987.gif",
+				postUrl: "https://waifu-cdn.waifu-api.workers.dev/987.gif",
+			});
+			expect(fetchSpy).toHaveBeenCalledTimes(3);
+		} finally {
+			fetchSpy.mockRestore();
+		}
 	});
 
 	it("uses user mention markup while retaining the action", () => {
