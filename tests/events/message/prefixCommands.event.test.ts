@@ -1,17 +1,20 @@
-import { shouldDeferMentionRecommendation } from "@events/message/prefixCommands.event";
+import { shouldDeferRecommendationToIntent } from "@events/message/prefixCommands.event";
 
-describe("shouldDeferMentionRecommendation", () => {
-	it("lets natural-language recommendation mentions reach intent parsing", () => {
-		expect(shouldDeferMentionRecommendation(null, "recommend")).toBe(true);
+describe("shouldDeferRecommendationToIntent", () => {
+	it("routes natural-language recommendation phrasing through intent parsing", () => {
+		expect(shouldDeferRecommendationToIntent("recommend", ["me", "some", "anime"])).toBe(true);
+		expect(shouldDeferRecommendationToIntent("recommend", [])).toBe(true);
+		expect(shouldDeferRecommendationToIntent("recommend", ["film"])).toBe(true);
 	});
 
-	it("does not intercept regular prefixed commands", () => {
-		expect(shouldDeferMentionRecommendation("t?", "recommend")).toBe(false);
-		expect(shouldDeferMentionRecommendation("t?", "help")).toBe(false);
+	it("preserves explicit type-first commands", () => {
+		expect(shouldDeferRecommendationToIntent("recommend", ["anime", "fantasy"])).toBe(false);
+		expect(shouldDeferRecommendationToIntent("recommend", ["movie", "romance"])).toBe(false);
+		expect(shouldDeferRecommendationToIntent("recommend", ["series", "sci-fi"])).toBe(false);
 	});
 
-	it("does not intercept other bot-mention commands or the rec alias", () => {
-		expect(shouldDeferMentionRecommendation(null, "help")).toBe(false);
-		expect(shouldDeferMentionRecommendation(null, "rec")).toBe(false);
+	it("does not intercept other commands or the rec alias", () => {
+		expect(shouldDeferRecommendationToIntent("help", ["recommend"])).toBe(false);
+		expect(shouldDeferRecommendationToIntent("rec", ["me", "some", "anime"])).toBe(false);
 	});
 });
