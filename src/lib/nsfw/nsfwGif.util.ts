@@ -104,7 +104,7 @@ const EXCLUDED_TAGS = [
 	"bestiality",
 ] as const;
 
-const API_BASE = "https://api.waifu.im/";
+const API_BASE = "https://api.waifu-im.workers.dev/";
 const API_TIMEOUT_MS = 8_000;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -136,7 +136,7 @@ function getTags(value: Record<string, unknown>): Set<string> {
 
 function isAllowedWaifuHost(url: URL): boolean {
 	const hostname = url.hostname.toLowerCase();
-	return hostname === "cdn.waifu.im" || hostname.endsWith(".waifu.im");
+	return hostname === "api.waifu-im.workers.dev" || hostname === "cdn.waifu.im" || hostname.endsWith(".waifu.im");
 }
 
 function getGifUrl(value: Record<string, unknown>): string | null {
@@ -219,13 +219,14 @@ export function parseWaifuGifImages(payload: unknown): NsfwGifPost[] {
 
 /** Build a Waifu.im worker search URL. Tags are constants, never user input. */
 export function buildWaifuGifSearchUrl(category: NsfwGifCategory, useCategoryTag = true): string {
-	const url = new URL("images", API_BASE);
-	url.searchParams.set("IsNsfw", "True");
-	url.searchParams.set("IsAnimated", "True");
-	url.searchParams.set("PageSize", "30");
+	const url = new URL("search", API_BASE);
+	url.searchParams.set("is_nsfw", "true");
+	url.searchParams.set("gif", "true");
+	url.searchParams.set("many", "true");
+	url.searchParams.set("order_by", "RANDOM");
 
 	if (useCategoryTag) {
-		for (const tag of CATEGORY_TAGS[category]) url.searchParams.append("IncludedTags", tag);
+		for (const tag of CATEGORY_TAGS[category]) url.searchParams.append("included_tags", tag);
 	}
 	return url.toString();
 }
