@@ -353,7 +353,7 @@ async function requestWaifuGifSearch(
 
 	if (!response.ok) {
 		// A category tag may not exist on an instance; the caller can retry broadly.
-		if (useCategoryTag && (response.status === 400 || response.status === 404)) return [];
+		if (useCategoryTag && response.status === 400) return [];
 		throw new Error(new URL(apiBase).host + " returned HTTP " + response.status);
 	}
 
