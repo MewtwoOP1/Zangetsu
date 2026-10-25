@@ -76,6 +76,8 @@ describe("Rule34 hentai GIF provider", () => {
 			["boobjob", "boobjob"],
 			["bz", "boobjob"],
 			["anal", "anal"],
+			["tits", "tits"],
+			["hentai", "hentai"],
 			["fuck", "fuck"],
 		];
 
@@ -91,9 +93,8 @@ describe("Rule34 hentai GIF provider", () => {
 			).toHaveLength(1);
 		}
 
-		expect(
-			parseRule34GifPosts([{ ...basePost, tags: "animated boobjob adult" }], "fuck"),
-		).toEqual([]);
+		expect(parseRule34GifPosts([{ ...basePost, tags: "animated boobjob adult" }], "fuck")).toEqual([]);
+		expect(parseRule34GifPosts([{ ...basePost, tags: "animated sex adult" }], "fuck")).toEqual([]);
 	});
 
 	it("formats action captions using the invoking user and selected target", () => {
