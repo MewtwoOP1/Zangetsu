@@ -105,8 +105,21 @@ export function fields(isDev: boolean): Field[] {
 		{
 			key: "TMDB_API_READ_ACCESS_TOKEN",
 			message: "TMDB API Read Access Token for movie and TV recommendations",
-			hint: "Free for non-commercial projects; leave blank if only using anime recommendations",
+			hint: "Free for non-commercial projects; leave blank if only using anime, manga, or light novels",
 			required: false,
+		},
+		{
+			key: "OPENROUTER_API_KEY",
+			message: "Optional OpenRouter key for AI-ranked recommendations",
+			hint: "Free models have strict rate limits; blank uses local preference matching. Create a key at openrouter.ai/keys",
+			required: false,
+		},
+		{
+			key: "RECOMMENDATION_AI_MODEL",
+			message: "Recommendation AI model",
+			hint: "Defaults to openrouter/free, which automatically picks an available free model",
+			required: false,
+			initial: "openrouter/free",
 		},
 		{
 			key: "SUPPORT_AI_API_KEY",
