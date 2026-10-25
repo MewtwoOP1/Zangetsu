@@ -70,11 +70,15 @@ function cardFor(session: MediaSession): ReturnType<typeof embed> {
 	const typeLabel =
 		item.mediaType === "anime"
 			? "Anime"
-			: item.mediaType === "movie"
-				? "Movie"
-				: item.mediaType === "series"
-					? "TV Series"
-					: "Media";
+			: item.mediaType === "manga"
+				? "Manga"
+				: item.mediaType === "novel"
+					? "Light Novel"
+					: item.mediaType === "movie"
+						? "Movie"
+						: item.mediaType === "series"
+							? "TV Series"
+							: "Media";
 	const heading = session.mode === "lookup" ? "MEDIA LOOKUP" : "TOP-RANKED PICKS";
 	const position = `${String(session.index + 1).padStart(2, "0")} / ${String(session.items.length).padStart(2, "0")}`;
 	const fields = [
@@ -84,9 +88,15 @@ function cardFor(session: MediaSession): ReturnType<typeof embed> {
 	];
 
 	if (!session.showStats) {
-		if (item.source === "AniList") {
+		if (item.mediaType === "anime") {
 			fields.push(
 				{ name: "📺 Episodes", value: item.episodes == null ? "Unknown" : String(item.episodes), inline: true },
+				{ name: "📌 Status", value: formatEnum(item.status), inline: true },
+			);
+		} else if (item.mediaType === "manga" || item.mediaType === "novel") {
+			fields.push(
+				{ name: "📖 Chapters", value: item.chapters == null ? "Unknown" : count(item.chapters), inline: true },
+				{ name: "📚 Volumes", value: item.volumes == null ? "Unknown" : count(item.volumes), inline: true },
 				{ name: "📌 Status", value: formatEnum(item.status), inline: true },
 			);
 		} else {
@@ -103,12 +113,23 @@ function cardFor(session: MediaSession): ReturnType<typeof embed> {
 		fields.push(
 			{ name: "🎞️ Format", value: formatEnum(item.format), inline: true },
 			{ name: "📌 Status", value: formatEnum(item.status), inline: true },
-			{ name: "📺 Episodes", value: item.episodes == null ? "Not listed" : String(item.episodes), inline: true },
-			{
-				name: "⏱️ Runtime",
-				value: item.duration == null ? "Not listed" : `${item.duration} min/episode`,
-				inline: true,
-			},
+		);
+		if (item.mediaType === "anime") {
+			fields.push(
+				{ name: "📺 Episodes", value: item.episodes == null ? "Not listed" : String(item.episodes), inline: true },
+				{
+					name: "⏱️ Runtime",
+					value: item.duration == null ? "Not listed" : `${item.duration} min/episode`,
+					inline: true,
+				},
+			);
+		} else if (item.mediaType === "manga" || item.mediaType === "novel") {
+			fields.push(
+				{ name: "📖 Chapters", value: item.chapters == null ? "Not listed" : count(item.chapters), inline: true },
+				{ name: "📚 Volumes", value: item.volumes == null ? "Not listed" : count(item.volumes), inline: true },
+			);
+		}
+		fields.push(
 			{ name: "🏆 AniList rank", value: item.rank == null ? "Not ranked" : `#${count(item.rank)}`, inline: true },
 			{
 				name: "🔥 Popularity rank",
