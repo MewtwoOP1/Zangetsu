@@ -6,19 +6,21 @@ import { createMediaSession, lookupMedia, type MediaLookupType } from "@lib/reco
 const MEDIA_TYPES = [
 	{ name: "All media", value: "all" },
 	{ name: "Anime", value: "anime" },
+	{ name: "Manga / Manhwa / Manhua", value: "manga" },
+	{ name: "Light novel", value: "novel" },
 	{ name: "Movie", value: "movie" },
 	{ name: "TV series", value: "series" },
 ];
 
 export default defineCommand({
 	name: "media",
-	description: "Search anime, movies, and TV series with catalogue stats.",
+	description: "Search anime, manga, light novels, movies, and TV series with catalogue stats.",
 	category: "community",
 	cooldown: 5_000,
 	options: [
 		{
 			name: "query",
-			description: "The anime, movie, or TV series title to search for.",
+			description: "The title to search for across the selected catalogue.",
 			type: "string",
 			required: true,
 			maxLength: 100,
@@ -36,9 +38,9 @@ export default defineCommand({
 		const type = (interaction.options.getString("type") ?? "all") as MediaLookupType;
 
 		if (!query) throw new UserFacingError("Enter a title to search for.");
-		if (type !== "anime" && !client.env.TMDB_API_READ_ACCESS_TOKEN) {
+		if ((type === "movie" || type === "series") && !client.env.TMDB_API_READ_ACCESS_TOKEN) {
 			throw new UserFacingError(
-				"Movie and TV lookups need the free TMDB API Read Access Token. Add `TMDB_API_READ_ACCESS_TOKEN` to your environment, or choose **Anime** to search AniList only.",
+				"Movie and TV lookups need the free TMDB API Read Access Token. Add `TMDB_API_READ_ACCESS_TOKEN` to your environment, or choose **Anime**, **Manga**, **Light novel**, or **All media** to search AniList.",
 			);
 		}
 
