@@ -8,6 +8,8 @@ export const theme = {
 	/** Configure this once the Zangetsu Discord invite URL is available. */
 	supportServer: "",
 	logoUrl: "https://cdn.discordapp.com/icons/1514592000429654196/c07572fcdd3987826f09fdcd490e9b65.webp?size=2048",
+	/** Shared wide banner shown on command embeds. */
+	bannerUrl: "https://raw.githubusercontent.com/MewtwoOP1/Zangetsu/feature/command-embed-banner/assets/zangetsu-command-banner.svg",
 
 	/** The only place a colour is written. Everything else names one of these. */
 	colours: {
