@@ -28,7 +28,7 @@ export function embed(options: EmbedOptions): EmbedBuilder {
 	if (options.description !== undefined) builder.setDescription(truncate(options.description, LIMITS.embedDescription));
 	if (options.url !== undefined) builder.setURL(options.url);
 	if (options.fields !== undefined) builder.addFields(...options.fields.map(clampField));
-	if (options.thumbnail !== undefined) builder.setThumbnail(options.thumbnail);
+	builder.setThumbnail(options.thumbnail ?? theme.logoUrl);
 	if (options.image !== undefined) builder.setImage(options.image);
 
 	if (options.author) {
