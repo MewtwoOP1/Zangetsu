@@ -17,12 +17,7 @@ describe("NSFW command options", () => {
 		}
 	});
 
-	it("provides a self-service consent toggle for target captions", () => {
-		const consent = nsfwCommand.subcommands?.find((subcommand) => subcommand.name === "consent");
-		expect(consent?.options).toEqual(
-			expect.arrayContaining([
-				expect.objectContaining({ name: "enabled", type: "boolean", required: true }),
-			]),
-		);
+	it("does not expose a consent subcommand", () => {
+		expect(nsfwCommand.subcommands?.some((subcommand) => subcommand.name === "consent")).toBe(false);
 	});
 });
