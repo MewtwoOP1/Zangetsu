@@ -13,7 +13,7 @@ export function permissionOverrideState(
 
 /** CSV cells are quoted and spreadsheet formula prefixes are neutralized. */
 export function csvCell(value: string): string {
-	const safe = /^[\t\r\n ]*[=+\-@]/.test(value) ? "'" + value : value;
+	const safe = /^[\u0000-\u0020\uFEFF]*[=+\-@]/.test(value) ? "'" + value : value;
 	return '"' + safe.replace(/"/g, '""') + '"';
 }
 

@@ -87,6 +87,39 @@ describe("Raid Shield burst detection", () => {
 		expect(send).toHaveBeenCalledTimes(1);
 	});
 
+	it("logs a warning rather than rejecting when sending the alert fails", async () => {
+		settings({ enabled: true, threshold: 3, windowSeconds: 30, alertChannelId: null });
+		const send = jest.fn().mockRejectedValue(new Error("Missing permissions"));
+		const channel = { isTextBased: () => true, isSendable: () => true, send };
+		const guild = { id: "guild-send-failure", systemChannel: channel, channels: { fetch: jest.fn() } };
+		const client = { logger: { warn: jest.fn() } };
+
+		await handleRaidShieldJoin(client as never, guild as never);
+		await handleRaidShieldJoin(client as never, guild as never);
+		await handleRaidShieldJoin(client as never, guild as never);
+
+		expect(client.logger.warn).toHaveBeenCalledWith(
+			expect.objectContaining({ guildId: "guild-send-failure", err: expect.any(Error) }),
+			"Could not send the Raid Shield alert",
+		);
+	});
+
+	it("logs a warning when the alert channel cannot send messages", async () => {
+		settings({ enabled: true, threshold: 3, windowSeconds: 30, alertChannelId: null });
+		const client = { logger: { warn: jest.fn() } };
+		const channel = { isTextBased: () => true, isSendable: () => false };
+		const guild = { id: "guild-not-sendable", systemChannel: channel, channels: { fetch: jest.fn() } };
+
+		await handleRaidShieldJoin(client as never, guild as never);
+		await handleRaidShieldJoin(client as never, guild as never);
+		await handleRaidShieldJoin(client as never, guild as never);
+
+		expect(client.logger.warn).toHaveBeenCalledWith(
+			{ guildId: "guild-not-sendable" },
+			"Raid Shield detected a join burst but has no usable alert channel",
+		);
+	});
+
 	it("logs a warning instead of failing when no sendable alert channel exists", async () => {
 		settings({ enabled: true, threshold: 3, windowSeconds: 30, alertChannelId: null });
 		const client = { logger: { warn: jest.fn() } };

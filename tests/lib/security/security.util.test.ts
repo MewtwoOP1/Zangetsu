@@ -10,6 +10,7 @@ describe("security utilities", () => {
 	it("neutralizes spreadsheet formula prefixes while retaining CSV quoting", () => {
 		expect(csvCell("=HYPERLINK(1)")).toBe('"\'=HYPERLINK(1)"');
 		expect(csvCell("  @SUM(A1:A2)")).toBe('"\'  @SUM(A1:A2)"');
+		expect(csvCell("\uFEFF=SUM(1,2)")).toBe('"\'\uFEFF=SUM(1,2)"');
 		expect(csvCell('a "quote"')).toBe('"a ""quote"""');
 	});
 

@@ -39,7 +39,7 @@ export async function handleRaidShieldJoin(client: TestifyClient, guild: Guild):
 		? await guild.channels.fetch(settings.alertChannelId).catch(() => null)
 		: guild.systemChannel;
 
-	if (channel?.isTextBased() !== true || !channel.isSendable()) {
+	if (!channel || !channel.isTextBased() || !channel.isSendable()) {
 		client.logger.warn({ guildId: guild.id }, "Raid Shield detected a join burst but has no usable alert channel");
 		return;
 	}
