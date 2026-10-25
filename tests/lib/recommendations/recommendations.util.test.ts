@@ -85,6 +85,28 @@ describe("recommendationEmbeds", () => {
 		});
 	});
 
+	it("includes chapter and volume counts for manga and light-novel results", () => {
+		const result = recommendationEmbeds([{
+			title: "Test Manga",
+			url: "https://zangetsu.online/open/?s=zm&u=zm%3A%2F%2Fmanga%2Fmal%3A22&t=Test+Manga&y=g",
+			summary: "Manga synopsis.",
+			year: 2024,
+			rating: 8.2,
+			genres: ["Fantasy"],
+			poster: null,
+			source: "AniList",
+			mediaType: "manga",
+			chapters: 120,
+			volumes: 12,
+		}])[0]?.data;
+
+		expect(result?.fields).toEqual(expect.arrayContaining([
+			{ name: "Chapters", value: "120", inline: true },
+			{ name: "Volumes", value: "12", inline: true },
+		]));
+		expect(result?.url).toContain("zm%3A%2F%2Fmanga");
+	});
+
 	it("handles missing metadata and AniList attribution", () => {
 		const result = recommendationEmbeds([
 			{
