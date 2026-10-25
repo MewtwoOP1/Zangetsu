@@ -74,7 +74,7 @@ function cardFor(session: MediaSession): ReturnType<typeof embed> {
 	];
 
 	if (!session.showStats) {
-		if (item.mediaType === "anime") {
+		if (item.source === "AniList") {
 			fields.push(
 				{ name: "📺 Episodes", value: item.episodes == null ? "Unknown" : String(item.episodes), inline: true },
 				{ name: "📌 Status", value: formatEnum(item.status), inline: true },
@@ -89,25 +89,33 @@ function cardFor(session: MediaSession): ReturnType<typeof embed> {
 				},
 			);
 		}
-	} else {
+	} else if (item.source === "AniList") {
 		fields.push(
-			{ name: "🎞️ Format", value: formatEnum(item.format ?? item.mediaType), inline: true },
+			{ name: "🎞️ Format", value: formatEnum(item.format), inline: true },
 			{ name: "📌 Status", value: formatEnum(item.status), inline: true },
 			{ name: "📺 Episodes", value: item.episodes == null ? "Not listed" : String(item.episodes), inline: true },
 			{
 				name: "⏱️ Runtime",
-				value: item.duration == null ? "Not listed" : `${item.duration} min/episode`,
+				value: item.duration == null ? "Not listed" : \`\${item.duration} min/episode\`,
 				inline: true,
 			},
-			{ name: "🏆 AniList rank", value: item.rank == null ? "Not ranked" : `#${count(item.rank)}`, inline: true },
+			{ name: "🏆 AniList rank", value: item.rank == null ? "Not ranked" : \`#\${count(item.rank)}\`, inline: true },
 			{
 				name: "🔥 Popularity rank",
-				value: item.popularityRank == null ? "Not ranked" : `#${count(item.popularityRank)}`,
+				value: item.popularityRank == null ? "Not ranked" : \`#\${count(item.popularityRank)}\`,
 				inline: true,
 			},
 			{ name: "👥 Popularity", value: count(item.popularity), inline: true },
 			{ name: "💗 Favorites", value: count(item.favourites), inline: true },
+		);
+	} else {
+		fields.push(
 			{ name: "🗳️ TMDB votes", value: count(item.voteCount), inline: true },
+			{
+				name: "📈 Popularity",
+				value: item.popularity == null ? "Not listed" : item.popularity.toFixed(1),
+				inline: true,
+			},
 		);
 	}
 
