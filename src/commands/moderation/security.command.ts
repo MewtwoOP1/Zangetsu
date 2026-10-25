@@ -56,7 +56,7 @@ export default defineCommand({
 							category: "moderation",
 							title: "Webhook audit (" + webhooks.size + ")",
 							description: lines.join("\n") || "No webhooks found.",
-							footer: { text: "Showing up to 18 webhooks. Webhook tokens are never displayed." },
+							footer: "Showing up to 18 webhooks. Webhook tokens are never displayed.",
 						}),
 					],
 					allowedMentions: { parse: [] },

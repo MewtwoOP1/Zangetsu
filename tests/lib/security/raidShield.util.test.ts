@@ -71,6 +71,22 @@ describe("Raid Shield burst detection", () => {
 		);
 	});
 
+	it("uses an explicitly configured alert channel instead of the system channel", async () => {
+		settings({ enabled: true, threshold: 3, windowSeconds: 30, alertChannelId: "alert-channel" });
+		const send = jest.fn().mockResolvedValue(undefined);
+		const channel = { isTextBased: () => true, isSendable: () => true, send };
+		const fetch = jest.fn().mockResolvedValue(channel);
+		const guild = { id: "guild-explicit-channel", systemChannel: null, channels: { fetch } };
+		const client = { logger: { warn: jest.fn() } };
+
+		await handleRaidShieldJoin(client as never, guild as never);
+		await handleRaidShieldJoin(client as never, guild as never);
+		await handleRaidShieldJoin(client as never, guild as never);
+
+		expect(fetch).toHaveBeenCalledWith("alert-channel");
+		expect(send).toHaveBeenCalledTimes(1);
+	});
+
 	it("logs a warning instead of failing when no sendable alert channel exists", async () => {
 		settings({ enabled: true, threshold: 3, windowSeconds: 30, alertChannelId: null });
 		const client = { logger: { warn: jest.fn() } };
