@@ -249,7 +249,7 @@ async function fetchAnime(genre: string | null, tag: string | null): Promise<Med
 		url: media.siteUrl,
 		summary: cleanSummary(media.description) || "No synopsis is available.",
 		year: media.seasonYear ?? null,
-		rating: media.averageScore == null ? null : Math.round((media.averageScore / 10) * 10) / 10,
+		rating: media.averageScore == null ? null : Math.round(media.averageScore) / 10,
 		genres: media.genres,
 		poster: media.coverImage?.large ?? null,
 		source: "AniList" as const,
