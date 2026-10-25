@@ -319,16 +319,23 @@ export function buildZangetsuTmdbUrl(input: {
 
 function mapAniListMedia(media: z.infer<typeof anilistMediaSchema>): MediaRecommendation {
 	const title = media.title.english?.trim() || media.title.romaji;
-	const ratedRank = media.rankings?.find((entry) => entry.type === "RATED" && entry.allTime)
+	const ratedRank =
+		media.rankings?.find((entry) => entry.type === "RATED" && entry.allTime)
 		?? media.rankings?.find((entry) => entry.type === "RATED");
-	const popularRank = media.rankings?.find((entry) => entry.type === "POPULAR" && entry.allTime)
+	const popularRank =
+		media.rankings?.find((entry) => entry.type === "POPULAR" && entry.allTime)
 		?? media.rankings?.find((entry) => entry.type === "POPULAR");
 
 	return {
 		title,
-		url: media.idMal == null
-			? media.siteUrl
-			: buildZangetsuAnimeUrl({ malId: media.idMal, title, cover: media.coverImage?.large ?? null }),
+		url:
+			media.idMal == null
+				? media.siteUrl
+				: buildZangetsuAnimeUrl({
+						malId: media.idMal,
+						title,
+						cover: media.coverImage?.large ?? null,
+					}),
 		summary: cleanSummary(media.description) || "No synopsis is available.",
 		year: media.seasonYear ?? null,
 		rating: media.averageScore == null ? null : Math.round(media.averageScore) / 10,
@@ -425,9 +432,16 @@ export async function recommendMedia(input: RecommendationInput): Promise<MediaR
 	const animeGenre = detectRecommendationGenre(preferences, "anime");
 	const genre = type === "all" ? null : detectRecommendationGenre(preferences, type);
 	const tag = type === "anime" || type === "all" ? detectAnimeTag(preferences) : null;
-	const key = type === "all"
-		? `all:${animeGenre ?? "all"}:${detectRecommendationGenre(preferences, "movie") ?? "all"}:${detectRecommendationGenre(preferences, "series") ?? "all"}:${tag ?? "none"}`
-		: `${type}:${genre ?? "all"}:${tag ?? "none"}`;
+	const key =
+		type === "all"
+			? [
+					"all",
+					animeGenre ?? "all",
+					detectRecommendationGenre(preferences, "movie") ?? "all",
+					detectRecommendationGenre(preferences, "series") ?? "all",
+					tag ?? "none",
+				].join(":")
+			: \`\${type}:\${genre ?? "all"}:\${tag ?? "none"}\`;
 	const limit = type === "all" ? 6 : 20;
 	const previous = cacheRead(key);
 	if (previous !== null) return previous.slice(0, limit);
@@ -506,19 +520,23 @@ async function fetchTmdbSearch(
 		const date = type === "movie" ? result.release_date : result.first_air_date;
 		const yearMatch = date?.match(/^\d{4}/);
 		const poster = result.poster_path ? `https://image.tmdb.org/t/p/w500${result.poster_path}` : null;
-		return [{
-			title,
-			url: buildZangetsuTmdbUrl({ tmdbId: result.id, title, type, cover: poster }),
-			summary: cleanSummary(result.overview) || "No synopsis is available.",
-			year: yearMatch ? Number(yearMatch[0]) : null,
-			rating: result.vote_average == null ? null : Math.round(result.vote_average * 10) / 10,
-			genres: result.genre_ids.map((id) => TMDB_GENRE_NAMES[id]).filter((name): name is string => name !== undefined),
-			poster,
-			source: "TMDB" as const,
-			mediaType: type,
-			voteCount: result.vote_count ?? null,
-			popularity: result.popularity ?? null,
-		}];
+		return [
+			{
+				title,
+				url: buildZangetsuTmdbUrl({ tmdbId: result.id, title, type, cover: poster }),
+				summary: cleanSummary(result.overview) || "No synopsis is available.",
+				year: yearMatch ? Number(yearMatch[0]) : null,
+				rating: result.vote_average == null ? null : Math.round(result.vote_average * 10) / 10,
+				genres: result.genre_ids
+					.map((id) => TMDB_GENRE_NAMES[id])
+					.filter((name): name is string => name !== undefined),
+				poster,
+				source: "TMDB" as const,
+				mediaType: type,
+				voteCount: result.vote_count ?? null,
+				popularity: result.popularity ?? null,
+			},
+		];
 	});
 }
 
