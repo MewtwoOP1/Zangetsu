@@ -14,20 +14,26 @@ const baseImage = {
 	tags: [{ name: "hentai" }, { name: "adult" }],
 };
 
-describe("Waifu.im hentai GIF provider", () => {
-	it("requests NSFW animated GIFs from the configured worker", () => {
+describe("Waifu API NSFW GIF provider", () => {
+	it("requests animated NSFW images from the current community API", () => {
 		const url = new URL(buildWaifuGifSearchUrl("ass"));
-		expect(url.origin).toBe("https://api.waifu-im.workers.dev");
-		expect(url.pathname).toBe("/search");
-		expect(url.searchParams.get("is_nsfw")).toBe("true");
-		expect(url.searchParams.get("gif")).toBe("true");
-		expect(url.searchParams.get("many")).toBe("true");
-		expect(url.searchParams.get("order_by")).toBe("RANDOM");
-		expect(url.searchParams.getAll("included_tags")).toContain("ass");
-		expect(url.searchParams.getAll("excluded_tags")).toEqual([]);
+		expect(url.origin).toBe("https://waifu-api-031n.onrender.com");
+		expect(url.pathname).toBe("/images");
+		expect(url.searchParams.get("isNsfw")).toBe("True");
+		expect(url.searchParams.get("isAnimated")).toBe("True");
+		expect(url.searchParams.get("orderBy")).toBe("Random");
+		expect(url.searchParams.get("pageSize")).toBe("30");
+		expect(url.searchParams.getAll("includedTags")).toContain("ass");
+		expect(url.searchParams.getAll("excludedTags")).toEqual([]);
 	});
 
-	it("maps category aliases to Waifu.im archive tags", () => {
+	it("supports API instances mounted beneath a path prefix", () => {
+		const url = new URL(buildWaifuGifSearchUrl("random", true, "https://api.example.com/api"));
+		expect(url.origin).toBe("https://api.example.com");
+		expect(url.pathname).toBe("/api/images");
+	});
+
+	it("maps category aliases to the fork's archive tags", () => {
 		const cases: [NsfwGifCategory, string][] = [
 			["blowjob", "oral"],
 			["bj", "oral"],
@@ -38,30 +44,32 @@ describe("Waifu.im hentai GIF provider", () => {
 			["hentai", "hentai"],
 		];
 		for (const [category, tag] of cases) {
-			expect(new URL(buildWaifuGifSearchUrl(category)).searchParams.getAll("included_tags")).toContain(tag);
+			expect(new URL(buildWaifuGifSearchUrl(category)).searchParams.getAll("includedTags")).toContain(tag);
 		}
-		expect(new URL(buildWaifuGifSearchUrl("gif")).searchParams.getAll("included_tags")).toEqual([]);
-		expect(new URL(buildWaifuGifSearchUrl("random")).searchParams.getAll("included_tags")).toEqual([]);
+		expect(new URL(buildWaifuGifSearchUrl("gif")).searchParams.getAll("includedTags")).toEqual([]);
+		expect(new URL(buildWaifuGifSearchUrl("random")).searchParams.getAll("includedTags")).toEqual([]);
 	});
 
 	it("supports a general catalogue retry without category tags", () => {
 		const url = new URL(buildWaifuGifSearchUrl("fuck", false));
-		expect(url.searchParams.getAll("included_tags")).toEqual([]);
-		expect(url.searchParams.get("is_nsfw")).toBe("true");
-		expect(url.searchParams.get("gif")).toBe("true");
+		expect(url.searchParams.getAll("includedTags")).toEqual([]);
+		expect(url.searchParams.get("isNsfw")).toBe("True");
+		expect(url.searchParams.get("isAnimated")).toBe("True");
 	});
 
-	it("accepts only HTTPS GIFs explicitly marked NSFW", () => {
+	it("accepts only HTTPS GIFs explicitly marked NSFW and rejects excluded tags", () => {
 		const results = parseWaifuGifImages({
-			images: [
+			items: [
 				baseImage,
 				{ ...baseImage, id: 2, is_nsfw: false },
 				{ ...baseImage, id: 3, url: "https://cdn.waifu.im/not-a-gif.jpg", extension: "jpg" },
 				{ ...baseImage, id: 4, url: "http://cdn.waifu.im/file.gif" },
-				{ ...baseImage, id: 5, url: "https://example.com/file.gif" },
-				{ ...baseImage, id: 6, tags: [{ name: "loli" }] },
-				{ ...baseImage, id: 7, tags: [{ name: "rape" }] },
+				{ ...baseImage, id: 5, url: "https://user:pass@example.com/file.gif" },
+				{ ...baseImage, id: 6, isAnimated: false },
+				{ ...baseImage, id: 7, tags: [{ name: "loli" }] },
+				{ ...baseImage, id: 8, tags: [{ name: "rape" }] },
 			],
+			totalCount: 8,
 		});
 		expect(results).toEqual([
 			{
@@ -72,7 +80,32 @@ describe("Waifu.im hentai GIF provider", () => {
 		]);
 	});
 
-	it("supports camel-case NSFW fields and array-based responses", () => {
+	it("accepts the new fork's camel-case fields, items array, and separate CDN", () => {
+		expect(
+			parseWaifuGifImages({
+				items: [
+					{
+						id: 987,
+						url: "https://waifu-cdn.waifu-api.workers.dev/987.gif",
+						extension: ".gif",
+						isNsfw: true,
+						isAnimated: true,
+						source: null,
+						tags: [{ name: "hentai" }],
+					},
+				],
+				totalCount: 1,
+			}),
+		).toEqual([
+			{
+				id: "987",
+				fileUrl: "https://waifu-cdn.waifu-api.workers.dev/987.gif",
+				postUrl: "https://waifu-cdn.waifu-api.workers.dev/987.gif",
+			},
+		]);
+	});
+
+	it("supports older array-based response wrappers and malformed payloads", () => {
 		expect(parseWaifuGifImages([{ ...baseImage, is_nsfw: undefined, isNsfw: true }])).toHaveLength(1);
 		expect(parseWaifuGifImages({ data: [baseImage] })).toHaveLength(1);
 		expect(parseWaifuGifImages({ images: "bad" })).toEqual([]);
