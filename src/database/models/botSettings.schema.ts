@@ -1,5 +1,5 @@
 import { model, Schema } from "mongoose";
-import { MUSIC_SOURCE_CHOICES, type MusicSourceChoice } from "@testify/shared";
+import { DEFAULT_MUSIC_SOURCES, MUSIC_SOURCE_CHOICES, type MusicSourceChoice } from "@testify/shared";
 
 /** Settings the bot's owner makes for every server at once: a single row, keyed `GLOBAL`. */
 export interface BotSettingsRecord {
@@ -14,7 +14,7 @@ export interface BotSettingsRecord {
 const botSettingsSchema = new Schema<BotSettingsRecord>(
 	{
 		scope: { type: String, required: true, unique: true },
-		musicSources: { type: String, enum: MUSIC_SOURCE_CHOICES, required: true, default: "both" },
+		musicSources: { type: String, enum: MUSIC_SOURCE_CHOICES, required: true, default: DEFAULT_MUSIC_SOURCES },
 		updatedBy: { type: String, default: null },
 	},
 	{ timestamps: true },

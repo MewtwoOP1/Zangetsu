@@ -5,6 +5,7 @@ import { defineEvent } from "@core/event";
 import { getAutoRoles, getWelcome } from "@database/repositories/settingsRepository";
 import { countMove } from "@lib/info";
 import { writeAuditLog } from "@lib/moderation";
+import { handleRaidShieldJoin } from "@lib/security";
 import { syncVoiceCounters } from "@lib/settings";
 import { greetingFor, normaliseWelcome } from "@lib/welcome";
 
@@ -12,6 +13,13 @@ export default defineEvent({
 	name: Events.GuildMemberAdd,
 	async run(client: TestifyClient, member: GuildMember) {
 		countMove(client, member, "join");
+
+		void handleRaidShieldJoin(client, member.guild).catch((error: unknown) => {
+			client.logger.warn(
+				{ err: toError(error), guildId: member.guild.id },
+				"Raid Shield join processing failed",
+			);
+		});
 
 		await writeAuditLog(client, member.guild, {
 			event: "memberJoin",

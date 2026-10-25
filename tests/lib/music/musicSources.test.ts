@@ -17,6 +17,8 @@ jest.mock("@database/repositories/botSettingsRepository", () => ({
 const plain: Query = { kind: "search", terms: "lofi beats", source: "youtube" };
 const youtubeLink: Query = { kind: "url", url: "https://youtu.be/abc", source: "youtube" };
 const soundCloudLink: Query = { kind: "url", url: "https://soundcloud.com/a/b", source: "soundcloud" };
+const spotifyLink: Query = { kind: "url", url: "https://open.spotify.com/track/abc", source: "spotify" };
+const otherLink: Query = { kind: "url", url: "https://example.com/song.mp3", source: "other" };
 
 describe("normaliseMusicSources", () => {
 	/** A fresh bot uses the new SoundCloud-only default. */
@@ -53,6 +55,11 @@ describe("withinSources", () => {
 		expect(searchSourceFor("soundcloud")).toBe("soundcloud");
 	});
 
+	it("rejects an explicitly requested YouTube search", () => {
+		const named: Query = { kind: "search", terms: "lofi beats", source: "youtube", named: true };
+		expect(() => withinSources(named, "soundcloud")).toThrow(/SoundCloud-only/);
+	});
+
 	it("keeps a named SoundCloud search in SoundCloud-only mode", () => {
 		const named: Query = { kind: "search", terms: "x", source: "soundcloud", named: true };
 
@@ -64,6 +71,8 @@ describe("withinSources", () => {
 	it("refuses a link to a service that is switched off, and says which is left", () => {
 		expect(() => withinSources(youtubeLink, "soundcloud")).toThrow(UserFacingError);
 		expect(() => withinSources(youtubeLink, "soundcloud")).toThrow(/SoundCloud-only/);
+		expect(() => withinSources(spotifyLink, "soundcloud")).toThrow(/SoundCloud-only/);
+		expect(() => withinSources(otherLink, "soundcloud")).toThrow(/SoundCloud-only/);
 		expect(withinSources(soundCloudLink, "youtube")).toBe(soundCloudLink);
 		expect(withinSources(soundCloudLink, "both")).toBe(soundCloudLink);
 	});
