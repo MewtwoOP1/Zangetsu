@@ -52,6 +52,9 @@ const fields = z.object({
 	MUSIC_YTDLP_PATH: z.string().min(1).optional(),
 	MUSIC_FFMPEG_PATH: z.string().min(1).optional(),
 
+	// Media recommendations. Anime uses AniList without authentication; TMDB is needed for movies and TV.
+	TMDB_API_READ_ACCESS_TOKEN: z.string().min(1).optional(),
+
 	// Support assistant. Without a key it answers by search alone and never contacts anybody.
 	SUPPORT_AI_API_KEY: z.string().min(1).optional(),
 	SUPPORT_AI_MODEL: z.string().min(1).default("claude-opus-5"),
