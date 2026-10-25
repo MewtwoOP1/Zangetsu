@@ -195,7 +195,7 @@ describe("lookupMedia", () => {
 			source: "AniList",
 			mediaType: "anime",
 			rating: 8.5,
- 			popularity: 120_000,
+			popularity: 120_000,
 			favourites: 12_000,
 			episodes: 24,
 			duration: 24,
@@ -257,16 +257,6 @@ describe("recommendMedia", () => {
 		expect(results.slice(3).every((item) => item.source === "TMDB")).toBe(true);
 		expect(results.slice(3).map((item) => item.title)).toEqual(["Top Movie", "Top Series", "Second Series"]);
 		expect(fetchMock).toHaveBeenCalledTimes(3);
-	});
-
-	beforeEach(() => {
-		clearRecommendationCache();
-		jest.restoreAllMocks();
-	});
-
-	afterEach(() => {
-		clearRecommendationCache();
-		jest.restoreAllMocks();
 	});
 
 	it("fetches anime from AniList, cleans the synopsis, scales ratings, and caches the result", async () => {
