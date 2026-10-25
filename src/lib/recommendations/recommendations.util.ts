@@ -241,6 +241,22 @@ export function buildZangetsuAnimeUrl(input: {
 	return url.toString();
 }
 
+/** Builds the Zangetsu hand-off URL for a TMDB movie or TV series. */
+export function buildZangetsuTmdbUrl(input: {
+	tmdbId: number;
+	title: string;
+	type: "movie" | "series";
+	cover?: string | null;
+}): string {
+	const url = new URL("https://zangetsu.online/open/");
+	url.searchParams.set("s", "zm");
+	url.searchParams.set("u", `zm://${input.type === "movie" ? "movie" : "tv"}/tmdb:${input.tmdbId}`);
+	url.searchParams.set("t", input.title);
+	url.searchParams.set("y", input.type === "movie" ? "m" : "t");
+	if (input.cover) url.searchParams.set("c", input.cover);
+	return url.toString();
+}
+
 async function fetchAnime(genre: string | null, tag: string | null): Promise<MediaRecommendation[]> {
 	const genreFilter = genre === null ? null : genreValue(genre, "anime");
 	const variables = {
@@ -307,15 +323,16 @@ async function fetchMovieOrSeries(
 		const date = type === "movie" ? result.release_date : result.first_air_date;
 		const yearMatch = date?.match(/^\d{4}/);
 		const genres = result.genre_ids.map((id) => TMDB_GENRE_NAMES[id]).filter((name): name is string => name !== undefined);
+		const poster = result.poster_path ? `https://image.tmdb.org/t/p/w500${result.poster_path}` : null;
 		return [
 			{
 				title,
-				url: `https://www.themoviedb.org/${endpoint}/${result.id}`,
+				url: buildZangetsuTmdbUrl({ tmdbId: result.id, title, type, cover: poster }),
 				summary: cleanSummary(result.overview) || "No synopsis is available.",
 				year: yearMatch ? Number(yearMatch[0]) : null,
 				rating: result.vote_average == null ? null : Math.round(result.vote_average * 10) / 10,
 				genres,
-				poster: result.poster_path ? `https://image.tmdb.org/t/p/w500${result.poster_path}` : null,
+				poster,
 				source: "TMDB" as const,
 			},
 		];
