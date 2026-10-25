@@ -55,7 +55,7 @@ export default defineCommand({
 
 		await reply(interaction, {
 			embeds: [helpHome(client, surface, prefix)],
-			components: [categoryMenu(client, surface, null, interaction.user.id), helpLinks()],
+			components: [categoryMenu(client, surface, null, interaction.user.id), ...helpLinks()],
 		});
 	},
 
