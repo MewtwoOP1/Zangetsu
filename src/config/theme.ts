@@ -7,7 +7,8 @@ export const theme = {
 	repository: "https://github.com/MewtwoOP1/Zangetsu",
 	/** Configure this once the Zangetsu Discord invite URL is available. */
 	supportServer: "",
-	logoUrl: "https://cdn.discordapp.com/icons/1514592000429654196/c07572fcdd3987826f09fdcd490e9b65.webp?size=2048",
+	logoUrl: "https://cdn.discordapp.com/icons/1514592000429654196/c07572fcdd3987826f09fdcd490e9b65.webp?size=256",
+	websiteUrl: "https://zangetsu.online/",
 	/** Shared wide banner shown on command embeds. */
 	bannerUrl: "https://raw.githubusercontent.com/MewtwoOP1/Zangetsu/feature/command-embed-banner/assets/zangetsu-command-banner.svg",
 
