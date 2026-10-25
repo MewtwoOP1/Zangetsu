@@ -188,7 +188,9 @@ export default defineCommand({
 			async run(interaction) {
 				const guild = inGuild(interaction);
 				await requireEnabledNsfwChannel(interaction, guild.id);
-				const line = RANDOM_LINES[Math.floor(Math.random() * RANDOM_LINES.length)] ?? "Keep it playful, non-graphic, and consensual.";
+				const line =
+					RANDOM_LINES[Math.floor(Math.random() * RANDOM_LINES.length)] ??
+					"Keep it playful, non-graphic, and consensual.";
 				await reply(interaction, { embeds: [embed({ category: "fun", title: "Random prompt", description: line })] });
 			},
 		},
