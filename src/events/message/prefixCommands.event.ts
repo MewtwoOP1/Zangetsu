@@ -7,12 +7,12 @@ import { getPrefixConfig } from "@database/repositories/settingsRepository";
 import { countCommandUse, logCommandUse, recordCommandTime } from "@lib/bot";
 import { refusalEmbed, replyTemporarily } from "@lib/discord";
 
-/** Runs `t?ban @someone` through the same code and checks as `/ban`. */
 /** Lets a natural-language mention request reach the recommendation intent handler. */
 export function shouldDeferMentionRecommendation(prefix: string | null, parsedName: string): boolean {
 	return prefix === null && parsedName === "recommend";
 }
 
+/** Runs `t?ban @someone` through the same code and checks as `/ban`. */
 export default defineMessageHandler({
 	name: "prefixCommands",
 	order: 10,
