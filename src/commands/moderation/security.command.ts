@@ -74,6 +74,10 @@ export default defineCommand({
 				},
 			],
 			async run(interaction) {
+				if (interaction.tidyAway !== undefined) {
+					throw new UserFacingError("Run this as a slash command so the exported file is delivered privately.");
+				}
+
 				const guild = inGuild(interaction);
 				const channel = textChannelOption(interaction, "channel") ?? inTextChannel(interaction);
 				const actorPermissions = channel.permissionsFor(asMember(interaction));

@@ -31,6 +31,18 @@ npm run dev
 
 For production, run `npm run setup`, then `npm run build` and `npm start`.
 
+## Security commands
+
+- `/security admin-check` lists roles with Administrator access.
+- `/security audit-webhooks` inventories webhook names and locations without exposing tokens.
+- `/security export-channel` creates a private CSV/JSON export of up to 100 recent messages. Use the slash command so the export stays ephemeral; both you and the bot must be able to read the channel.
+- `/security panic` temporarily locks the current channel; `/security restore` restores the saved message permission overrides.
+- `/security raid-shield-enable` and `/security raid-shield-disable` toggle join-burst alerts. Raid Shield alerts only; it does not automatically punish members.
+
+## Consent-gated text interactions
+
+The `/nsfw` module is disabled by default. A server manager must enable it, each participant must opt in separately, and interactions only run in a Discord age-restricted channel. The module contains non-graphic text interactions only; it does not retrieve explicit media. Either person can withdraw consent using `/nsfw opt-out`.
+
 ## Music and media
 
 `/play query:lofi beats` searches SoundCloud. You can also provide a SoundCloud track or set URL. YouTube and other music sources are not supported by the bot's playback flow.
