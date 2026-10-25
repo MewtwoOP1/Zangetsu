@@ -146,7 +146,7 @@ export default defineCommand({
 			options: [
 				{
 					name: "target",
-					description: "Optional member for the action caption (requires their opt-in).",
+					description: "Optional member to name in the action caption; no ping is sent.",
 					type: "user" as const,
 					required: false,
 				},
@@ -173,7 +173,7 @@ export default defineCommand({
 				}
 
 				await reply(interaction, {
-					...(target ? { content: buildNsfwActionLine(category, interaction.user.id, target.id) } : {}),
+					...(target ? { content: buildNsfwActionLine(category, interaction.user.username, target.username) } : {}),
 					embeds: [
 						embed({
 							category: "fun",
