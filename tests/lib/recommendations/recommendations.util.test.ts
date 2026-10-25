@@ -49,7 +49,7 @@ describe("media recommendation filters", () => {
 	it("detects common anime tropes without requiring an AI call", () => {
 		expect(detectAnimeTag("fantasy with an overpowered MC")).toBe("Overpowered Main Characters");
 		expect(detectAnimeTag("isekai with reincarnation")).toBe("Isekai");
-		expect(detectAnimeTag("give me a cozy romance")).toBeNull();
+		expect(detectAnimeTag("give me a cozy romance")).toBe("Iyashikei");
 	});
 });
 
