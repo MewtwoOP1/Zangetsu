@@ -1,4 +1,5 @@
 import {
+	buildNsfwActionLine,
 	buildRule34GifSearchUrl,
 	parseRule34GifPosts,
 	type NsfwGifCategory,
@@ -8,7 +9,7 @@ const basePost = {
 	id: 12345,
 	file_url: "https://img.rule34.xxx/images/12345/example.gif",
 	rating: "explicit",
-	tags: "animated sex adult female_only",
+	tags: "animated fuck sex adult female_only",
 };
 
 describe("Rule34 hentai GIF provider", () => {
@@ -30,7 +31,7 @@ describe("Rule34 hentai GIF provider", () => {
 		expect(tags).toContain("rating:explicit");
 		expect(tags).toContain("animated");
 		expect(tags).toContain("sort:random");
-		expect(tags).toContain("sex");
+		expect(tags).toContain("fuck");
 		expect(tags).toContain("-loli");
 		expect(tags).toContain("-underage");
 		expect(tags).toContain("-rape");
@@ -66,6 +67,40 @@ describe("Rule34 hentai GIF provider", () => {
 				parseRule34GifPosts([{ ...basePost, tags: "animated adult underage" }], category),
 			).toEqual([]);
 		}
+	});
+
+	it("maps aliases to their specific Rule34 action tags", () => {
+		const cases: [NsfwGifCategory, string][] = [
+			["blowjob", "blowjob"],
+			["bj", "blowjob"],
+			["boobjob", "boobjob"],
+			["bz", "boobjob"],
+			["anal", "anal"],
+			["tits", "tits"],
+			["hentai", "hentai"],
+			["fuck", "fuck"],
+		];
+
+		for (const [category, expectedTag] of cases) {
+			const url = new URL(buildRule34GifSearchUrl(category));
+			const tags = url.searchParams.get("tags")?.split(/\s+/) ?? [];
+			expect(tags).toContain(expectedTag);
+			expect(
+				parseRule34GifPosts(
+					[{ ...basePost, tags: `animated ${expectedTag} adult` }],
+					category,
+				),
+			).toHaveLength(1);
+		}
+
+		expect(parseRule34GifPosts([{ ...basePost, tags: "animated boobjob adult" }], "fuck")).toEqual([]);
+		expect(parseRule34GifPosts([{ ...basePost, tags: "animated sex adult" }], "fuck")).toEqual([]);
+	});
+
+	it("formats action captions using the invoking user and selected target", () => {
+		expect(buildNsfwActionLine("fuck", "111", "222")).toBe("<@111> fucks <@222>.");
+		expect(buildNsfwActionLine("bj", "111", "222")).toBe("<@111> gives a blowjob to <@222>.");
+		expect(buildNsfwActionLine("bz", "111", "222")).toBe("<@111> does a boobjob for <@222>.");
 	});
 
 	it("returns an empty list for malformed or non-list API data", () => {
