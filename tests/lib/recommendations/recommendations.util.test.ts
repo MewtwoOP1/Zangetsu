@@ -3,6 +3,8 @@ import {
 	detectAnimeTag,
 	detectRecommendationGenre,
 	recommendMedia,
+	recommendationEmbeds,
+	type MediaRecommendation,
 } from "@lib/recommendations";
 
 const animeResult = {
@@ -37,6 +39,60 @@ describe("media recommendation filters", () => {
 		expect(detectAnimeTag("fantasy with an overpowered MC")).toBe("Overpowered Main Characters");
 		expect(detectAnimeTag("isekai with reincarnation")).toBe("Isekai");
 		expect(detectAnimeTag("give me a cozy romance")).toBeNull();
+	});
+});
+
+
+describe("recommendationEmbeds", () => {
+	it("renders catalogue metadata, links, ratings, and TMDB attribution", () => {
+		const item: MediaRecommendation = {
+			title: "Test Movie",
+			url: "https://www.themoviedb.org/movie/42",
+			summary: "A test synopsis.",
+			year: 2024,
+			rating: 8.1,
+			genres: ["Science fiction"],
+			poster: "https://image.tmdb.org/t/p/w500/poster.jpg",
+			source: "TMDB",
+		};
+
+		const result = recommendationEmbeds([item])[0]?.data;
+
+		expect(result).toMatchObject({
+			title: "1. Test Movie",
+			url: item.url,
+			description: "A test synopsis.",
+			thumbnail: { url: item.poster },
+			fields: [
+				{ name: "Rating", value: "8.1/10", inline: true },
+				{ name: "Year", value: "2024", inline: true },
+				{ name: "Genres", value: "Science fiction", inline: true },
+			],
+			footer: { text: "This product uses the TMDB API but is not endorsed or certified by TMDB." },
+		});
+	});
+
+	it("handles missing metadata and AniList attribution", () => {
+		const result = recommendationEmbeds([
+			{
+				title: "Test Anime",
+				url: "https://anilist.co/anime/1",
+				summary: "Synopsis.",
+				year: null,
+				rating: null,
+				genres: [],
+				poster: null,
+				source: "AniList",
+			},
+		])[0]?.data;
+
+		expect(result?.fields).toEqual([
+			{ name: "Rating", value: "Not rated", inline: true },
+			{ name: "Year", value: "Unknown", inline: true },
+			{ name: "Genres", value: "Not listed", inline: true },
+		]);
+		expect(result?.thumbnail).toBeUndefined();
+		expect(result?.footer?.text).toBe("Source: AniList");
 	});
 });
 
