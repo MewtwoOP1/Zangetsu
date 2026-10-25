@@ -15,6 +15,7 @@ export interface MediaRecommendation {
 	year: number | null;
 	rating: number | null;
 	genres: string[];
+	tags?: string[];
 	poster: string | null;
 	source: "AniList" | "TMDB";
 	mediaType?: MediaType;
@@ -121,6 +122,7 @@ const anilistMediaSchema = z.object({
 		allTime: z.boolean().nullable().optional(),
 	})).nullable().optional(),
 	genres: z.array(z.string()).default([]),
+	tags: z.array(z.object({ name: z.string() })).default([]),
 	seasonYear: z.number().nullable().optional(),
 	startDate: z.object({ year: z.number().nullable().optional() }).nullable().optional(),
 	siteUrl: z.string().url(),
@@ -204,14 +206,30 @@ export function detectRecommendationGenre(preferences: string, type: MediaType):
 	return detectRecommendationGenres(preferences, type)[0] ?? null;
 }
 
-/** AniList tags let anime requests include common tropes such as isekai or an overpowered lead. */
+/** Ignore a trope mention when the user explicitly says they do not want it. */
+function isNegatedPreferenceMatch(preferences: string, matchIndex: number): boolean {
+	const prefix = preferences.slice(Math.max(0, matchIndex - 55), matchIndex);
+	return /\bnon-$|\b(?:no|without|avoid|exclude|excluding|not|never)\s+(?:(?:any|the|a|an)\s+)?(?:[\w-]+\s+){0,3}$/i.test(prefix);
+}
+
+/** AniList tags let recommendation requests express common tropes without an AI call. */
 export function detectAnimeTag(preferences: string): string | null {
 	const matches = ANILIST_TAG_RULES.flatMap((rule) => {
 		const match = rule.pattern.exec(preferences);
-		return match === null ? [] : [{ tag: rule.tag, index: match.index }];
+		return match === null || isNegatedPreferenceMatch(preferences, match.index)
+			? []
+			: [{ tag: rule.tag, index: match.index }];
 	}).sort((a, b) => a.index - b.index);
 
 	return matches[0]?.tag ?? null;
+}
+
+/** Converts explicit trope exclusions to AniList's tag_not_in filter. */
+export function detectExcludedAnimeTags(preferences: string): string[] {
+	return [...new Set(ANILIST_TAG_RULES.flatMap((rule) => {
+		const match = rule.pattern.exec(preferences);
+		return match !== null && isNegatedPreferenceMatch(preferences, match.index) ? [rule.tag] : [];
+	}))];
 }
 
 function genreValue(name: string | null, type: MediaType): string | number | null {
@@ -266,9 +284,9 @@ export function clearRecommendationCache(): void {
 }
 
 const ANILIST_QUERY = `
-query ($page: Int, $perPage: Int, $mediaType: MediaType!, $genreIn: [String], $tagIn: [String], $formatIn: [MediaFormat], $formatNotIn: [MediaFormat]) {
+query ($page: Int, $perPage: Int, $mediaType: MediaType!, $genreIn: [String], $tagIn: [String], $tagNotIn: [String], $formatIn: [MediaFormat], $formatNotIn: [MediaFormat]) {
   Page(page: $page, perPage: $perPage) {
-    media(type: $mediaType, isAdult: false, genre_in: $genreIn, tag_in: $tagIn, format_in: $formatIn, format_not_in: $formatNotIn, sort: [SCORE_DESC, POPULARITY_DESC]) {
+    media(type: $mediaType, isAdult: false, genre_in: $genreIn, tag_in: $tagIn, tag_not_in: $tagNotIn, format_in: $formatIn, format_not_in: $formatNotIn, sort: [SCORE_DESC, POPULARITY_DESC]) {
       id
       idMal
       title { english romaji native }
@@ -286,6 +304,7 @@ query ($page: Int, $perPage: Int, $mediaType: MediaType!, $genreIn: [String], $t
       duration
       rankings { rank type context allTime }
       genres
+      tags { name }
       seasonYear
       startDate { year }
       siteUrl
@@ -395,6 +414,7 @@ function mapAniListMedia(
 		year: media.startDate?.year ?? media.seasonYear ?? null,
 		rating: media.averageScore == null ? null : Math.round(media.averageScore) / 10,
 		genres: media.genres,
+		tags: media.tags.map((tag) => tag.name),
 		poster: media.coverImage?.large ?? null,
 		source: "AniList",
 		mediaType,
@@ -415,6 +435,7 @@ async function fetchAniList(
 	mediaType: AniListMediaType,
 	genres: readonly string[],
 	tag: string | null,
+	tagNotIn: readonly string[] = [],
 ): Promise<MediaRecommendation[]> {
 	const genreFilters = [...new Set(genres
 		.map((genre) => genreValue(genre, mediaType))
@@ -425,6 +446,7 @@ async function fetchAniList(
 		mediaType: mediaType === "anime" ? "ANIME" : "MANGA",
 		...(genreFilters.length === 0 ? {} : { genreIn: genreFilters }),
 		...(tag === null ? {} : { tagIn: [tag] }),
+		...(tagNotIn.length === 0 ? {} : { tagNotIn: [...tagNotIn] }),
 		...(mediaType === "novel" ? { formatIn: ["NOVEL"] } : {}),
 		...(mediaType === "manga" ? { formatNotIn: ["NOVEL"] } : {}),
 	};
@@ -447,16 +469,17 @@ async function fetchAniListWithFallback(
 	mediaType: AniListMediaType,
 	genres: readonly string[],
 	tag: string | null,
+	tagNotIn: readonly string[] = [],
 ): Promise<MediaRecommendation[]> {
-	let results = await fetchAniList(mediaType, genres, tag);
-	if (results.length === 0 && tag !== null) results = await fetchAniList(mediaType, genres, null);
-	if (results.length === 0 && genres.length > 0) results = await fetchAniList(mediaType, [], null);
+	let results = await fetchAniList(mediaType, genres, tag, tagNotIn);
+	if (results.length === 0 && tag !== null) results = await fetchAniList(mediaType, genres, null, tagNotIn);
+	if (results.length === 0 && genres.length > 0) results = await fetchAniList(mediaType, [], null, tagNotIn);
 
 	// Even a successful genre query can miss niche tropes; mix in broad top-ranked candidates
 	// so local/AI ranking has meaningful alternatives beyond the one detected genre.
 	if (results.length > 0 && (genres.length > 0 || tag !== null)) {
 		try {
-			const broad = await fetchAniList(mediaType, [], null);
+			const broad = await fetchAniList(mediaType, [], null, tagNotIn);
 			const seen = new Set(results.map((item) => item.title.toLocaleLowerCase()));
 			for (const item of broad) {
 				const key = item.title.toLocaleLowerCase();
@@ -523,7 +546,9 @@ const AI_RANK_STOPWORDS = new Set([
 	"movie", "movies", "series", "show", "shows", "watch", "read", "something", "anything", "good",
 	"best", "please", "want", "like", "love", "give", "find", "looking", "need", "me", "some", "for",
 	"with", "and", "that", "this", "are", "the", "a", "an", "of", "to", "in", "on", "about", "is",
-	"it", "i", "my", "have", "has", "can", "you", "what", "should", "would", "would", "there",
+	"it", "i", "my", "have", "has", "can", "you", "what", "should", "would", "there",
+	"no", "not", "without", "avoid", "exclude", "excluding", "never", "non", "or", "but", "except",
+	"however", "instead", "too", "much", "ever", "dont", "interested",
 ]);
 
 /** Improves relevance even when no hosted AI key is configured. */
@@ -533,17 +558,30 @@ export function rankRecommendationsHeuristically(
 ): MediaRecommendation[] {
 	const normalized = preferences.trim().toLocaleLowerCase();
 	if (!normalized || items.length < 2) return [...items];
+	const excludedTerms = new Set<string>();
+	for (const match of preferences.matchAll(/\b(?:no|without|avoid|exclude|excluding|not interested in|don't want|dont want|never)\s+([^,.;!?]+)/gi)) {
+		const phrase = (match[1] ?? "").split(/\b(?:but|except|however|instead|or|and)\b/i)[0] ?? "";
+		for (const term of phrase.toLocaleLowerCase().match(/[a-z][a-z-]{2,}/g) ?? []) {
+			if (!AI_RANK_STOPWORDS.has(term)) excludedTerms.add(term);
+		}
+	}
+	for (const match of preferences.matchAll(/\bnon-([a-z][a-z-]{2,})/gi)) excludedTerms.add((match[1] ?? "").toLowerCase());
 	const terms = [...new Set((normalized.match(/[a-z0-9-]{3,}/g) ?? [])
-		.filter((term) => !AI_RANK_STOPWORDS.has(term)))].slice(0, 24);
+		.filter((term) => !AI_RANK_STOPWORDS.has(term) && !excludedTerms.has(term)))].slice(0, 24);
 	const scored = items.map((item, index) => {
 		const title = item.title.toLocaleLowerCase();
 		const genres = item.genres.map((genre) => genre.toLocaleLowerCase());
+		const tags = (item.tags ?? []).map((tag) => tag.toLocaleLowerCase());
 		const summary = item.summary.toLocaleLowerCase();
 		const format = (item.format ?? "").toLocaleLowerCase();
 		let score = 0;
+		if ([...excludedTerms].some((term) => title.includes(term) || genres.some((genre) => genre.includes(term)) || tags.some((tag) => tag.includes(term)) || format.includes(term))) {
+			score -= 100;
+		}
 		for (const term of terms) {
 			if (title.includes(term)) score += 6;
 			if (genres.some((genre) => genre.includes(term))) score += 4;
+			if (tags.some((tag) => tag.includes(term))) score += 4;
 			if (format.includes(term)) score += 2;
 			if (summary.includes(term)) score += 1;
 		}
@@ -583,6 +621,7 @@ export async function rankRecommendationsWithAI(
 		title: item.title.slice(0, 140),
 		type: item.mediaType ?? "media",
 		genres: item.genres.slice(0, 6),
+		tags: (item.tags ?? []).slice(0, 12),
 		format: item.format ?? null,
 		summary: item.summary.slice(0, 220),
 		rating: item.rating,
@@ -649,6 +688,7 @@ export async function recommendMedia(input: RecommendationInput): Promise<MediaR
 	const novelGenres = detectRecommendationGenres(preferences, "novel");
 	const genres = type === "all" ? [] : detectRecommendationGenres(preferences, type);
 	const tag = ["anime", "manga", "novel", "all"].includes(type) ? detectAnimeTag(preferences) : null;
+	const tagNotIn = detectExcludedAnimeTags(preferences);
 	const normalizedPreferences = preferences.trim().toLocaleLowerCase().replace(/\s+/g, " ");
 	const key = [
 		type,
@@ -666,14 +706,14 @@ export async function recommendMedia(input: RecommendationInput): Promise<MediaR
 
 	const request = (async (): Promise<MediaRecommendation[]> => {
 		if (type === "anime" || type === "manga" || type === "novel") {
-			return fetchAniListWithFallback(type, genres, tag);
+			return fetchAniListWithFallback(type, genres, tag, tagNotIn);
 		}
 
 		if (type === "all") {
 			const anilistTasks = await Promise.allSettled([
-				fetchAniListWithFallback("anime", animeGenres, tag),
-				fetchAniListWithFallback("manga", mangaGenres, tag),
-				fetchAniListWithFallback("novel", novelGenres, tag),
+				fetchAniListWithFallback("anime", animeGenres, tag, tagNotIn),
+				fetchAniListWithFallback("manga", mangaGenres, tag, tagNotIn),
+				fetchAniListWithFallback("novel", novelGenres, tag, tagNotIn),
 			]);
 			const anime = anilistTasks[0]?.status === "fulfilled"
 				? rankRecommendationsHeuristically(anilistTasks[0].value, preferences).slice(0, 6)
