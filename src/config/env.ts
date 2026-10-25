@@ -53,8 +53,10 @@ const fields = z.object({
 	MUSIC_FFMPEG_PATH: z.string().min(1).optional(),
 
 
-	// Media recommendations. Anime uses AniList without authentication; TMDB is needed for movies and TV.
+	// Media catalogues are free to query. Optional OpenRouter access adds AI preference ranking.
 	TMDB_API_READ_ACCESS_TOKEN: z.string().min(1).optional(),
+	OPENROUTER_API_KEY: z.string().min(1).optional(),
+	RECOMMENDATION_AI_MODEL: z.string().min(1).default("openrouter/free"),
 
 	// Support assistant. Without a key it answers by search alone and never contacts anybody.
 	SUPPORT_AI_API_KEY: z.string().min(1).optional(),
