@@ -63,7 +63,7 @@ describe("withinSources", () => {
 	/** Turning a service off has to cover links as well, or pasting one would walk straight past the switch. */
 	it("refuses a link to a service that is switched off, and says which is left", () => {
 		expect(() => withinSources(youtubeLink, "soundcloud")).toThrow(UserFacingError);
-		expect(() => withinSources(youtubeLink, "soundcloud")).toThrow(/SoundCloud only/);
+		expect(() => withinSources(youtubeLink, "soundcloud")).toThrow(/SoundCloud-only/);
 		expect(withinSources(soundCloudLink, "youtube")).toBe(soundCloudLink);
 		expect(withinSources(soundCloudLink, "both")).toBe(soundCloudLink);
 	});
