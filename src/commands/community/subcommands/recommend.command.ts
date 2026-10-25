@@ -5,14 +5,16 @@ import { createMediaSession, recommendMedia, type RecommendationType } from "@li
 
 const MEDIA_TYPES = [
 	{ name: "Anime", value: "anime" },
+	{ name: "Manga / Manhwa / Manhua", value: "manga" },
+	{ name: "Light novel", value: "novel" },
 	{ name: "Movie", value: "movie" },
 	{ name: "TV series", value: "series" },
-	{ name: "All media · top AniList + TMDB picks", value: "all" },
+	{ name: "All media · anime, manga, novels + optional movie/TV", value: "all" },
 ];
 
 export default defineCommand({
 	name: "recommend",
-	description: "Recommends anime, movies, or TV series.",
+	description: "Recommends anime, manga, light novels, movies, and TV series.",
 	category: "community",
 	aliases: ["rec"],
 	cooldown: 15_000,
@@ -36,9 +38,9 @@ export default defineCommand({
 		const type = interaction.options.getString("type", true) as RecommendationType;
 		const preferences = interaction.options.getString("preferences") ?? "";
 
-		if (type !== "anime" && !client.env.TMDB_API_READ_ACCESS_TOKEN) {
+		if ((type === "movie" || type === "series") && !client.env.TMDB_API_READ_ACCESS_TOKEN) {
 			throw new UserFacingError(
-				"Movie, TV, and all-media recommendations need the TMDB API Read Access Token. Anime recommendations work without it.",
+				"Movie and TV recommendations need the TMDB API Read Access Token. Anime, manga, light novels, and all-media reading picks work without it.",
 			);
 		}
 
@@ -50,6 +52,8 @@ export default defineCommand({
 				type,
 				preferences,
 				tmdbToken: client.env.TMDB_API_READ_ACCESS_TOKEN,
+				openRouterApiKey: client.env.OPENROUTER_API_KEY,
+				recommendationAiModel: client.env.RECOMMENDATION_AI_MODEL,
 			});
 		} catch (error) {
 			client.logger.warn({ err: error, type }, "Media recommendation request failed");
