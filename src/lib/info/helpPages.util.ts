@@ -62,7 +62,7 @@ export function helpHome(client: TestifyClient, surface: Surface, prefix: string
 		category: "info",
 		title: `${botName()} • Command Centre`,
 		description: [
-			`Your community toolkit, all in one place. Use slash commands or the `${prefix}` prefix.`,
+			`Your community toolkit, all in one place. Use slash commands or the \`${prefix}\` prefix.`,
 			"",
 			"Choose a category below to explore.",
 		].join("\n"),
