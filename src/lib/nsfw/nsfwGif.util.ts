@@ -47,7 +47,7 @@ export const CATEGORY_TAGS: Readonly<Record<NsfwGifCategory, readonly string[]>>
 	threesome: ["threesome"],
 };
 
-/** The caption is deterministic and never depends on untrusted input besides Discord IDs. */
+/** The action label follows the command category and uses plain names, not pinging mention syntax. */
 const ACTION_VERBS: Readonly<Record<NsfwGifCategory, string>> = {
 	gif: "shares an adult GIF with",
 	random: "shares an adult GIF with",
@@ -67,8 +67,14 @@ const ACTION_VERBS: Readonly<Record<NsfwGifCategory, string>> = {
 	threesome: "has a threesome with",
 };
 
-export function buildNsfwActionLine(category: NsfwGifCategory, actorId: string, targetId: string): string {
-	return `<@${actorId}> ${ACTION_VERBS[category]} <@${targetId}>.`;
+function actionName(username: string): string {
+	// Discord usernames cannot contain whitespace or mention syntax; retain a defensive fallback regardless.
+	const safe = username.replace(/[<>@\\r\\n]/g, "");
+	return `@${safe || "user"}`;
+}
+
+export function buildNsfwActionLine(category: NsfwGifCategory, actorUsername: string, targetUsername: string): string {
+	return `${actionName(actorUsername)} ${ACTION_VERBS[category]} ${actionName(targetUsername)}.`;
 }
 
 const EXCLUDED_TAGS = [
