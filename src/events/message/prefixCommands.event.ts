@@ -7,6 +7,11 @@ import { getPrefixConfig } from "@database/repositories/settingsRepository";
 import { countCommandUse, logCommandUse, recordCommandTime } from "@lib/bot";
 import { refusalEmbed, replyTemporarily } from "@lib/discord";
 
+/** Lets natural-language recommendation requests reach intent parsing instead of positional type parsing. */
+export function shouldDeferRecommendationToIntent(parsedName: string, args: string[]): boolean {
+	return parsedName === "recommend" && !["anime", "movie", "series"].includes(args[0] ?? "");
+}
+
 /** Runs `t?ban @someone` through the same code and checks as `/ban`. */
 export default defineMessageHandler({
 	name: "prefixCommands",
@@ -24,6 +29,10 @@ export default defineMessageHandler({
 		const prefix = config.prefix;
 		const parsed = parseMessage(message.content, prefix, botId);
 		if (parsed === null) return;
+
+		// Natural-language recommendation phrasing is not a positional type argument.
+		// Explicit type-first calls (recommend anime|movie|series ...) still use the command handler.
+		if (shouldDeferRecommendationToIntent(parsed.name, parsed.args)) return;
 
 		// An alias can point at a subcommand, whose name goes back on the front of the arguments.
 		const [name = parsed.name, subcommand] = (client.aliases.get(parsed.name) ?? parsed.name).split(" ");

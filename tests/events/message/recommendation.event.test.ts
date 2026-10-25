@@ -2,6 +2,7 @@ import {
 	clearRecommendationCooldowns,
 	parseRecommendationRequest,
 	parseRecommendationTypeChoice,
+	stripBotMention,
 } from "@events/message/recommendation.event";
 
 describe("parseRecommendationTypeChoice", () => {
@@ -19,6 +20,24 @@ describe("parseRecommendationTypeChoice", () => {
 
 	it("rejects text that is not a standalone media type", () => {
 		expect(parseRecommendationTypeChoice("I like anime")).toBeNull();
+	});
+});
+
+describe("stripBotMention", () => {
+	const botId = "111111111111111111";
+
+	it("removes this bot's leading mention from a natural-language request", () => {
+		const text = stripBotMention(`<@${botId}> recommend me some anime`, botId);
+
+		expect(text).toBe("recommend me some anime");
+		expect(parseRecommendationRequest(text)?.type).toBe("anime");
+	});
+
+	it("supports Discord's nickname-mention form and leaves other mentions alone", () => {
+		expect(stripBotMention(`<@!${botId}> recommend me some anime`, botId)).toBe("recommend me some anime");
+		expect(stripBotMention("<@222222222222222222> recommend me some anime", botId)).toBe(
+			"<@222222222222222222> recommend me some anime",
+		);
 	});
 });
 

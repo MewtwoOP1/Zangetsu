@@ -18,6 +18,11 @@ export interface RecommendationRequest {
 	preferences: string;
 }
 
+/** Removes only this bot's leading Discord mention before interpreting the user's request. */
+export function stripBotMention(content: string, botId: string): string {
+	return content.replace(new RegExp(`^<@!?${botId}>\\s*`), "").trim();
+}
+
 /** Pure intent parsing so natural-language triggers can be tested without Discord. */
 export function parseRecommendationRequest(content: string): RecommendationRequest | null {
 	const text = content.trim();
@@ -66,16 +71,15 @@ export default defineMessageHandler({
 		if (!message.channel.isSendable()) return;
 		const text = message.content.trim();
 
-		// Prefix commands already invoke the same recommendation service. Never answer them twice.
-		if (/^t\?/i.test(text) || /^<@!?\d+>/.test(text)) return;
-
+		// Explicit type-first prefix commands are handled earlier; allow natural-language requests through.
+		const requestText = client.user?.id === undefined ? text : stripBotMention(text, client.user.id);
 		const now = Date.now();
 		const pending = pendingTypes.get(message.author.id);
-		let request = parseRecommendationRequest(text);
+		let request = parseRecommendationRequest(requestText);
 
 		if (pending !== undefined) {
 			if (pending.expiresAt > now) {
-				const choice = parseRecommendationTypeChoice(text);
+				const choice = parseRecommendationTypeChoice(requestText);
 				if (choice !== null) {
 					request = { type: choice, preferences: pending.preferences };
 					pendingTypes.delete(message.author.id);
