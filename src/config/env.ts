@@ -53,10 +53,12 @@ const fields = z.object({
 	MUSIC_FFMPEG_PATH: z.string().min(1).optional(),
 
 
-	// Media catalogues are free to query. Optional OpenRouter access adds AI preference ranking.
+	// Media catalogues are free to query. Optional Groq access adds semantic preference ranking.
 	TMDB_API_READ_ACCESS_TOKEN: z.string().min(1).optional(),
+	GROQ_API_KEY: z.string().min(1).optional(),
+	// Legacy fallback for existing installations; Groq is preferred whenever configured.
 	OPENROUTER_API_KEY: z.string().min(1).optional(),
-	RECOMMENDATION_AI_MODEL: z.string().min(1).default("openrouter/free"),
+	RECOMMENDATION_AI_MODEL: z.string().min(1).default("openai/gpt-oss-20b"),
 
 	// Support assistant. Without a key it answers by search alone and never contacts anybody.
 	SUPPORT_AI_API_KEY: z.string().min(1).optional(),
