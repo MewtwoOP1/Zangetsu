@@ -1,0 +1,68 @@
+import {
+	buildRule34GifSearchUrl,
+	parseRule34GifPosts,
+	type NsfwGifCategory,
+} from "@lib/nsfw/nsfwGif.util";
+
+const basePost = {
+	id: 12345,
+	file_url: "https://img.rule34.xxx/images/12345/example.gif",
+	rating: "explicit",
+	tags: "animated sex adult female_only",
+};
+
+describe("Rule34 hentai GIF provider", () => {
+	it("requests explicit randomized animated media with adult-safety exclusions", () => {
+		const url = new URL(buildRule34GifSearchUrl("fuck"));
+		const tags = url.searchParams.get("tags") ?? "";
+
+		expect(url.origin).toBe("https://api.rule34.xxx");
+		expect(url.searchParams.get("page")).toBe("dapi");
+		expect(url.searchParams.get("json")).toBe("1");
+		expect(tags).toContain("rating:explicit");
+		expect(tags).toContain("animated");
+		expect(tags).toContain("sort:random");
+		expect(tags).toContain("sex");
+		expect(tags).toContain("-loli");
+		expect(tags).toContain("-underage");
+		expect(tags).toContain("-rape");
+	});
+
+	it("accepts only explicit animated GIF files with matching category tags", () => {
+		const results = parseRule34GifPosts(
+			[
+				basePost,
+				{ ...basePost, id: 12346, file_url: "https://img.rule34.xxx/images/clip.webm" },
+				{ ...basePost, id: 12347, rating: "safe" },
+				{ ...basePost, id: 12348, tags: "animated breasts adult" },
+				{ ...basePost, id: 12349, tags: "animated sex loli" },
+				{ ...basePost, id: 12350, file_url: "http://img.rule34.xxx/images/unsafe.gif" },
+				{ ...basePost, id: 12351, file_url: "https://evil.example/file.gif" },
+			],
+			"fuck",
+		);
+
+		expect(results).toEqual([
+			{
+				id: "12345",
+				fileUrl: "https://img.rule34.xxx/images/12345/example.gif",
+				postUrl: "https://rule34.xxx/index.php?page=post&s=view&id=12345",
+			},
+		]);
+	});
+
+	it("rejects posts tagged with underage characters in broad and random searches", () => {
+		const categories: NsfwGifCategory[] = ["gif", "random", "hentai"];
+		for (const category of categories) {
+			expect(
+				parseRule34GifPosts([{ ...basePost, tags: "animated adult underage" }], category),
+			).toEqual([]);
+		}
+	});
+
+	it("returns an empty list for malformed or non-list API data", () => {
+		expect(parseRule34GifPosts(null, "gif")).toEqual([]);
+		expect(parseRule34GifPosts({ success: false }, "gif")).toEqual([]);
+		expect(parseRule34GifPosts([{ id: 1, tags: "animated", rating: "explicit" }], "gif")).toEqual([]);
+	});
+});
