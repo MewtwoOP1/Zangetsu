@@ -43,7 +43,7 @@ export default defineCommand({
 
 		await interaction.deferReply();
 
-		let recommendations;
+		let recommendations: Awaited<ReturnType<typeof recommendMedia>>;
 		try {
 			recommendations = await recommendMedia({
 				type,
