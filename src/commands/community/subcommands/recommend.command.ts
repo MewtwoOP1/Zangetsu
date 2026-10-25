@@ -60,10 +60,13 @@ export default defineCommand({
 			throw new UserFacingError("I couldn't find matching titles. Try a broader genre or different preferences.");
 		}
 
-		await reply(interaction, createMediaSession({
-			userId: interaction.user.id,
-			items: recommendations,
-			mode: "recommendation",
-		}));
+		await reply(
+			interaction,
+			createMediaSession({
+				userId: interaction.user.id,
+				items: recommendations,
+				mode: "recommendation",
+			}),
+		);
 	},
 });
