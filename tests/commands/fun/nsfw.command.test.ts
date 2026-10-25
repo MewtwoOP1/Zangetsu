@@ -21,7 +21,7 @@ describe("NSFW command options", () => {
 	it("serializes the target field into Discord's slash-command schema", () => {
 		const serialized = buildSlashCommand(nsfwCommand).toJSON();
 		const fuck = serialized.options?.find((option) => option.name === "fuck");
-		expect(fuck?.options?.some((option) => option.name === "target")).toBe(true);
+		expect(fuck && "options" in fuck && fuck.options?.some((option) => option.name === "target")).toBe(true);
 	});
 
 	it("does not expose a consent subcommand", () => {
