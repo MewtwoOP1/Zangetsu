@@ -8,6 +8,11 @@ import { countCommandUse, logCommandUse, recordCommandTime } from "@lib/bot";
 import { refusalEmbed, replyTemporarily } from "@lib/discord";
 
 /** Runs `t?ban @someone` through the same code and checks as `/ban`. */
+/** Lets a natural-language mention request reach the recommendation intent handler. */
+export function shouldDeferMentionRecommendation(prefix: string | null, parsedName: string): boolean {
+	return prefix === null && parsedName === "recommend";
+}
+
 export default defineMessageHandler({
 	name: "prefixCommands",
 	order: 10,
@@ -24,6 +29,10 @@ export default defineMessageHandler({
 		const prefix = config.prefix;
 		const parsed = parseMessage(message.content, prefix, botId);
 		if (parsed === null) return;
+
+		// Natural-language mentions such as "@Zangetsu recommend me some anime" are not positional
+		// command arguments. Let recommendation.event infer the requested type from the full sentence.
+		if (shouldDeferMentionRecommendation(parsed.prefix, parsed.name)) return;
 
 		// An alias can point at a subcommand, whose name goes back on the front of the arguments.
 		const [name = parsed.name, subcommand] = (client.aliases.get(parsed.name) ?? parsed.name).split(" ");
