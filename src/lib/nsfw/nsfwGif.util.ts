@@ -1,5 +1,3 @@
-import { loadEnv } from "@config/env";
-
 export const NSFW_GIF_CATEGORIES = [
 	"gif",
 	"random",
@@ -27,27 +25,30 @@ export interface NsfwGifPost {
 	postUrl: string;
 }
 
-/** Tags are native Rule34.xxx tags; aliases deliberately share the canonical category. */
+/**
+ * Waifu.im's archive uses broad tags rather than every Rule34 action tag.
+ * Prefer a relevant tag when possible, then retry against the full NSFW GIF
+ * catalogue if that tag has no matching GIFs.
+ */
 export const CATEGORY_TAGS: Readonly<Record<NsfwGifCategory, readonly string[]>> = {
 	gif: [],
 	random: [],
-	fuck: ["fuck"],
-	anal: ["anal"],
-	blowjob: ["blowjob"],
-	bj: ["blowjob"],
-	boobjob: ["boobjob"],
-	bz: ["boobjob"],
-	tits: ["tits"],
+	fuck: ["hentai"],
+	anal: ["hentai"],
+	blowjob: ["oral"],
+	bj: ["oral"],
+	boobjob: ["paizuri"],
+	bz: ["paizuri"],
+	tits: ["oppai"],
 	ass: ["ass"],
-	pussy: ["pussy"],
-	cum: ["cum"],
-	handjob: ["handjob"],
+	pussy: ["hentai"],
+	cum: ["hentai"],
+	handjob: ["oral"],
 	hentai: ["hentai"],
-	lesbian: ["lesbian"],
-	threesome: ["threesome"],
+	lesbian: ["yuri"],
+	threesome: ["hentai"],
 };
 
-/** The action label follows the command category and uses plain names, not pinging mention syntax. */
 const ACTION_VERBS: Readonly<Record<NsfwGifCategory, string>> = {
 	gif: "shares an adult GIF with",
 	random: "shares an adult GIF with",
@@ -67,14 +68,21 @@ const ACTION_VERBS: Readonly<Record<NsfwGifCategory, string>> = {
 	threesome: "has a threesome with",
 };
 
-function actionName(username: string): string {
-	// Discord usernames cannot contain whitespace or mention syntax; retain a defensive fallback regardless.
-	const safe = username.replace(/[<>@\r\n]/g, "");
-	return `@${safe || "user"}`;
+/** Mention syntax makes the selected users visible as Discord usernames. */
+function userMention(userId: string): string {
+	return /^\d{17,20}$/.test(userId) ? "<@" + userId + ">" : "@user";
 }
 
-export function buildNsfwActionLine(category: NsfwGifCategory, actorUsername: string, targetUsername: string): string {
-	return `${actionName(actorUsername)} ${ACTION_VERBS[category]} ${actionName(targetUsername)}.`;
+/**
+ * Discord receives explicit user mention markup, while the command response
+ * sets allowedMentions.parse=[] so these mentions do not generate pings.
+ */
+export function buildNsfwActionLine(
+	category: NsfwGifCategory,
+	actorUserId: string,
+	targetUserId: string,
+): string {
+	return userMention(actorUserId) + " " + ACTION_VERBS[category] + " " + userMention(targetUserId) + ".";
 }
 
 const EXCLUDED_TAGS = [
@@ -96,122 +104,160 @@ const EXCLUDED_TAGS = [
 	"bestiality",
 ] as const;
 
-const API_ENDPOINT = "https://api.rule34.xxx/index.php";
-
-export interface Rule34ApiCredentials {
-	apiKey: string;
-	userId: string;
-}
-
-export class NsfwGifConfigurationError extends Error {
-	constructor() {
-		super(
-			"Hentai GIF search is not configured. Set RULE34_API_KEY and RULE34_USER_ID in the bot host environment.",
-		);
-		this.name = "NsfwGifConfigurationError";
-	}
-}
+const API_BASE = "https://api.waifu-im.workers.dev/";
+const API_TIMEOUT_MS = 8_000;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-function isRule34GifUrl(value: unknown): value is string {
-	if (typeof value !== "string") return false;
+function normalizeTag(value: string): string {
+	return value.toLowerCase().replace(/-/g, "_");
+}
+
+function getTags(value: Record<string, unknown>): Set<string> {
+	const raw = value.tags;
+	if (typeof raw === "string") {
+		return new Set(raw.split(/\s+/).filter(Boolean).map(normalizeTag));
+	}
+	if (Array.isArray(raw)) {
+		const names = raw.flatMap((tag): string[] => {
+			if (typeof tag === "string") return [normalizeTag(tag)];
+			if (!isRecord(tag)) return [];
+			const name = typeof tag.name === "string" ? tag.name :
+				typeof tag.tag === "string" ? tag.tag :
+				typeof tag.slug === "string" ? tag.slug : "";
+			return name ? [normalizeTag(name)] : [];
+		});
+		return new Set(names);
+	}
+	return new Set();
+}
+
+function isAllowedWaifuHost(url: URL): boolean {
+	const hostname = url.hostname.toLowerCase();
+	return hostname === "api.waifu-im.workers.dev" ||
+		hostname === "cdn.waifu.im" ||
+		hostname.endsWith(".waifu.im");
+}
+
+function getGifUrl(value: Record<string, unknown>): string | null {
+	const rawUrl = typeof value.url === "string" ? value.url :
+		typeof value.file_url === "string" ? value.file_url : "";
+	if (!rawUrl) return null;
 
 	try {
-		const url = new URL(value);
-		return (
-			url.protocol === "https:" &&
-			(url.hostname === "rule34.xxx" || url.hostname.endsWith(".rule34.xxx")) &&
-			url.pathname.toLowerCase().endsWith(".gif")
-		);
+		const url = new URL(rawUrl);
+		if (url.protocol !== "https:" || !isAllowedWaifuHost(url)) return null;
+
+		const extension = typeof value.extension === "string"
+			? value.extension.toLowerCase().replace(/^\./, "")
+			: "";
+		let searchableUrl = url.href.toLowerCase();
+		try {
+			searchableUrl = decodeURIComponent(searchableUrl);
+		} catch {
+			// A malformed escape does not make a URL safe or unsafe by itself.
+		}
+
+		if (extension !== "gif" && !/\.gif(?:$|[?#&])/i.test(searchableUrl)) return null;
+		return url.toString();
 	} catch {
-		return false;
+		return null;
 	}
 }
 
-function parsePost(value: unknown, category: NsfwGifCategory): NsfwGifPost | null {
+function getSourceUrl(value: Record<string, unknown>, fileUrl: string): string {
+	if (typeof value.source === "string") {
+		try {
+			const url = new URL(value.source);
+			if (url.protocol === "https:") return url.toString();
+		} catch {
+			// If there is no valid source URL, link directly to the GIF.
+		}
+	}
+	return fileUrl;
+}
+
+/** Validates Waifu.im results instead of trusting query filters alone. */
+function parseImage(value: unknown): NsfwGifPost | null {
 	if (!isRecord(value)) return null;
 
-	const id = typeof value.id === "number" || typeof value.id === "string" ? String(value.id) : "";
-	const tagsText = typeof value.tags === "string" ? value.tags.toLowerCase() : "";
-	const tags = new Set(tagsText.split(/\s+/).filter(Boolean));
-	const rating = typeof value.rating === "string" ? value.rating.toLowerCase() : "";
+	const isNsfw = value.is_nsfw === true || value.isNsfw === true;
+	if (!isNsfw) return null;
 
-	if (!/^\d+$/.test(id)) return null;
-	if (rating !== "explicit" && rating !== "e") return null;
-	if (!tags.has("animated")) return null;
-	if (!CATEGORY_TAGS[category].every((tag) => tags.has(tag))) return null;
-	if (EXCLUDED_TAGS.some((tag) => tags.has(tag))) return null;
-	if (!isRule34GifUrl(value.file_url)) return null;
+	const tags = getTags(value);
+	if (EXCLUDED_TAGS.some((tag) => tags.has(normalizeTag(tag)))) return null;
 
+	const fileUrl = getGifUrl(value);
+	if (!fileUrl) return null;
+
+	const rawId = typeof value.id === "number" || typeof value.id === "string"
+		? String(value.id)
+		: fileUrl;
 	return {
-		id,
-		fileUrl: value.file_url,
-		postUrl: `https://rule34.xxx/index.php?page=post&s=view&id=${id}`,
+		id: rawId,
+		fileUrl,
+		postUrl: getSourceUrl(value, fileUrl),
 	};
 }
 
-/** Validates untrusted API data before a media URL can be sent to Discord. */
-export function parseRule34GifPosts(payload: unknown, category: NsfwGifCategory): NsfwGifPost[] {
-	if (!Array.isArray(payload)) return [];
-	return payload.flatMap((post) => {
-		const parsed = parsePost(post, category);
+/** Validate the API response before using any media URL in a Discord embed. */
+export function parseWaifuGifImages(payload: unknown): NsfwGifPost[] {
+	let images: unknown[] = [];
+	if (Array.isArray(payload)) {
+		images = payload;
+	} else if (isRecord(payload)) {
+		if (Array.isArray(payload.images)) images = payload.images;
+		else if (Array.isArray(payload.data)) images = payload.data;
+		else if (Array.isArray(payload.results)) images = payload.results;
+	}
+	return images.flatMap((image) => {
+		const parsed = parseImage(image);
 		return parsed ? [parsed] : [];
 	});
 }
 
-/** Builds the documented Rule34 DAPI search URL without accepting arbitrary user-supplied tags. */
-export function buildRule34GifSearchUrl(
-	category: NsfwGifCategory,
-	credentials?: Rule34ApiCredentials,
-): string {
-	const url = new URL(API_ENDPOINT);
-	const tags = [
-		...CATEGORY_TAGS[category],
-		"rating:explicit",
-		"animated",
-		"sort:random",
-		"-video",
-		"-webm",
-		"-mp4",
-		...EXCLUDED_TAGS.map((tag) => `-${tag}`),
-	];
+/** Build a Waifu.im worker search URL. Tags are constants, never user input. */
+export function buildWaifuGifSearchUrl(category: NsfwGifCategory, useCategoryTag = true): string {
+	const url = new URL("search", API_BASE);
+	url.searchParams.set("is_nsfw", "true");
+	url.searchParams.set("gif", "true");
+	url.searchParams.set("many", "true");
+	url.searchParams.set("order_by", "RANDOM");
 
-	url.searchParams.set("page", "dapi");
-	url.searchParams.set("s", "post");
-	url.searchParams.set("q", "index");
-	url.searchParams.set("json", "1");
-	url.searchParams.set("limit", "100");
-	url.searchParams.set("tags", tags.join(" "));
-	if (credentials) {
-		url.searchParams.set("api_key", credentials.apiKey);
-		url.searchParams.set("user_id", credentials.userId);
+	if (useCategoryTag) {
+		for (const tag of CATEGORY_TAGS[category]) url.searchParams.append("included_tags", tag);
 	}
+	for (const tag of EXCLUDED_TAGS) url.searchParams.append("excluded_tags", tag);
 	return url.toString();
 }
 
-/** Requests one randomized page and returns a validated animated GIF, or null if none matched. */
-export async function fetchNsfwGif(category: NsfwGifCategory): Promise<NsfwGifPost | null> {
-	const env = loadEnv();
-	const apiKey = env.RULE34_API_KEY;
-	const userId = env.RULE34_USER_ID;
-	if (!apiKey || !userId) throw new NsfwGifConfigurationError();
-
-	const response = await fetch(buildRule34GifSearchUrl(category, { apiKey, userId }), {
+async function requestWaifuGifSearch(category: NsfwGifCategory, useCategoryTag: boolean): Promise<NsfwGifPost[]> {
+	const response = await fetch(buildWaifuGifSearchUrl(category, useCategoryTag), {
 		headers: {
 			accept: "application/json",
 			"user-agent": "ZangetsuDiscordBot/2.0 (+https://zangetsu.online)",
 		},
-		signal: AbortSignal.timeout(8_000),
+		signal: AbortSignal.timeout(API_TIMEOUT_MS),
 	});
 
-	if (!response.ok) throw new Error(`Rule34 API request failed with HTTP ${response.status}`);
+	// A tag may not exist on a catalogue mirror; the caller can retry broadly.
+	if (!response.ok) {
+		if (useCategoryTag && (response.status === 400 || response.status === 404)) return [];
+		throw new Error("Waifu.im API request failed with HTTP " + response.status);
+	}
 
 	const payload: unknown = await response.json();
-	const results = parseRule34GifPosts(payload, category);
-	if (results.length === 0) return null;
+	return parseWaifuGifImages(payload);
+}
 
+/** Returns a validated NSFW GIF, falling back to the full catalogue for broad tags. */
+export async function fetchNsfwGif(category: NsfwGifCategory): Promise<NsfwGifPost | null> {
+	let results = await requestWaifuGifSearch(category, true);
+	if (results.length === 0 && CATEGORY_TAGS[category].length > 0) {
+		results = await requestWaifuGifSearch(category, false);
+	}
+	if (results.length === 0) return null;
 	return results[Math.floor(Math.random() * results.length)] ?? null;
 }
