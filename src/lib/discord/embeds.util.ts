@@ -46,7 +46,7 @@ export function embed(options: EmbedOptions): EmbedBuilder {
 	builder.setFooter({
 		// Discord rejects an empty footer, so a blank string falls back to the name.
 		text: truncate(
-			options.footer !== undefined && options.footer !== "" ? options.footer : botName(),
+			`${options.footer !== undefined && options.footer !== "" ? options.footer : botName()} • zangetsu.online`,
 			LIMITS.embedTitle,
 		),
 		...(footerIcon !== "" ? { iconURL: footerIcon } : {}),
