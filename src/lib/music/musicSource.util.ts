@@ -216,6 +216,9 @@ export async function resolveTracks(
 	const usable = skipping ? documents.filter(isPlayable) : documents;
 	if (usable.length === 0 && documents.length > 0) throw new MusicProblemError(NOTHING_PLAYABLE);
 
+	// A normal search already returned full formats, so playback can reuse this metadata instead of spawning yt-dlp again.
+	if (!flat) for (const info of usable) rememberDescription(info, binaries);
+
 	return usable.flatMap((info) => tracksFromInfo(info, requestedBy, query.source));
 }
 
@@ -223,11 +226,28 @@ export async function resolveTracks(
 const DESCRIBED_TTL_MS = 600_000;
 const DESCRIBED_MAX = 100;
 
-/** Descriptions already fetched, keyed by binary and address, so a re-open does not ask YouTube twice. */
+/** Full metadata is shared between search and playback, keyed by binary and page URL. */
 const described = new Map<string, { info: TrackInfo; at: number }>();
 
 function describedKey(url: string, binary: string): string {
 	return `${binary}\n${url}`;
+}
+
+function rememberDescription(info: TrackInfo, binaries: MusicBinaries, now = Date.now()): void {
+	if (binaries.ytDlp === null || !Array.isArray(info.formats) || info.formats.length === 0) return;
+
+	const url = addressOf(info);
+	if (url === null || url === "") return;
+
+	const key = describedKey(url, binaries.ytDlp);
+	described.delete(key);
+	described.set(key, { info, at: now });
+
+	while (described.size > DESCRIBED_MAX) {
+		const oldest = described.keys().next();
+		if (oldest.done === true) break;
+		described.delete(oldest.value);
+	}
 }
 
 /** Drops a cached description, so a track the downloader refused is looked at afresh on its next go. */
@@ -255,12 +275,7 @@ export async function describeTrack(url: string, binaries: MusicBinaries, now = 
 	const info = parseJsonLines(stdout).at(0) ?? null;
 	if (info === null) return null;
 
-	described.delete(key);
-	described.set(key, { info, at: now });
-	if (described.size > DESCRIBED_MAX) {
-		const oldest = described.keys().next();
-		if (oldest.done !== true) described.delete(oldest.value);
-	}
+	rememberDescription({ ...info, formats: info.formats }, binaries, now);
 
 	return info;
 }
