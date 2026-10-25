@@ -103,19 +103,6 @@ export function fields(isDev: boolean): Field[] {
 			check: discordId,
 		},
 		{
-			key: "RULE34_API_KEY",
-			message: "Rule34 API key for hentai GIF commands",
-			hint: "Rule34 account -> Options -> API Access Credentials; keep this key private",
-			required: false,
-		},
-		{
-			key: "RULE34_USER_ID",
-			message: "Rule34 account user ID for hentai GIF commands",
-			hint: "Shown alongside the API key in Rule34 account options",
-			required: false,
-			check: (value) => (/^\d+$/.test(value) ? null : "The Rule34 user ID must be numeric."),
-		},
-		{
 			key: "TMDB_API_READ_ACCESS_TOKEN",
 			message: "TMDB API Read Access Token for movie and TV recommendations",
 			hint: "Free for non-commercial projects; leave blank if only using anime recommendations",

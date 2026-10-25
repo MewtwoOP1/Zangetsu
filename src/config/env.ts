@@ -52,9 +52,6 @@ const fields = z.object({
 	MUSIC_YTDLP_PATH: z.string().min(1).optional(),
 	MUSIC_FFMPEG_PATH: z.string().min(1).optional(),
 
-	// Adult GIF search. Rule34 requires account API credentials for REST API requests.
-	RULE34_API_KEY: z.string().min(1).optional(),
-	RULE34_USER_ID: z.string().regex(/^\d+$/, "must be a numeric Rule34 account ID").optional(),
 
 	// Media recommendations. Anime uses AniList without authentication; TMDB is needed for movies and TV.
 	TMDB_API_READ_ACCESS_TOKEN: z.string().min(1).optional(),
