@@ -222,15 +222,12 @@ export default defineCommand({
 				}
 
 				await reply(interaction, {
+					...(target ? { content: buildNsfwActionLine(category, interaction.user.id, target.id) } : {}),
 					embeds: [
 						embed({
 							category: "fun",
 							title: `${categoryLabel(category)} hentai GIF`,
-							description: target
-								? `${buildNsfwActionLine(category, interaction.user.id, target.id)}
-
-Animated adult GIF. Click the title to view the source post.`
-								: "Animated adult GIF. Click the title to view the source post.",
+							description: "Animated adult GIF. Click the title to view the source post.",
 							url: result.postUrl,
 							image: result.fileUrl,
 						}),
