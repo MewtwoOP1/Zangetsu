@@ -98,9 +98,10 @@ describe("Rule34 hentai GIF provider", () => {
 	});
 
 	it("formats action captions using the invoking user and selected target", () => {
-		expect(buildNsfwActionLine("fuck", "111", "222")).toBe("<@111> fucks <@222>.");
-		expect(buildNsfwActionLine("bj", "111", "222")).toBe("<@111> gives a blowjob to <@222>.");
-		expect(buildNsfwActionLine("bz", "111", "222")).toBe("<@111> does a boobjob for <@222>.");
+		expect(buildNsfwActionLine("fuck", "Runner", "Target")).toBe("@Runner fucks @Target.");
+		expect(buildNsfwActionLine("bj", "Runner", "Target")).toBe("@Runner gives a blowjob to @Target.");
+		expect(buildNsfwActionLine("bz", "Runner", "Target")).toBe("@Runner does a boobjob for @Target.");
+		expect(buildNsfwActionLine("fuck", "<@everyone>", "Target")).toBe("@everyone fucks @Target.");
 	});
 
 	it("returns an empty list for malformed or non-list API data", () => {

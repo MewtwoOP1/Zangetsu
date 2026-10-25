@@ -1,4 +1,5 @@
 import nsfwCommand from "@commands/fun/nsfw.command";
+import { buildSlashCommand } from "@core/command";
 import { NSFW_GIF_CATEGORIES } from "@lib/nsfw/nsfwGif.util";
 
 describe("NSFW command options", () => {
@@ -15,6 +16,12 @@ describe("NSFW command options", () => {
 				]),
 			);
 		}
+	});
+
+	it("serializes the target field into Discord's slash-command schema", () => {
+		const serialized = buildSlashCommand(nsfwCommand).toJSON();
+		const fuck = serialized.options?.find((option) => option.name === "fuck");
+		expect(fuck && "options" in fuck && fuck.options?.some((option) => option.name === "target")).toBe(true);
 	});
 
 	it("does not expose a consent subcommand", () => {

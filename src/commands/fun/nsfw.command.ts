@@ -146,7 +146,7 @@ export default defineCommand({
 			options: [
 				{
 					name: "target",
-					description: "Optional member for the action caption (requires their opt-in).",
+					description: "Optional member to name in the action caption; no ping is sent.",
 					type: "user" as const,
 					required: false,
 				},
@@ -156,6 +156,14 @@ export default defineCommand({
 				await requireEnabledNsfwChannel(interaction, guild.id);
 
 				const target = interaction.options.getUser("target");
+				const actorName =
+					guild.members.cache.get(interaction.user.id)?.displayName ??
+					interaction.user.globalName ??
+					interaction.user.username;
+				const targetName = target
+					? (guild.members.cache.get(target.id)?.displayName ?? target.globalName ?? target.username)
+					: null;
+
 				let result: Awaited<ReturnType<typeof fetchNsfwGif>>;
 				try {
 					result = await fetchNsfwGif(category);
@@ -173,7 +181,7 @@ export default defineCommand({
 				}
 
 				await reply(interaction, {
-					...(target ? { content: buildNsfwActionLine(category, interaction.user.id, target.id) } : {}),
+					...(targetName ? { content: buildNsfwActionLine(category, actorName, targetName) } : {}),
 					embeds: [
 						embed({
 							category: "fun",
