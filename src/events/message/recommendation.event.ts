@@ -112,7 +112,7 @@ export default defineMessageHandler({
 					embed({
 						category: "community",
 						title: "What would you like to watch?",
-						description: "Tell me which type you want: **anime**, **movie**, or **TV series**, and any genre or trope you like.",
+						description: "Tell me which type you want: **anime**, **movie**, **TV series**, or **all media**, and any genre or trope you like.",
 					}),
 				],
 				allowedMentions: { parse: [] },
@@ -128,7 +128,7 @@ export default defineMessageHandler({
 					embed({
 						category: "community",
 						title: "Recommendations are not configured yet",
-						description: "Anime recommendations are available now. Movie and TV recommendations need the optional TMDB API Read Access Token.",
+						description: "Anime recommendations are available now. Movie, TV, and all-media recommendations need the TMDB API Read Access Token.",
 					}),
 				],
 				allowedMentions: { parse: [] },
