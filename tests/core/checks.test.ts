@@ -89,6 +89,24 @@ describe("runChecks", () => {
 		expect(await runChecks(createMockInteraction(), plain, createMockClient())).toBeNull();
 	});
 
+	it("does not let a malformed prefix subcommand escape the command error boundary", async () => {
+		const interaction = createMockInteraction();
+		jest.mocked(interaction.options.getSubcommand).mockImplementation(() => {
+			throw new Error("Pick one of: `anime`, `media`.");
+		});
+		const grouped = defineCommand({
+			name: "lookup",
+			description: "Looks up media.",
+			category: "community",
+			subcommands: [
+				{ name: "anime", description: "Looks up anime.", run: jest.fn() },
+				{ name: "media", description: "Looks up media.", run: jest.fn() },
+			],
+		});
+
+		await expect(runChecks(interaction, grouped, createMockClient())).resolves.toBeNull();
+	});
+
 	/** A bare "blocked, reason: x" line left people unsure whether the block was for one server or everywhere. */
 	it("blocks a blacklisted user and says why, since when, how far it reaches and who can lift it", async () => {
 		findBlacklistEntry.mockResolvedValue({ reason: "Spamming", createdAt: new Date(1_700_000_000_000) });
