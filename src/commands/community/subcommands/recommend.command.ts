@@ -52,6 +52,7 @@ export default defineCommand({
 				type,
 				preferences,
 				tmdbToken: client.env.TMDB_API_READ_ACCESS_TOKEN,
+				groqApiKey: client.env.GROQ_API_KEY,
 				openRouterApiKey: client.env.OPENROUTER_API_KEY,
 				recommendationAiModel: client.env.RECOMMENDATION_AI_MODEL,
 			});
