@@ -1,4 +1,5 @@
 import advice from "@commands/community/subcommands/advice.command";
+import anime from "@commands/community/subcommands/anime.command";
 import animalFacts from "@commands/community/subcommands/animalFacts.command";
 import meme from "@commands/community/subcommands/meme.command";
 import minecraft from "@commands/community/subcommands/minecraft.command";
@@ -16,6 +17,7 @@ export default defineCommand({
 
 	subcommands: [
 		asSubcommand(advice),
+		asSubcommand(anime),
 		asSubcommand(animalFacts, ["animalfact"]),
 		asSubcommand(meme),
 		asSubcommand(minecraft),
