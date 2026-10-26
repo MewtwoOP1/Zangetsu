@@ -154,6 +154,30 @@ describe("interactive media sessions", () => {
 		expect(openButton.data.url).toBe(novel.url);
 	});
 
+	it("shows complete AniList details immediately for a lookup result", () => {
+		const initial = createMediaSession({
+			userId: ownerId,
+			items: [anime],
+			mode: "lookup",
+			query: "Test Anime",
+		});
+		const fields = initial.embeds[0]?.data.fields ?? [];
+
+		expect(initial.embeds[0]?.data.title).toContain("Anime  |  Test Anime");
+		expect(initial.embeds[0]?.data.description).toBe("A test fantasy anime.");
+		expect(fields).toEqual(expect.arrayContaining([
+			expect.objectContaining({ name: "⭐ Score", value: "8.5/10" }),
+			expect.objectContaining({ name: "🎭 Genres", value: "Fantasy" }),
+			expect.objectContaining({ name: "🎞️ Format", value: "Tv" }),
+			expect.objectContaining({ name: "📌 Status", value: "Finished" }),
+			expect.objectContaining({ name: "📺 Episodes", value: "12" }),
+			expect.objectContaining({ name: "🏆 AniList rank", value: "#7" }),
+			expect.objectContaining({ name: "🔥 Popularity rank", value: "#21" }),
+			expect.objectContaining({ name: "💗 Favorites", value: "900" }),
+		]));
+		expect((initial.components[0]?.components[1] as ButtonBuilder).data.label).toBe("Hide stats");
+	});
+
 	it("exposes AniList ranking and TMDB vote statistics in the full-stats view", () => {
 		const initial = createMediaSession({
 			userId: ownerId,
