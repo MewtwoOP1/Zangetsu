@@ -185,9 +185,14 @@ async function checkSwitchedOff(name: string, guildId: string | null): Promise<C
 function chosenSubcommand(interaction: CommandInput, command: Command): Subcommand | null {
 	if (command.subcommands === undefined) return null;
 
-	const chosen: string | null = interaction.options.getSubcommand(false);
-
-	return command.subcommands.find((subcommand) => subcommand.name === chosen) ?? null;
+	// PrefixOptions can throw while resolving a missing/invalid subcommand. Let dispatch()
+	// handle that as a user-facing error instead of escaping the message handler from runChecks().
+	try {
+		const chosen: string | null = interaction.options.getSubcommand(false);
+		return command.subcommands.find((subcommand) => subcommand.name === chosen) ?? null;
+	} catch {
+		return null;
+	}
 }
 
 /** Both shapes a member arrives in carry permissions, and only one of them is already a bitfield. */
