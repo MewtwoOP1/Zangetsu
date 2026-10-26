@@ -183,7 +183,8 @@ export function createMediaSession(input: {
 		mode: input.mode,
 		items: input.mode === "recommendation" ? shuffleRecommendations(input.items) : [...input.items],
 		index: 0,
-		showStats: false,
+		// Lookups are detail-first; recommendations stay compact until the user opens Full stats.
+		showStats: input.mode === "lookup",
 		...(input.query ? { query: input.query } : {}),
 		expiresAt: Date.now() + SESSION_TTL_MS,
 	};
