@@ -7,7 +7,11 @@ import { type Env } from "@config/env";
 import { type TestifyClient } from "@core/client";
 import { recordAudit } from "@database/repositories/dashboardAuditRepository";
 import { disableWelcome, getWelcome, saveWelcome } from "@database/repositories/settingsRepository";
-import { DEFAULT_WELCOME_MESSAGE, type WelcomeConfigResponse } from "@testify/shared";
+import {
+	DEFAULT_WELCOME_EMBED_SETTINGS,
+	DEFAULT_WELCOME_MESSAGE,
+	type WelcomeConfigResponse,
+} from "@testify/shared";
 
 jest.mock("@database/repositories/settingsRepository", () => ({
 	disableWelcome: jest.fn(() => Promise.resolve(true)),
@@ -86,6 +90,9 @@ describe("reading the configuration", () => {
 		expect(config.enabled).toBe(false);
 		expect(config.channelId).toBeNull();
 		expect(config.message).toBe(DEFAULT_WELCOME_MESSAGE);
+		expect(config.embedTitle).toBe(DEFAULT_WELCOME_EMBED_SETTINGS.embedTitle);
+		expect(config.embedColor).toBe(DEFAULT_WELCOME_EMBED_SETTINGS.embedColor);
+		expect(config.embedTimestamp).toBe(true);
 	});
 
 	it("reports a configured guild as enabled", async () => {
@@ -163,6 +170,32 @@ describe("changing the configuration", () => {
 		configured();
 
 		expect((await send("PATCH", { style: "hologram" })).status).toBe(400);
+	});
+
+	it("persists customized embed settings without changing the other values", async () => {
+		configured();
+
+		await send("PATCH", { embedTitle: "Hello {server}", embedColor: "#C090E8", embedTimestamp: false });
+
+		expect(saved).toHaveBeenCalledWith(
+			GUILD,
+			expect.objectContaining({
+				channelId: CHANNEL,
+				message: "Hello {user}",
+				style: "card",
+				embedTitle: "Hello {server}",
+				embedColor: "#C090E8",
+				embedTimestamp: false,
+			}),
+		);
+	});
+
+	it("rejects unsafe image URLs and invalid embed colours", async () => {
+		configured();
+
+		expect((await send("PATCH", { embedImageUrl: "javascript:alert(1)" })).status).toBe(400);
+		expect((await send("PATCH", { embedColor: "red" })).status).toBe(400);
+		expect(saved).not.toHaveBeenCalled();
 	});
 
 	it("rejects a channel id that is not a snowflake", async () => {

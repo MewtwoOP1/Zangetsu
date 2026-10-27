@@ -21,8 +21,9 @@ function capturePatch(): { body: unknown } {
 	const captured: { body: unknown } = { body: undefined };
 	server.use(
 		http.patch("/api/guilds/:guildId/welcome", async ({ request }) => {
-			captured.body = await request.json();
-			return HttpResponse.json(welcomeConfig);
+			const patch = (await request.json()) as Partial<typeof welcomeConfig>;
+			captured.body = patch;
+			return HttpResponse.json({ ...welcomeConfig, ...patch });
 		}),
 	);
 	return captured;
@@ -83,6 +84,25 @@ describe("the welcome page", () => {
 		await waitFor(() => {
 			expect(captured.body).toEqual({ style: "embed" });
 		});
+	});
+
+	it("saves embed settings and previews the filled title", async () => {
+		const user = userEvent.setup();
+		const captured = capturePatch();
+
+		renderPage();
+		await user.click(await screen.findByRole("radio", { name: /embed/i }));
+
+		const title = await screen.findByLabelText("Embed title");
+		await user.clear(title);
+		await user.type(title, "Hello {server}");
+		await user.tab();
+
+		await waitFor(() => {
+			expect(captured.body).toEqual({ embedTitle: "Hello {server}" });
+		});
+		const preview = screen.getByRole("region", { name: "Preview" });
+		expect(within(preview).getByText("Hello Test Server")).toBeInTheDocument();
 	});
 
 	/** A greeting nobody can see is the failure this screen exists to prevent. */

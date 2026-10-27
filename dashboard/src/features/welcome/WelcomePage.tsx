@@ -1,7 +1,6 @@
 import {
 	DEFAULT_WELCOME_EMBED_SETTINGS,
 	WELCOME_LIMITS,
-	type WelcomeConfigResponse,
 	type WelcomeEmbedSettings,
 	type WelcomePatch,
 	type WelcomeStyle,

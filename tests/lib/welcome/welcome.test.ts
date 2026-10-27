@@ -4,6 +4,7 @@ import { type WelcomeSettings } from "@database/models/guildSettings.schema";
 import { WELCOME_PANEL_ID } from "@lib/welcome/welcome.constants";
 import {
 	checkBackground,
+	DEFAULT_WELCOME_EMBED_SETTINGS,
 	DEFAULT_WELCOME_MESSAGE,
 	fillTemplate,
 	isWelcomeStyle,
@@ -140,7 +141,15 @@ describe("isWelcomeStyle", () => {
 
 describe("the welcome panel", () => {
 	const configured = welcomePanel(
-		{ config: { channelId: CHANNEL, message: "Hi {user}", style: "card", hasBackground: false } },
+		{
+			config: {
+				...DEFAULT_WELCOME_EMBED_SETTINGS,
+				channelId: CHANNEL,
+				message: "Hi {user}",
+				style: "card",
+				hasBackground: false,
+			},
+		},
 		OWNER,
 	);
 
@@ -211,7 +220,18 @@ describe("the welcome panel", () => {
 		expect(removeOf(configured)).toBe(true);
 		expect(
 			removeOf(
-				welcomePanel({ config: { channelId: CHANNEL, message: "Hi", style: "card", hasBackground: true } }, OWNER),
+				welcomePanel(
+					{
+						config: {
+							...DEFAULT_WELCOME_EMBED_SETTINGS,
+							channelId: CHANNEL,
+							message: "Hi",
+							style: "card",
+							hasBackground: true,
+						},
+					},
+					OWNER,
+				),
 			),
 		).toBe(false);
 	});
@@ -221,7 +241,18 @@ describe("the welcome panel", () => {
 		expect(textOf(configured)).toMatch(/welcome background/i);
 		expect(
 			textOf(
-				welcomePanel({ config: { channelId: CHANNEL, message: "Hi", style: "text", hasBackground: false } }, OWNER),
+				welcomePanel(
+				{
+					config: {
+						...DEFAULT_WELCOME_EMBED_SETTINGS,
+						channelId: CHANNEL,
+						message: "Hi",
+						style: "text",
+						hasBackground: false,
+					},
+				},
+				OWNER,
+			),
 			),
 		).not.toMatch(/welcome background/i);
 	});
