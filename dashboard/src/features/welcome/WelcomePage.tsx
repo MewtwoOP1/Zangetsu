@@ -137,108 +137,108 @@ export function WelcomePage(): React.JSX.Element {
 					</div>
 				</fieldset>
 
-			{welcome.style === "embed" && (
-				<fieldset disabled={needsChannel} className="flex flex-col gap-3">
-					<legend className={LABEL}>{t("welcome.embedSettings")}</legend>
-					<p className="text-muted-foreground text-xs">{t("welcome.embedSettingsHint")}</p>
-					<div className="grid gap-3 sm:grid-cols-2">
-						<Field label={t("welcome.embedTitle")} htmlFor="welcome-embed-title">
-							<input
-								id="welcome-embed-title"
-								maxLength={WELCOME_LIMITS.maxEmbedTitle}
-								value={embedDraft.embedTitle}
-								onChange={(event) => setEmbedDraft((current) => ({ ...current, embedTitle: event.target.value }))}
-								onBlur={() => saveEmbedField("embedTitle")}
-								className={FIELD}
-							/>
-						</Field>
-						<Field label={t("welcome.embedColor")} htmlFor="welcome-embed-color">
-							<input
-								id="welcome-embed-color"
-								type="color"
-								value={embedDraft.embedColor}
-								onChange={(event) => setEmbedDraft((current) => ({ ...current, embedColor: event.target.value.toUpperCase() }))}
-								onBlur={() => saveEmbedField("embedColor")}
-								className="h-10 w-full rounded-field border border-input bg-background px-2"
-							/>
-						</Field>
-						<Field label={t("welcome.embedAuthor")} htmlFor="welcome-embed-author">
-							<input
-								id="welcome-embed-author"
-								maxLength={WELCOME_LIMITS.maxEmbedAuthor}
-								value={embedDraft.embedAuthor}
-								onChange={(event) => setEmbedDraft((current) => ({ ...current, embedAuthor: event.target.value }))}
-								onBlur={() => saveEmbedField("embedAuthor")}
-								className={FIELD}
-							/>
-						</Field>
-						<Field label={t("welcome.embedAuthorIconUrl")} htmlFor="welcome-embed-author-icon">
-							<input
-								id="welcome-embed-author-icon"
-								type="url"
-								placeholder="https://example.com/icon.png"
-								value={embedDraft.embedAuthorIconUrl}
-								onChange={(event) => setEmbedDraft((current) => ({ ...current, embedAuthorIconUrl: event.target.value }))}
-								onBlur={() => saveEmbedField("embedAuthorIconUrl")}
-								className={FIELD}
-							/>
-						</Field>
-						<Field label={t("welcome.embedFooter")} htmlFor="welcome-embed-footer">
-							<input
-								id="welcome-embed-footer"
-								maxLength={WELCOME_LIMITS.maxEmbedFooter}
-								value={embedDraft.embedFooter}
-								onChange={(event) => setEmbedDraft((current) => ({ ...current, embedFooter: event.target.value }))}
-								onBlur={() => saveEmbedField("embedFooter")}
-								className={FIELD}
-							/>
-						</Field>
-						<Field label={t("welcome.embedFooterIconUrl")} htmlFor="welcome-embed-footer-icon">
-							<input
-								id="welcome-embed-footer-icon"
-								type="url"
-								placeholder="https://example.com/icon.png"
-								value={embedDraft.embedFooterIconUrl}
-								onChange={(event) => setEmbedDraft((current) => ({ ...current, embedFooterIconUrl: event.target.value }))}
-								onBlur={() => saveEmbedField("embedFooterIconUrl")}
-								className={FIELD}
-							/>
-						</Field>
-						<Field label={t("welcome.embedThumbnailUrl")} htmlFor="welcome-embed-thumbnail">
-							<input
-								id="welcome-embed-thumbnail"
-								type="url"
-								placeholder="https://example.com/thumbnail.png"
-								value={embedDraft.embedThumbnailUrl}
-								onChange={(event) => setEmbedDraft((current) => ({ ...current, embedThumbnailUrl: event.target.value }))}
-								onBlur={() => saveEmbedField("embedThumbnailUrl")}
-								className={FIELD}
-							/>
-						</Field>
-						<Field label={t("welcome.embedImageUrl")} htmlFor="welcome-embed-image">
-							<input
-								id="welcome-embed-image"
-								type="url"
-								placeholder="https://example.com/banner.png"
-								value={embedDraft.embedImageUrl}
-								onChange={(event) => setEmbedDraft((current) => ({ ...current, embedImageUrl: event.target.value }))}
-								onBlur={() => saveEmbedField("embedImageUrl")}
-								className={FIELD}
-							/>
-						</Field>
-					</div>
-					<Toggle
-						label={t("welcome.embedTimestamp")}
-						hint={t("welcome.embedTimestampHint")}
-						checked={embedDraft.embedTimestamp}
-						onChange={(embedTimestamp) => {
-							setEmbedDraft((current) => ({ ...current, embedTimestamp }));
-							update.mutate({ embedTimestamp });
-						}}
-					/>
-					<p className="text-muted-foreground text-xs">{t("welcome.embedUrlHint")}</p>
-				</fieldset>
-			)}
+				{welcome.style === "embed" && (
+					<fieldset disabled={needsChannel} className="flex flex-col gap-3">
+						<legend className={LABEL}>{t("welcome.embedSettings")}</legend>
+						<p className="text-muted-foreground text-xs">{t("welcome.embedSettingsHint")}</p>
+						<div className="grid gap-3 sm:grid-cols-2">
+							<Field label={t("welcome.embedTitle")} htmlFor="welcome-embed-title">
+								<input
+									id="welcome-embed-title"
+									maxLength={WELCOME_LIMITS.maxEmbedTitle}
+									value={embedDraft.embedTitle}
+									onChange={(event) => setEmbedDraft((current) => ({ ...current, embedTitle: event.target.value }))}
+									onBlur={() => saveEmbedField("embedTitle")}
+									className={FIELD}
+								/>
+							</Field>
+							<Field label={t("welcome.embedColor")} htmlFor="welcome-embed-color">
+								<input
+									id="welcome-embed-color"
+									type="color"
+									value={embedDraft.embedColor}
+									onChange={(event) => setEmbedDraft((current) => ({ ...current, embedColor: event.target.value.toUpperCase() }))}
+									onBlur={() => saveEmbedField("embedColor")}
+									className="h-10 w-full rounded-field border border-input bg-background px-2"
+								/>
+							</Field>
+							<Field label={t("welcome.embedAuthor")} htmlFor="welcome-embed-author">
+								<input
+									id="welcome-embed-author"
+									maxLength={WELCOME_LIMITS.maxEmbedAuthor}
+									value={embedDraft.embedAuthor}
+									onChange={(event) => setEmbedDraft((current) => ({ ...current, embedAuthor: event.target.value }))}
+									onBlur={() => saveEmbedField("embedAuthor")}
+									className={FIELD}
+								/>
+							</Field>
+							<Field label={t("welcome.embedAuthorIconUrl")} htmlFor="welcome-embed-author-icon">
+								<input
+									id="welcome-embed-author-icon"
+									type="url"
+									placeholder="https://example.com/icon.png"
+									value={embedDraft.embedAuthorIconUrl}
+									onChange={(event) => setEmbedDraft((current) => ({ ...current, embedAuthorIconUrl: event.target.value }))}
+									onBlur={() => saveEmbedField("embedAuthorIconUrl")}
+									className={FIELD}
+								/>
+							</Field>
+							<Field label={t("welcome.embedFooter")} htmlFor="welcome-embed-footer">
+								<input
+									id="welcome-embed-footer"
+									maxLength={WELCOME_LIMITS.maxEmbedFooter}
+									value={embedDraft.embedFooter}
+									onChange={(event) => setEmbedDraft((current) => ({ ...current, embedFooter: event.target.value }))}
+									onBlur={() => saveEmbedField("embedFooter")}
+									className={FIELD}
+								/>
+							</Field>
+							<Field label={t("welcome.embedFooterIconUrl")} htmlFor="welcome-embed-footer-icon">
+								<input
+									id="welcome-embed-footer-icon"
+									type="url"
+									placeholder="https://example.com/icon.png"
+									value={embedDraft.embedFooterIconUrl}
+									onChange={(event) => setEmbedDraft((current) => ({ ...current, embedFooterIconUrl: event.target.value }))}
+									onBlur={() => saveEmbedField("embedFooterIconUrl")}
+									className={FIELD}
+								/>
+							</Field>
+							<Field label={t("welcome.embedThumbnailUrl")} htmlFor="welcome-embed-thumbnail">
+								<input
+									id="welcome-embed-thumbnail"
+									type="url"
+									placeholder="https://example.com/thumbnail.png"
+									value={embedDraft.embedThumbnailUrl}
+									onChange={(event) => setEmbedDraft((current) => ({ ...current, embedThumbnailUrl: event.target.value }))}
+									onBlur={() => saveEmbedField("embedThumbnailUrl")}
+									className={FIELD}
+								/>
+							</Field>
+							<Field label={t("welcome.embedImageUrl")} htmlFor="welcome-embed-image">
+								<input
+									id="welcome-embed-image"
+									type="url"
+									placeholder="https://example.com/banner.png"
+									value={embedDraft.embedImageUrl}
+									onChange={(event) => setEmbedDraft((current) => ({ ...current, embedImageUrl: event.target.value }))}
+									onBlur={() => saveEmbedField("embedImageUrl")}
+									className={FIELD}
+								/>
+							</Field>
+						</div>
+						<Toggle
+							label={t("welcome.embedTimestamp")}
+							hint={t("welcome.embedTimestampHint")}
+							checked={embedDraft.embedTimestamp}
+							onChange={(embedTimestamp) => {
+								setEmbedDraft((current) => ({ ...current, embedTimestamp }));
+								update.mutate({ embedTimestamp });
+							}}
+						/>
+						<p className="text-muted-foreground text-xs">{t("welcome.embedUrlHint")}</p>
+					</fieldset>
+				)}
 
 				{/* The counter is a status, not part of the field's name, so it sits after the control. */}
 				<Field label={t("welcome.message")} htmlFor="welcome-message">

@@ -16,6 +16,7 @@ import {
 
 // Declared in `@testify/shared` so the dashboard's form validates against the same rules.
 export {
+	DEFAULT_WELCOME_EMBED_SETTINGS,
 	DEFAULT_WELCOME_MESSAGE,
 	fillTemplate,
 	type GreetingContext,

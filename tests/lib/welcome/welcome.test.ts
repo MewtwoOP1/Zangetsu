@@ -242,17 +242,17 @@ describe("the welcome panel", () => {
 		expect(
 			textOf(
 				welcomePanel(
-				{
-					config: {
-						...DEFAULT_WELCOME_EMBED_SETTINGS,
-						channelId: CHANNEL,
-						message: "Hi",
-						style: "text",
-						hasBackground: false,
+					{
+						config: {
+							...DEFAULT_WELCOME_EMBED_SETTINGS,
+							channelId: CHANNEL,
+							message: "Hi",
+							style: "text",
+							hasBackground: false,
+						},
 					},
-				},
-				OWNER,
-			),
+					OWNER,
+				),
 			),
 		).not.toMatch(/welcome background/i);
 	});
