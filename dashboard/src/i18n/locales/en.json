@@ -423,7 +423,8 @@
 		"embedTimestamp": "Show timestamp",
 		"embedTimestampHint": "Include Discord's timestamp in the embed footer.",
 		"embedUrlHint": "Leave image and icon URLs empty to use the default avatar or omit the image.",
-		"timestampPreview": "timestamp"
+		"timestampPreview": "timestamp",
+		"saveEmbedSettings": "Save embed settings"
 	},
 	"sticky": {
 		"title": "Sticky messages",

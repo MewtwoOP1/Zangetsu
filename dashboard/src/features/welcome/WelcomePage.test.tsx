@@ -96,10 +96,10 @@ describe("the welcome page", () => {
 		const title = await screen.findByLabelText("Embed title");
 		await user.clear(title);
 		await user.type(title, "Hello {server}");
-		await user.tab();
+		await user.click(screen.getByRole("button", { name: /save embed settings/i }));
 
 		await waitFor(() => {
-			expect(captured.body).toEqual({ embedTitle: "Hello {server}" });
+			expect(captured.body).toMatchObject({ embedTitle: "Hello {server}" });
 		});
 		const preview = screen.getByRole("region", { name: "Preview" });
 		expect(within(preview).getByText("Hello Test Server")).toBeInTheDocument();

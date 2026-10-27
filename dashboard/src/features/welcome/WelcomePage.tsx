@@ -1,8 +1,8 @@
 import {
 	DEFAULT_WELCOME_EMBED_SETTINGS,
 	WELCOME_LIMITS,
+	type WelcomeConfigResponse,
 	type WelcomeEmbedSettings,
-	type WelcomePatch,
 	type WelcomeStyle,
 } from "@testify/shared";
 import { useEffect, useRef, useState } from "react";
@@ -21,6 +21,20 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { ApiError } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { markupWarning, sanitiseInput } from "@/lib/sanitise";
+
+function embedSettingsFrom(config: WelcomeConfigResponse): WelcomeEmbedSettings {
+	return {
+		embedTitle: config.embedTitle,
+		embedColor: config.embedColor,
+		embedAuthor: config.embedAuthor,
+		embedAuthorIconUrl: config.embedAuthorIconUrl,
+		embedFooter: config.embedFooter,
+		embedFooterIconUrl: config.embedFooterIconUrl,
+		embedThumbnailUrl: config.embedThumbnailUrl,
+		embedImageUrl: config.embedImageUrl,
+		embedTimestamp: config.embedTimestamp,
+	};
+}
 
 export function WelcomePage(): React.JSX.Element {
 	const { t } = useTranslation();
@@ -44,17 +58,7 @@ export function WelcomePage(): React.JSX.Element {
 
 	useEffect(() => {
 		if (config.data === undefined) return;
-		setEmbedDraft({
-			embedTitle: config.data.embedTitle,
-			embedColor: config.data.embedColor,
-			embedAuthor: config.data.embedAuthor,
-			embedAuthorIconUrl: config.data.embedAuthorIconUrl,
-			embedFooter: config.data.embedFooter,
-			embedFooterIconUrl: config.data.embedFooterIconUrl,
-			embedThumbnailUrl: config.data.embedThumbnailUrl,
-			embedImageUrl: config.data.embedImageUrl,
-			embedTimestamp: config.data.embedTimestamp,
-		});
+		setEmbedDraft(embedSettingsFrom(config.data));
 	}, [
 		config.data?.embedTitle,
 		config.data?.embedColor,
@@ -75,10 +79,12 @@ export function WelcomePage(): React.JSX.Element {
 	const tooLong = messageTooLong(draft);
 	// The stored record requires a channel, so the API refuses every write except "off" until there is one.
 	const needsChannel = welcome.channelId === null;
+	const embedDirty = (Object.keys(embedDraft) as (keyof WelcomeEmbedSettings)[]).some(
+		(field) => embedDraft[field] !== welcome[field],
+	);
 
-	function saveEmbedField(field: keyof WelcomeEmbedSettings): void {
-		if (embedDraft[field] === welcome[field]) return;
-		update.mutate({ [field]: embedDraft[field] } as WelcomePatch);
+	function saveEmbedSettings(): void {
+		if (embedDirty) update.mutate({ ...embedDraft });
 	}
 
 	function saveMessage(): void {
@@ -148,7 +154,6 @@ export function WelcomePage(): React.JSX.Element {
 									maxLength={WELCOME_LIMITS.maxEmbedTitle}
 									value={embedDraft.embedTitle}
 									onChange={(event) => setEmbedDraft((current) => ({ ...current, embedTitle: event.target.value }))}
-									onBlur={() => saveEmbedField("embedTitle")}
 									className={FIELD}
 								/>
 							</Field>
@@ -158,7 +163,6 @@ export function WelcomePage(): React.JSX.Element {
 									type="color"
 									value={embedDraft.embedColor}
 									onChange={(event) => setEmbedDraft((current) => ({ ...current, embedColor: event.target.value.toUpperCase() }))}
-									onBlur={() => saveEmbedField("embedColor")}
 									className="h-10 w-full rounded-field border border-input bg-background px-2"
 								/>
 							</Field>
@@ -168,7 +172,6 @@ export function WelcomePage(): React.JSX.Element {
 									maxLength={WELCOME_LIMITS.maxEmbedAuthor}
 									value={embedDraft.embedAuthor}
 									onChange={(event) => setEmbedDraft((current) => ({ ...current, embedAuthor: event.target.value }))}
-									onBlur={() => saveEmbedField("embedAuthor")}
 									className={FIELD}
 								/>
 							</Field>
@@ -179,7 +182,6 @@ export function WelcomePage(): React.JSX.Element {
 									placeholder="https://example.com/icon.png"
 									value={embedDraft.embedAuthorIconUrl}
 									onChange={(event) => setEmbedDraft((current) => ({ ...current, embedAuthorIconUrl: event.target.value }))}
-									onBlur={() => saveEmbedField("embedAuthorIconUrl")}
 									className={FIELD}
 								/>
 							</Field>
@@ -189,7 +191,6 @@ export function WelcomePage(): React.JSX.Element {
 									maxLength={WELCOME_LIMITS.maxEmbedFooter}
 									value={embedDraft.embedFooter}
 									onChange={(event) => setEmbedDraft((current) => ({ ...current, embedFooter: event.target.value }))}
-									onBlur={() => saveEmbedField("embedFooter")}
 									className={FIELD}
 								/>
 							</Field>
@@ -200,7 +201,6 @@ export function WelcomePage(): React.JSX.Element {
 									placeholder="https://example.com/icon.png"
 									value={embedDraft.embedFooterIconUrl}
 									onChange={(event) => setEmbedDraft((current) => ({ ...current, embedFooterIconUrl: event.target.value }))}
-									onBlur={() => saveEmbedField("embedFooterIconUrl")}
 									className={FIELD}
 								/>
 							</Field>
@@ -211,7 +211,6 @@ export function WelcomePage(): React.JSX.Element {
 									placeholder="https://example.com/thumbnail.png"
 									value={embedDraft.embedThumbnailUrl}
 									onChange={(event) => setEmbedDraft((current) => ({ ...current, embedThumbnailUrl: event.target.value }))}
-									onBlur={() => saveEmbedField("embedThumbnailUrl")}
 									className={FIELD}
 								/>
 							</Field>
@@ -222,7 +221,6 @@ export function WelcomePage(): React.JSX.Element {
 									placeholder="https://example.com/banner.png"
 									value={embedDraft.embedImageUrl}
 									onChange={(event) => setEmbedDraft((current) => ({ ...current, embedImageUrl: event.target.value }))}
-									onBlur={() => saveEmbedField("embedImageUrl")}
 									className={FIELD}
 								/>
 							</Field>
@@ -233,10 +231,21 @@ export function WelcomePage(): React.JSX.Element {
 							checked={embedDraft.embedTimestamp}
 							onChange={(embedTimestamp) => {
 								setEmbedDraft((current) => ({ ...current, embedTimestamp }));
-								update.mutate({ embedTimestamp });
 							}}
 						/>
 						<p className="text-muted-foreground text-xs">{t("welcome.embedUrlHint")}</p>
+					<div className="flex flex-wrap items-center gap-3">
+						<Button onClick={saveEmbedSettings} disabled={!embedDirty || update.isPending}>
+							{t("welcome.saveEmbedSettings")}
+						</Button>
+						<Button
+							variant="ghost"
+							disabled={!embedDirty || update.isPending}
+							onClick={() => setEmbedDraft(embedSettingsFrom(welcome))}
+						>
+							{t("common.discard")}
+						</Button>
+					</div>
 					</fieldset>
 				)}
 
