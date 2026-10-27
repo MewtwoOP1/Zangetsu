@@ -1,8 +1,7 @@
-import { type WelcomeStyle } from "@database/models/guildSettings.schema";
+import { type WelcomeEmbedSettings, type WelcomeStyle } from "@testify/shared";
 
-/** The types more than one module in this domain shares. */
-
-export interface WelcomeConfig {
+/** The settings the bot needs after legacy database records have been normalised. */
+export interface WelcomeConfig extends WelcomeEmbedSettings {
 	channelId: string;
 	message: string;
 	style: WelcomeStyle;

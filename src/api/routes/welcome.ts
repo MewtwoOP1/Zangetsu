@@ -7,6 +7,7 @@ import { parseBody } from "@api/validate";
 import { disableWelcome, getWelcome, saveWelcome } from "@database/repositories/settingsRepository";
 import { normaliseWelcome } from "@lib/welcome";
 import {
+	DEFAULT_WELCOME_EMBED_SETTINGS,
 	DEFAULT_WELCOME_MESSAGE,
 	type WelcomeConfigResponse,
 	type WelcomePatch,
@@ -41,6 +42,7 @@ async function configOf(guildId: string): Promise<WelcomeConfigResponse> {
 			message: DEFAULT_WELCOME_MESSAGE,
 			style: "card",
 			hasBackground: false,
+			...DEFAULT_WELCOME_EMBED_SETTINGS,
 		};
 	}
 
@@ -66,6 +68,15 @@ welcome.patch("/", async (context) => {
 			channelId,
 			message: patch.message ?? before.message,
 			style: patch.style ?? before.style,
+			...(patch.embedTitle === undefined ? {} : { embedTitle: patch.embedTitle }),
+			...(patch.embedColor === undefined ? {} : { embedColor: patch.embedColor }),
+			...(patch.embedAuthor === undefined ? {} : { embedAuthor: patch.embedAuthor }),
+			...(patch.embedAuthorIconUrl === undefined ? {} : { embedAuthorIconUrl: patch.embedAuthorIconUrl }),
+			...(patch.embedFooter === undefined ? {} : { embedFooter: patch.embedFooter }),
+			...(patch.embedFooterIconUrl === undefined ? {} : { embedFooterIconUrl: patch.embedFooterIconUrl }),
+			...(patch.embedThumbnailUrl === undefined ? {} : { embedThumbnailUrl: patch.embedThumbnailUrl }),
+			...(patch.embedImageUrl === undefined ? {} : { embedImageUrl: patch.embedImageUrl }),
+			...(patch.embedTimestamp === undefined ? {} : { embedTimestamp: patch.embedTimestamp }),
 		});
 	}
 
@@ -92,6 +103,19 @@ function summarisePatch(patch: WelcomePatch): string {
 	if (patch.channelId !== undefined) parts.push("Changed the welcome channel");
 	if (patch.message !== undefined) parts.push("Edited the greeting");
 	if (patch.style !== undefined) parts.push(`Greeting sent as a ${patch.style}`);
+	if (
+		patch.embedTitle !== undefined ||
+		patch.embedColor !== undefined ||
+		patch.embedAuthor !== undefined ||
+		patch.embedAuthorIconUrl !== undefined ||
+		patch.embedFooter !== undefined ||
+		patch.embedFooterIconUrl !== undefined ||
+		patch.embedThumbnailUrl !== undefined ||
+		patch.embedImageUrl !== undefined ||
+		patch.embedTimestamp !== undefined
+	) {
+		parts.push("Updated greeting embed settings");
+	}
 
 	return parts.length === 0 ? "Changed the welcome settings" : parts.join(", ");
 }

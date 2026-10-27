@@ -218,7 +218,24 @@ export async function getWelcome(guildId: string): Promise<WelcomeSettings | nul
 /** Partial update, so the panel can change one setting without resending the rest. */
 export async function saveWelcome(
 	guildId: string,
-	patch: Partial<Pick<WelcomeSettings, "channelId" | "message" | "style" | "background">>,
+	patch: Partial<
+		Pick<
+			WelcomeSettings,
+			| "channelId"
+			| "message"
+			| "style"
+			| "background"
+			| "embedTitle"
+			| "embedColor"
+			| "embedAuthor"
+			| "embedAuthorIconUrl"
+			| "embedFooter"
+			| "embedFooterIconUrl"
+			| "embedThumbnailUrl"
+			| "embedImageUrl"
+			| "embedTimestamp"
+		>
+	>,
 ): Promise<WelcomeSettings> {
 	return Welcome.findOneAndUpdate({ guildId }, { $set: patch }, UPSERT).exec() as Promise<WelcomeSettings>;
 }

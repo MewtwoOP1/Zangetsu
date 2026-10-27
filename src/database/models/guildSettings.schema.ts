@@ -209,6 +209,16 @@ export interface WelcomeSettings {
 	isEmbed: boolean;
 	style?: WelcomeStyle;
 	background?: WelcomeBackground | null;
+	/** Optional on the TypeScript model because existing MongoDB documents predate custom embed settings. */
+	embedTitle?: string;
+	embedColor?: string;
+	embedAuthor?: string;
+	embedAuthorIconUrl?: string;
+	embedFooter?: string;
+	embedFooterIconUrl?: string;
+	embedThumbnailUrl?: string;
+	embedImageUrl?: string;
+	embedTimestamp?: boolean;
 	createdAt: Date;
 	updatedAt: Date;
 }
@@ -230,6 +240,15 @@ const welcomeSchema = new Schema<WelcomeSettings>(
 		isEmbed: { type: Boolean, required: true, default: false },
 		style: { type: String, enum: ["text", "embed", "card"], default: "card" },
 		background: { type: welcomeBackgroundSchema, default: null },
+		embedTitle: { type: String, default: "Welcome to {server}" },
+		embedColor: { type: String, default: "#D6A5E8" },
+		embedAuthor: { type: String, default: "" },
+		embedAuthorIconUrl: { type: String, default: "" },
+		embedFooter: { type: String, default: "" },
+		embedFooterIconUrl: { type: String, default: "" },
+		embedThumbnailUrl: { type: String, default: "" },
+		embedImageUrl: { type: String, default: "" },
+		embedTimestamp: { type: Boolean, default: true },
 	},
 	{ timestamps: true },
 );

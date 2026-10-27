@@ -1,6 +1,7 @@
 import { type WelcomeSettings } from "@database/models/guildSettings.schema";
 import { type WelcomeConfig } from "@lib/welcome/welcome.types";
 import {
+	DEFAULT_WELCOME_EMBED_SETTINGS,
 	DEFAULT_WELCOME_MESSAGE,
 	fillTemplate,
 	type GreetingContext,
@@ -44,6 +45,15 @@ export function normaliseWelcome(settings: StoredWelcomeSettings | null): Welcom
 		message: settings.message,
 		style: settings.style ?? (settings.isEmbed ? "embed" : "text"),
 		hasBackground: (settings.background?.data.byteLength ?? 0) > 0,
+		embedTitle: settings.embedTitle ?? DEFAULT_WELCOME_EMBED_SETTINGS.embedTitle,
+		embedColor: settings.embedColor ?? DEFAULT_WELCOME_EMBED_SETTINGS.embedColor,
+		embedAuthor: settings.embedAuthor ?? DEFAULT_WELCOME_EMBED_SETTINGS.embedAuthor,
+		embedAuthorIconUrl: settings.embedAuthorIconUrl ?? DEFAULT_WELCOME_EMBED_SETTINGS.embedAuthorIconUrl,
+		embedFooter: settings.embedFooter ?? DEFAULT_WELCOME_EMBED_SETTINGS.embedFooter,
+		embedFooterIconUrl: settings.embedFooterIconUrl ?? DEFAULT_WELCOME_EMBED_SETTINGS.embedFooterIconUrl,
+		embedThumbnailUrl: settings.embedThumbnailUrl ?? DEFAULT_WELCOME_EMBED_SETTINGS.embedThumbnailUrl,
+		embedImageUrl: settings.embedImageUrl ?? DEFAULT_WELCOME_EMBED_SETTINGS.embedImageUrl,
+		embedTimestamp: settings.embedTimestamp ?? DEFAULT_WELCOME_EMBED_SETTINGS.embedTimestamp,
 	};
 }
 
