@@ -410,7 +410,22 @@
 		"tokenServer": "Le nom de ce serveur",
 		"tokenUser": "Les mentionne",
 		"tokenUsername": "Leur nom, sans lien",
-		"tooLong": "Ce message dépasse ce que Discord accepte. Raccourcissez-le avant d’enregistrer."
+		"tooLong": "Ce message dépasse ce que Discord accepte. Raccourcissez-le avant d’enregistrer.",
+		"embedSettings": "Apparence de l’embed",
+		"embedSettingsHint": "Personnalisez le titre, la couleur, l’auteur, les images et le pied de l’embed de bienvenue Discord.",
+		"embedTitle": "Titre de l’embed",
+		"embedColor": "Couleur d’accentuation",
+		"embedAuthor": "Nom de l’auteur",
+		"embedAuthorIconUrl": "URL de l’icône de l’auteur",
+		"embedFooter": "Texte du pied de page",
+		"embedFooterIconUrl": "URL de l’icône du pied de page",
+		"embedThumbnailUrl": "URL de la miniature",
+		"embedImageUrl": "URL de l’image principale",
+		"embedTimestamp": "Afficher l’horodatage",
+		"embedTimestampHint": "Inclut un horodatage dans le pied de l’embed.",
+		"embedUrlHint": "Laissez les URL d’images et d’icônes vides pour utiliser l’avatar par défaut ou omettre l’image.",
+		"timestampPreview": "horodatage",
+		"saveEmbedSettings": "Enregistrer les réglages de l’embed"
 	},
 	"sticky": {
 		"title": "Messages épinglés",

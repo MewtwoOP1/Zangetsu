@@ -410,7 +410,22 @@
 		"tokenServer": "El nombre de este servidor",
 		"tokenUser": "Les menciona",
 		"tokenUsername": "Su nombre, sin enlace",
-		"tooLong": "Ese mensaje es más largo de lo que Discord acepta. Acórtalo antes de guardar."
+		"tooLong": "Ese mensaje es más largo de lo que Discord acepta. Acórtalo antes de guardar.",
+		"embedSettings": "Apariencia del embed",
+		"embedSettingsHint": "Personaliza el título, color, autor, imágenes y pie del embed de bienvenida de Discord.",
+		"embedTitle": "Título del embed",
+		"embedColor": "Color de acento",
+		"embedAuthor": "Nombre del autor",
+		"embedAuthorIconUrl": "URL del icono del autor",
+		"embedFooter": "Texto del pie",
+		"embedFooterIconUrl": "URL del icono del pie",
+		"embedThumbnailUrl": "URL de la miniatura",
+		"embedImageUrl": "URL de la imagen principal",
+		"embedTimestamp": "Mostrar marca de tiempo",
+		"embedTimestampHint": "Incluye una marca de tiempo en el pie del embed.",
+		"embedUrlHint": "Deja vacías las URL de imágenes e iconos para usar el avatar predeterminado u omitir la imagen.",
+		"timestampPreview": "marca de tiempo",
+		"saveEmbedSettings": "Guardar ajustes del embed"
 	},
 	"sticky": {
 		"title": "Mensajes fijos",

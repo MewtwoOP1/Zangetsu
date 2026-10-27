@@ -409,7 +409,22 @@
 		"tokenServer": "Der Name dieses Servers",
 		"tokenUser": "Erwähnt sie",
 		"tokenUsername": "Ihr Name, ohne Verlinkung",
-		"tooLong": "Diese Nachricht ist länger, als Discord annimmt. Kürze sie vor dem Speichern."
+		"tooLong": "Diese Nachricht ist länger, als Discord annimmt. Kürze sie vor dem Speichern.",
+		"embedSettings": "Embed-Darstellung",
+		"embedSettingsHint": "Passe Titel, Farbe, Autor, Bilder und Fußzeile des Discord-Begrüßungs-Embeds an.",
+		"embedTitle": "Embed-Titel",
+		"embedColor": "Akzentfarbe",
+		"embedAuthor": "Autorname",
+		"embedAuthorIconUrl": "URL des Autorensymbols",
+		"embedFooter": "Fußzeilentext",
+		"embedFooterIconUrl": "URL des Fußzeilensymbols",
+		"embedThumbnailUrl": "Thumbnail-URL",
+		"embedImageUrl": "Hauptbild-URL",
+		"embedTimestamp": "Zeitstempel anzeigen",
+		"embedTimestampHint": "Zeitstempel in der Embed-Fußzeile anzeigen.",
+		"embedUrlHint": "Bild- und Symbol-URLs leer lassen, um den Standardavatar zu verwenden oder das Bild wegzulassen.",
+		"timestampPreview": "Zeitstempel",
+		"saveEmbedSettings": "Embed-Einstellungen speichern"
 	},
 	"sticky": {
 		"title": "Sticky-Nachrichten",
