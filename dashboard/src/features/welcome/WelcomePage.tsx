@@ -162,7 +162,9 @@ export function WelcomePage(): React.JSX.Element {
 									id="welcome-embed-color"
 									type="color"
 									value={embedDraft.embedColor}
-									onChange={(event) => setEmbedDraft((current) => ({ ...current, embedColor: event.target.value.toUpperCase() }))}
+									onChange={(event) =>
+									setEmbedDraft((current) => ({ ...current, embedColor: event.target.value.toUpperCase() }))
+								}
 									className="h-10 w-full rounded-field border border-input bg-background px-2"
 								/>
 							</Field>
