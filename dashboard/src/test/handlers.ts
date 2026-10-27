@@ -1,4 +1,5 @@
 import {
+	DEFAULT_WELCOME_EMBED_SETTINGS,
 	type AuditLogConfigResponse,
 	type ServerChangesPage,
 	type InsightsReport,
@@ -132,6 +133,7 @@ export const levelConfig: LevelConfigResponse = {
 };
 
 export const welcomeConfig: WelcomeConfigResponse = {
+	...DEFAULT_WELCOME_EMBED_SETTINGS,
 	enabled: true,
 	channelId: "400000000000000001",
 	message: "Welcome to **{server}**, {user}! You are member **{count}**.",

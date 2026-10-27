@@ -17,6 +17,15 @@ function applyPatch(current: WelcomeConfigResponse, patch: WelcomePatch): Welcom
 		...(patch.channelId === undefined ? {} : { channelId: patch.channelId }),
 		...(patch.message === undefined ? {} : { message: patch.message }),
 		...(patch.style === undefined ? {} : { style: patch.style }),
+		...(patch.embedTitle === undefined ? {} : { embedTitle: patch.embedTitle }),
+		...(patch.embedColor === undefined ? {} : { embedColor: patch.embedColor }),
+		...(patch.embedAuthor === undefined ? {} : { embedAuthor: patch.embedAuthor }),
+		...(patch.embedAuthorIconUrl === undefined ? {} : { embedAuthorIconUrl: patch.embedAuthorIconUrl }),
+		...(patch.embedFooter === undefined ? {} : { embedFooter: patch.embedFooter }),
+		...(patch.embedFooterIconUrl === undefined ? {} : { embedFooterIconUrl: patch.embedFooterIconUrl }),
+		...(patch.embedThumbnailUrl === undefined ? {} : { embedThumbnailUrl: patch.embedThumbnailUrl }),
+		...(patch.embedImageUrl === undefined ? {} : { embedImageUrl: patch.embedImageUrl }),
+		...(patch.embedTimestamp === undefined ? {} : { embedTimestamp: patch.embedTimestamp }),
 	};
 }
 

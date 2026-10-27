@@ -409,7 +409,21 @@
 		"tokenServer": "This server’s name",
 		"tokenUser": "Mentions them",
 		"tokenUsername": "Their name, unlinked",
-		"tooLong": "That message is longer than Discord will accept. Shorten it before saving."
+		"tooLong": "That message is longer than Discord will accept. Shorten it before saving.",
+		"embedSettings": "Embed appearance",
+		"embedSettingsHint": "Customize the title, colour, author, images and footer of the Discord welcome embed.",
+		"embedTitle": "Embed title",
+		"embedColor": "Accent colour",
+		"embedAuthor": "Author name",
+		"embedAuthorIconUrl": "Author icon URL",
+		"embedFooter": "Footer text",
+		"embedFooterIconUrl": "Footer icon URL",
+		"embedThumbnailUrl": "Thumbnail URL",
+		"embedImageUrl": "Main image URL",
+		"embedTimestamp": "Show timestamp",
+		"embedTimestampHint": "Include Discord's timestamp in the embed footer.",
+		"embedUrlHint": "Leave image and icon URLs empty to use the default avatar or omit the image.",
+		"timestampPreview": "timestamp"
 	},
 	"sticky": {
 		"title": "Sticky messages",
