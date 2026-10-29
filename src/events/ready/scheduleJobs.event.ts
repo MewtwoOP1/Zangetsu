@@ -2,6 +2,7 @@ import { Events } from "discord.js";
 import { INTERVALS } from "@config/constants";
 import { defineEvent } from "@core/event";
 import { settleIdleHands } from "@jobs/casinoSweep.util";
+import { checkGitHubReleaseAnnouncements } from "@jobs/githubReleaseAnnouncements.util";
 import { runLotteryDraws } from "@jobs/lotteryDraw.util";
 import { payPassiveIncome } from "@jobs/passiveIncome.util";
 import { refreshBotStats } from "@jobs/refreshBotStats.util";
@@ -23,6 +24,15 @@ export default defineEvent({
 		client.timers.every("bot-stats", INTERVALS.fixedStatsRefreshMs, () => refreshBotStats(client));
 		client.timers.every("insights", INTERVALS.insightsFlushMs, () => flushActivity(client.logger));
 		client.timers.every("casino-hands", CASINO_TIMING.sweepEveryMs, () => settleIdleHands(client));
+		client.timers.after("github-releases", 15_000, async () => {
+			try {
+				await checkGitHubReleaseAnnouncements(client);
+			} finally {
+				client.timers.every("github-releases", INTERVALS.githubReleaseCheckMs, () =>
+					checkGitHubReleaseAnnouncements(client),
+				);
+			}
+		});
 		client.timers.every("roulette-rounds", CASINO_TIMING.sweepEveryMs, () => spinOverdueRounds(client));
 		client.timers.every("command-log", INTERVALS.commandLogFlushMs, () => flushCommandLog(client));
 
