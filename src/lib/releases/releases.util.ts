@@ -69,6 +69,8 @@ export async function fetchGitHubReleases(
 		"User-Agent": "Zangetsu-Release-Announcements",
 		"X-GitHub-Api-Version": "2022-11-28",
 	};
+	const githubToken = process.env.GITHUB_TOKEN?.trim();
+	if (githubToken) headers.Authorization = `Bearer ${githubToken}`;
 	if (!options.forceRefresh && cached?.etag) headers["If-None-Match"] = cached.etag;
 
 	let response: Response;
@@ -86,10 +88,35 @@ export async function fetchGitHubReleases(
 
 	if (response.status === 304 && cached) return cached.releases;
 	if (response.status === 404) {
-		throw new Error("GitHub could not find this public repository. Private repositories are not supported by this keyless feature.");
+		throw new Error("GitHub could not find this public repository. Private repositories are not supported by this feature.");
+	}
+	if (response.status === 401) {
+		throw new Error(
+			githubToken
+				? "GitHub rejected GITHUB_TOKEN. Check that the token is valid, not expired, and has public repository read access."
+				: "GitHub returned HTTP 401 for a public API request.",
+		);
 	}
 	if (response.status === 403 || response.status === 429) {
-		throw new Error("GitHub's public API rate limit was reached. The bot will retry on the next check.");
+		const payload: unknown = await response.clone().json().catch(() => null);
+		const apiMessage =
+			typeof payload === "object" && payload !== null && "message" in payload && typeof payload.message === "string"
+				? payload.message
+				: null;
+		const remaining = response.headers.get("x-ratelimit-remaining");
+		const reset = Number(response.headers.get("x-ratelimit-reset"));
+		const retryAfter = response.headers.get("retry-after");
+		const rateLimited =
+			response.status === 429 || remaining === "0" || (apiMessage !== null && /rate limit|abuse detection/i.test(apiMessage));
+		if (rateLimited) {
+			const retryHint = Number.isFinite(reset) && reset > 0
+				? ` Try again after ${new Date(reset * 1_000).toISOString()} (UTC).`
+				: retryAfter !== null
+					? ` Retry after ${retryAfter} seconds.`
+					: "";
+			throw new Error(`GitHub API rate limit reached${apiMessage ? `: ${apiMessage}` : "."}${retryHint}`);
+		}
+		throw new Error(`GitHub denied the request (HTTP ${String(response.status)})${apiMessage ? `: ${apiMessage}` : "."}`);
 	}
 	if (!response.ok) throw new Error(`GitHub returned HTTP ${String(response.status)}.`);
 
