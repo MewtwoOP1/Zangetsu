@@ -72,10 +72,15 @@ export async function checkGitHubReleaseAnnouncements(client: TestifyClient): Pr
 
 	for (const guildSettings of settings) {
 		const channel = await client.channels.fetch(guildSettings.channelId).catch(() => null);
-		if (!channel?.isTextBased() || !channel.isSendable()) {
+		if (
+			!channel?.isTextBased() ||
+			!channel.isSendable() ||
+			!("guildId" in channel) ||
+			channel.guildId !== guildSettings.guildId
+		) {
 			client.logger.warn(
 				{ guildId: guildSettings.guildId, channelId: guildSettings.channelId },
-				"[GITHUB_RELEASES] The announcement channel is unavailable or not sendable.",
+				"[GITHUB_RELEASES] The announcement channel is unavailable, not sendable, or belongs to another server.",
 			);
 			continue;
 		}
