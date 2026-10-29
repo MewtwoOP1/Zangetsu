@@ -3,9 +3,9 @@ import {
 	listReleaseAnnouncementSettings,
 	updateTrackedGitHubRelease,
 } from "@database/repositories/releaseAnnouncementRepository";
-import { fetchGitHubReleases, type GitHubRelease } from "@lib/releases";
 import { checkGitHubReleaseAnnouncements } from "@jobs/githubReleaseAnnouncements.util";
-import { createMockChannel, createMockClient, GUILD_ID, CHANNEL_ID, ROLE_ID } from "@tests/helpers/mocks";
+import { fetchGitHubReleases, type GitHubRelease } from "@lib/releases";
+import { CHANNEL_ID, createMockChannel, createMockClient, GUILD_ID, ROLE_ID } from "@tests/helpers/mocks";
 
 jest.mock("@database/repositories/releaseAnnouncementRepository", () => ({
 	listReleaseAnnouncementSettings: jest.fn(),
@@ -49,22 +49,32 @@ const publishedRelease: GitHubRelease = {
 };
 
 function clientWithChannel(channel: ReturnType<typeof createMockChannel>) {
-	return createMockClient({
+	const logger = {
+		debug: jest.fn(),
+		error: jest.fn(),
+		info: jest.fn(),
+		trace: jest.fn(),
+		warn: jest.fn(),
+	};
+	const client = createMockClient({
 		channels: { fetch: jest.fn(() => Promise.resolve(channel)) },
+		logger,
 	} as never);
+
+	return { client, logger };
 }
 
 beforeEach(() => {
 	jest.clearAllMocks();
 	jest.mocked(listReleaseAnnouncementSettings).mockResolvedValue([settings]);
 	jest.mocked(fetchGitHubReleases).mockResolvedValue([publishedRelease]);
-	jest.mocked(updateTrackedGitHubRelease).mockResolvedValue();
+	jest.mocked(updateTrackedGitHubRelease).mockResolvedValue(undefined);
 });
 
 describe("checkGitHubReleaseAnnouncements", () => {
 	it("posts a role-limited embed and records the release cursor only after delivery", async () => {
 		const channel = createMockChannel();
-		const client = clientWithChannel(channel);
+		const { client } = clientWithChannel(channel);
 
 		await checkGitHubReleaseAnnouncements(client);
 
@@ -94,12 +104,12 @@ describe("checkGitHubReleaseAnnouncements", () => {
 	it("does not advance the cursor when Discord rejects a message, so the release is retried", async () => {
 		const channel = createMockChannel();
 		jest.mocked(channel.send).mockRejectedValueOnce(new Error("Missing Permissions"));
-		const client = clientWithChannel(channel);
+		const { client, logger } = clientWithChannel(channel);
 
 		await checkGitHubReleaseAnnouncements(client);
 
 		expect(updateTrackedGitHubRelease).not.toHaveBeenCalled();
-		expect(client.logger.warn).toHaveBeenCalledWith(
+		expect(logger.warn).toHaveBeenCalledWith(
 			expect.objectContaining({ repository: "mewtwoop1/zangetsu", tag: "v2.0.7" }),
 			"[GITHUB_RELEASES] Failed to deliver or record a release; it will be retried.",
 		);
