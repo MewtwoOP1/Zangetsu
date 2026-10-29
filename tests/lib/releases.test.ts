@@ -1,5 +1,6 @@
 import {
 	fetchGitHubReleases,
+	formatGitHubReleaseAnnouncement,
 	parseGitHubRepository,
 	releasesAfterCursor,
 	resetGitHubReleaseCache,
@@ -164,6 +165,53 @@ describe("fetchGitHubReleases", () => {
 
 		fetchMock.mockResolvedValueOnce(new Response(JSON.stringify([null]), { status: 200 }));
 		await expect(fetchGitHubReleases(repository, { forceRefresh: true })).rejects.toThrow("malformed release entry");
+	});
+});
+
+describe("formatGitHubReleaseAnnouncement", () => {
+	it("formats the latest Zangetsu app release as a plain-text message with release assets", () => {
+		const appRepository: GitHubRepository = {
+			owner: "spyou",
+			repo: "zangetsu",
+			fullName: "spyou/zangetsu",
+			key: "spyou/zangetsu",
+		};
+		const message = formatGitHubReleaseAnnouncement(
+			appRepository,
+			release({
+				tag_name: "v2.3.3",
+				name: "Zangetsu v2.3.3",
+				published_at: "2026-10-22T15:17:00Z",
+				body: "### Home & browsing\\n\\n- Browse sources directly from Home.\\n- Search within the selected catalogue.\\n\\n### Downloads\\n\\nFile | For\\n--- | ---\\nOld APK | Phone",
+				assets: [
+					{
+						name: "Zangetsu-v2.3.3-arm64-v8a.apk",
+						browser_download_url: "https://github.com/Spyou/Zangetsu/releases/download/v2.3.3/Zangetsu-v2.3.3-arm64-v8a.apk",
+					},
+					{
+						name: "Zangetsu-v2.3.3-armeabi-v7a.apk",
+						browser_download_url: "https://github.com/Spyou/Zangetsu/releases/download/v2.3.3/Zangetsu-v2.3.3-armeabi-v7a.apk",
+					},
+					{
+						name: "Zangetsu-v2.3.3-universal.apk",
+						browser_download_url: "https://github.com/Spyou/Zangetsu/releases/download/v2.3.3/Zangetsu-v2.3.3-universal.apk",
+					},
+					{
+						name: "Zangetsu-v2.3.3-tv.apk",
+						browser_download_url: "https://github.com/Spyou/Zangetsu/releases/download/v2.3.3/Zangetsu-v2.3.3-tv.apk",
+					},
+				],
+			}),
+		);
+
+		expect(message).toContain("<:new_icon:1548743773930922075> Zangetsu v2.3.3");
+		expect(message).toContain("-# Stable Release · 22 October 2026");
+		expect(message).toContain("**What's New**");
+		expect(message).toContain("- **Home & browsing:** Browse sources directly from Home.; Search within the selected catalogue.");
+		expect(message).toContain("[ARM64](https://github.com/Spyou/Zangetsu/releases/download/v2.3.3/Zangetsu-v2.3.3-arm64-v8a.apk)");
+		expect(message).toContain("[Android TV](https://github.com/Spyou/Zangetsu/releases/download/v2.3.3/Zangetsu-v2.3.3-tv.apk)");
+		expect(message).toContain("-# Z A N G E T S U  •  O F F I C I A L  R E L E A S E");
+		expect(message.length).toBeLessThanOrEqual(1_850);
 	});
 });
 
