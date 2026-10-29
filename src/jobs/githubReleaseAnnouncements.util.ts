@@ -1,6 +1,9 @@
 import { type TestifyClient } from "@core/client";
 import { toError } from "@core/errors";
-import { listReleaseAnnouncementSettings, updateTrackedGitHubRelease } from "@database/repositories/releaseAnnouncementRepository";
+import {
+	listReleaseAnnouncementSettings,
+	updateTrackedGitHubRelease,
+} from "@database/repositories/releaseAnnouncementRepository";
 import { embed } from "@lib/discord";
 import { fetchGitHubReleases, releasesAfterCursor, type GitHubRelease, type GitHubRepository } from "@lib/releases";
 
@@ -9,15 +12,10 @@ function repositoryOf(owner: string, repo: string): GitHubRepository {
 	return { owner, repo, fullName: key, key };
 }
 
-function announcementPayload(
-	repository: GitHubRepository,
-	release: GitHubRelease,
-	roleId: string | null,
-) {
+function announcementPayload(repository: GitHubRepository, release: GitHubRelease, roleId: string | null) {
 	const publishedAt = release.published_at === null ? null : Math.floor(Date.parse(release.published_at) / 1_000);
 	const notes = release.body?.trim() ?? "";
-	const truncatedNotes =
-		notes.length > 2_600 ? `${notes.slice(0, 2_600)}\n\n… Release notes truncated.` : notes;
+	const truncatedNotes = notes.length > 2_600 ? `${notes.slice(0, 2_600)}\n\n… Release notes truncated.` : notes;
 	const description = [
 		`**${release.name || release.tag_name}**`,
 		`**Version:** \`${release.tag_name}\``,
@@ -25,9 +23,7 @@ function announcementPayload(
 		publishedAt === null ? null : `**Published:** <t:${String(publishedAt)}:F> (<t:${String(publishedAt)}:R>)`,
 		"",
 		truncatedNotes || "No release notes were provided.",
-	]
-		.filter((line): line is string => line !== null)
-		.join("\n");
+	].filter((line): line is string => line !== null).join("\n");
 
 	return {
 		...(roleId === null ? {} : { content: `<@&${roleId}>` }),
