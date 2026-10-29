@@ -70,7 +70,7 @@ describe("fetchGitHubReleases", () => {
 
 		expect(result).toEqual([release()]);
 		expect(fetchMock).toHaveBeenCalledWith(
-			"https://api.github.com/repos/mewtwoop1/zangetsu/releases?per_page=20",
+			"https://api.github.com/repos/mewtwoop1/zangetsu/releases?per_page=100",
 			expect.objectContaining({
 				headers: expect.not.objectContaining({ Authorization: expect.anything() }),
 			}),
