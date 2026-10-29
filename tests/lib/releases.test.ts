@@ -182,7 +182,7 @@ describe("formatGitHubReleaseAnnouncement", () => {
 				tag_name: "v2.3.3",
 				name: "Zangetsu v2.3.3",
 				published_at: "2026-10-22T15:17:00Z",
-				body: "### Home & browsing\\n\\n- Browse sources directly from Home.\\n- Search within the selected catalogue.\\n\\n### Downloads\\n\\nFile | For\\n--- | ---\\nOld APK | Phone",
+				body: "### Home & browsing\n\n- Browse sources directly from Home.\n- Search within the selected catalogue.\n\n### Downloads\n\nFile | For\n--- | ---\nOld APK | Phone",
 				assets: [
 					{
 						name: "Zangetsu-v2.3.3-arm64-v8a.apk",
