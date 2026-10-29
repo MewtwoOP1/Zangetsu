@@ -199,7 +199,7 @@ export function formatGitHubReleaseAnnouncement(repository: GitHubRepository, re
 	const isZangetsuApp = repository.owner.toLowerCase() === "spyou" && repository.repo.toLowerCase() === "zangetsu";
 	const version = release.tag_name.trim();
 	const title = isZangetsuApp
-		? `<:new_icon:1548743773930922075> Zangetsu ${version}`
+		? `# <:new_icon:1548743773930922075> Zangetsu ${version}`
 		: `${repository.fullName} · ${release.name?.trim() || version}`;
 	const releaseType = release.prerelease ? "Pre-release" : "Stable Release";
 	const publishedDate = release.published_at
@@ -228,7 +228,7 @@ export function formatGitHubReleaseAnnouncement(repository: GitHubRepository, re
 		: `-# ${repository.fullName.toUpperCase()} · OFFICIAL RELEASE`;
 
 	// Keep a comfortable margin below Discord's 2,000-character message limit, including a possible role ping.
-	const maxHighlightsLength = 1_000;
+	const maxHighlightsLength = 850;
 	const shortenedHighlights = highlights.length > maxHighlightsLength
 		? `${highlights.slice(0, maxHighlightsLength - 1).trimEnd()}…`
 		: highlights;
@@ -236,7 +236,7 @@ export function formatGitHubReleaseAnnouncement(repository: GitHubRepository, re
 		title,
 		`-# ${releaseType} · ${publishedDate}`,
 		"",
-		truncateText(summary, 260),
+		truncateText(summary, 220),
 		"",
 		"**What's New**",
 		shortenedHighlights,
@@ -277,7 +277,14 @@ function parseReleaseNotes(body: string): { summary: string; sections: ParsedRel
 			sections.push(currentSection);
 			continue;
 		}
-		if (skipSection || /^\|?\s*:?-{3,}/.test(line) || /^\|?\s*file\s*\|/i.test(line) || /^\|?\s*---/.test(line)) continue;
+		if (
+			skipSection ||
+			/^\|?\s*:?-{3,}/.test(line) ||
+			/^\|?\s*file\s*\|/i.test(line) ||
+			/^\|?\s*---/.test(line)
+		) {
+			continue;
+		}
 
 		const bullet = /^(?:[-*+]\s+|\d+[.)]\s+)(.+)$/.exec(line);
 		if (bullet) {
