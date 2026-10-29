@@ -50,7 +50,7 @@ The `/releases` command posts new public GitHub releases as plain-text Discord m
 
 The bot checks tracked repositories every 10 minutes. A token is optional, but on shared hosting such as Render, set `GITHUB_TOKEN` in the service's environment variables to avoid the unauthenticated API's 60-requests-per-hour-per-IP limit. Authenticated requests generally have a 5,000-requests-per-hour limit. Use a fine-grained token with read-only access to public repository contents; never paste it into source code or commit it. The bot sends it only as an HTTP authorization header and does not log it. Only published releases from public repositories are supported. When a repository is first tracked, its current latest release is saved as the starting point so old releases are not announced retroactively. Role notifications explicitly allow only the configured role, and the `@everyone` role is rejected.
 
-The feature requires MongoDB (already used by Zangetsu) and the bot needs View Channel, Send Messages, and Embed Links in the configured announcement channel. The command requires Manage Server permission.
+The feature requires MongoDB (already used by Zangetsu) and the bot needs View Channel and Send Messages in the configured announcement channel. The command requires Manage Server permission.
 
 ## Music and media
 
