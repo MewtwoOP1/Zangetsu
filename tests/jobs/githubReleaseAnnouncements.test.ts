@@ -73,7 +73,7 @@ beforeEach(() => {
 
 describe("checkGitHubReleaseAnnouncements", () => {
 	it("posts a role-limited embed and records the release cursor only after delivery", async () => {
-		const channel = createMockChannel();
+		const channel = createMockChannel({ guildId: GUILD_ID } as never);
 		const { client } = clientWithChannel(channel);
 
 		await checkGitHubReleaseAnnouncements(client);
@@ -102,7 +102,7 @@ describe("checkGitHubReleaseAnnouncements", () => {
 	});
 
 	it("does not advance the cursor when Discord rejects a message, so the release is retried", async () => {
-		const channel = createMockChannel();
+		const channel = createMockChannel({ guildId: GUILD_ID } as never);
 		jest.mocked(channel.send).mockRejectedValueOnce(new Error("Missing Permissions"));
 		const { client, logger } = clientWithChannel(channel);
 
