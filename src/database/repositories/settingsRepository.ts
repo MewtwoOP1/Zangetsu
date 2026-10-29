@@ -26,6 +26,7 @@ import { purgeCasinoStats } from "@database/repositories/casinoStatsRepository";
 import { purgeCommandToggles } from "@database/repositories/commandToggleRepository";
 import { purgeWarnLadder } from "@database/repositories/moderationRepository";
 import { purgeMusicSettings } from "@database/repositories/musicSettingsRepository";
+import { purgeReleaseAnnouncementSettings } from "@database/repositories/releaseAnnouncementRepository";
 import { purgeRounds } from "@database/repositories/rouletteRepository";
 
 const UPSERT = { upsert: true as const, new: true as const, lean: true as const, setDefaultsOnInsert: true as const };
@@ -291,6 +292,7 @@ export async function purgeGuild(guildId: string): Promise<void> {
 		VoiceCounter.deleteMany({ guildId }).exec(),
 		FixedStats.deleteMany({ guildId }).exec(),
 		TreasureConfig.deleteMany({ guildId }).exec(),
+		purgeReleaseAnnouncementSettings(guildId),
 		GuildPrefix.deleteMany({ guildId }).exec(),
 		purgeCommandToggles(guildId),
 		purgeMusicSettings(guildId),

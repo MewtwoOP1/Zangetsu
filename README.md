@@ -44,6 +44,14 @@ For production, run `npm run setup`, then `npm run build` and `npm start`.
 
 The `/nsfw` module is disabled by default. A server manager can enable or disable it with `/nsfw enable` and `/nsfw disable`. GIF commands only run in Discord age-restricted channels. Categories include `/nsfw gif`, `/nsfw fuck`, `/nsfw anal`, `/nsfw blowjob`, `/nsfw tits`, `/nsfw ass`, `/nsfw pussy`, `/nsfw cum`, `/nsfw handjob`, `/nsfw hentai`, `/nsfw lesbian`, `/nsfw threesome`, and `/nsfw random`. Each category accepts an optional `target` member. The response shows the selected users as Discord mentions without triggering notification pings. The provider is the Waifu.im Workers API at `https://api.waifu-im.workers.dev/`; no provider credentials are required. Requests ask for NSFW GIFs and exclude common underage and abusive tags. The provider's tags and content ratings are not infallible.
 
+## GitHub release announcements
+
+The `/releases` command can announce new public GitHub releases in a Discord channel. Run `/releases setup` to choose the announcement channel and an optional role to ping, then use `/releases add repository:MewtwoOP1/Zangetsu` (or another public `owner/repo`) to track a project. `/releases list` shows the configuration, `/releases remove` stops tracking a repository, and `/releases test` sends a test announcement to the configured channel.
+
+The bot checks tracked repositories every 10 minutes using GitHub's public API. It does not require a GitHub token, API key, or extra package. Only published releases from public repositories are supported; private repositories are not accessible without credentials. When a repository is first added, its current latest release is saved as the starting point so old releases are not announced retroactively. Role notifications explicitly allow only the configured role, and the `@everyone` role is rejected.
+
+The feature requires MongoDB (already used by Zangetsu) and the bot needs View Channel, Send Messages, and Embed Links in the configured announcement channel. The command requires Manage Server permission.
+
 ## Music and media
 
 `/play query:lofi beats` searches SoundCloud. You can also provide a SoundCloud track or set URL. YouTube and other music sources are not supported by the bot's playback flow.
