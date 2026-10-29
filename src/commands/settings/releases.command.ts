@@ -246,6 +246,7 @@ export default defineCommand({
 			description: "Force an immediate check for new releases in this server.",
 			async run(interaction, client) {
 				const guild = inGuild(interaction);
+				await interaction.deferReply();
 				let result: ForcedReleaseCheckResult;
 				try {
 					result = await forceCheckGitHubReleaseAnnouncements(client, guild.id);
@@ -258,14 +259,16 @@ export default defineCommand({
 					`Repositories checked: ${String(result.repositoriesChecked)}`,
 					`New announcements sent: ${String(result.announcementsSent)}`,
 				];
-				if (result.announcementsSent === 0 && result.failures.length === 0) {
+				if (result.repositoriesChecked === 0) {
+					lines.push("No repositories are being tracked. Use `/releases add` or run `/releases setup` first.");
+				} else if (result.announcementsSent === 0 && result.failures.length === 0) {
 					lines.push("Everything is up to date; there are no new releases to announce.");
 				}
 				if (result.failures.length > 0) {
 					lines.push("", "**Issues**", ...result.failures.slice(0, 5).map((failure) => `- ${failure}`));
 					if (result.failures.length > 5) lines.push(`- And ${String(result.failures.length - 5)} more issue(s).`);
 				}
-				await reply(interaction, { content: lines.join("\n") });
+				await interaction.editReply({ content: lines.join("\n") });
 			},
 		},
 		{
@@ -280,6 +283,7 @@ export default defineCommand({
 			],
 			async run(interaction, client) {
 				const guild = inGuild(interaction);
+				await interaction.deferReply();
 				const settings = await getReleaseAnnouncementSettings(guild.id);
 				const selectedChannel = interaction.options.getChannel("channel");
 				const channelId = selectedChannel?.id ?? settings?.channelId ?? interaction.channel?.id;
@@ -334,7 +338,7 @@ export default defineCommand({
 					allowedMentions: { parse: [], roles: roleId === null ? [] : [roleId] },
 				});
 
-				await reply(interaction, {
+				await interaction.editReply({
 					content: `Test announcement sent to <#${channel.id}>.`,
 				});
 			},
