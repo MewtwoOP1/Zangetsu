@@ -8,7 +8,7 @@ import {
 	setReleaseAnnouncementTarget,
 } from "@database/repositories/releaseAnnouncementRepository";
 import { embed, reply, successEmbed } from "@lib/discord";
-import { fetchGitHubReleases, parseGitHubRepository, type GitHubRelease } from "@lib/releases";
+import { fetchGitHubReleases, formatGitHubReleaseAnnouncement, parseGitHubRepository, type GitHubRelease } from "@lib/releases";
 
 const MAX_TRACKED_REPOSITORIES = 10;
 const DEFAULT_REPOSITORY = { owner: "spyou", repo: "zangetsu", fullName: "spyou/zangetsu", key: "spyou/zangetsu" };
@@ -234,7 +234,7 @@ export default defineCommand({
 		},
 		{
 			name: "test",
-			description: "Send a test announcement to verify the channel, embed, and role ping.",
+			description: "Preview the latest app release using the official plain-text announcement format.",
 			async run(interaction, client) {
 				const guild = inGuild(interaction);
 				const settings = await getReleaseAnnouncementSettings(guild.id);
@@ -273,41 +273,9 @@ export default defineCommand({
 					);
 				}
 
-				const publishedDate = latestRelease.published_at
-					? new Date(latestRelease.published_at).toLocaleString("en-GB", {
-							day: "2-digit",
-							month: "short",
-						year: "numeric",
-						hour: "2-digit",
-						minute: "2-digit",
-						timeZone: "UTC",
-						timeZoneName: "short",
-						})
-					: "Unknown";
-				const releaseNotes = latestRelease.body?.trim() || "No release notes were provided.";
-				const maxReleaseNotesLength = 2_600;
-				const displayedReleaseNotes = releaseNotes.slice(0, maxReleaseNotesLength);
-			const truncatedNote = releaseNotes.length > maxReleaseNotesLength ? "\n… Release notes truncated." : "";
-
+				const announcement = formatGitHubReleaseAnnouncement(DEFAULT_REPOSITORY, latestRelease);
 				await channel.send({
-					...(settings.roleId === null ? {} : { content: `<@&${settings.roleId}>` }),
-					embeds: [
-						embed({
-							category: "info",
-							title: `Spyou/Zangetsu · ${latestRelease.tag_name} (Test)`,
-							description: [
-								"This test uses the latest published release fetched live from the Spyou/Zangetsu app repository.",
-								`**Release:** ${latestRelease.name?.trim() || latestRelease.tag_name}`,
-								`**Version:** [${latestRelease.tag_name}](${latestRelease.html_url})`,
-								`**Published:** ${publishedDate}`,
-								"",
-								"**Release notes**",
-							`${displayedReleaseNotes}${truncatedNote}`,
-							].join("\n"),
-							url: latestRelease.html_url,
-							footer: "Test announcement · latest app release fetched live",
-						}),
-					],
+					content: settings.roleId === null ? announcement : `<@&${settings.roleId}>\n${announcement}`,
 					allowedMentions: { parse: [], roles: settings.roleId === null ? [] : [settings.roleId] },
 				});
 
