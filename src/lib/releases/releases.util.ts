@@ -186,3 +186,145 @@ export function releasesAfterCursor(
 export function resetGitHubReleaseCache(): void {
 	releaseCache.clear();
 }
+
+/** Builds the plain-text Discord announcement used for both previews and published releases. */
+export function formatGitHubReleaseAnnouncement(repository: GitHubRepository, release: GitHubRelease): string {
+	const isZangetsuApp = repository.owner.toLowerCase() === "spyou" && repository.repo.toLowerCase() === "zangetsu";
+	const version = release.tag_name.trim();
+	const title = isZangetsuApp
+		? \`<:new_icon:1548743773930922075> Zangetsu \${version}\`
+		: \`\${repository.fullName} · \${release.name?.trim() || version}\`;
+	const releaseType = release.prerelease ? "Pre-release" : "Stable Release";
+	const publishedDate = release.published_at
+		? new Date(release.published_at).toLocaleDateString("en-GB", {
+				day: "2-digit",
+				month: "long",
+				year: "numeric",
+				timeZone: "UTC",
+			})
+		: "Date unavailable";
+
+	const parsedNotes = parseReleaseNotes(release.body ?? "");
+	const sectionNames = parsedNotes.sections.map((section) => section.title).filter(Boolean);
+	const summary = parsedNotes.summary || (sectionNames.length > 0
+		? \`A smoother experience with updates to \${formatNaturalList(sectionNames)}.\`
+		: "A new release with the latest features and improvements.");
+	const highlights = parsedNotes.sections.map((section) => {
+		const bullets = section.bullets.join("; ");
+		return bullets ? \`- **\${section.title}:** \${bullets}\` : "";
+	}).filter(Boolean).join("\n") || "- Release notes are available on the GitHub release page.";
+	const downloadLinks = formatReleaseDownloads(release, isZangetsuApp);
+	const footer = isZangetsuApp
+		? "-# Z A N G E T S U  •  O F F I C I A L  R E L E A S E"
+		: \`-# \${repository.fullName.toUpperCase()} · OFFICIAL RELEASE\`;
+
+	// Keep a comfortable margin below Discord's 2,000-character message limit, including a possible role ping.
+	const maxHighlightsLength = 1_000;
+	const shortenedHighlights = highlights.length > maxHighlightsLength
+		? \`\${highlights.slice(0, maxHighlightsLength - 1).trimEnd()}…\`
+		: highlights;
+	const message = [
+		title,
+		\`-# \${releaseType} · \${publishedDate}\`,
+		"",
+		truncateText(summary, 260),
+		"",
+		"**What's New**",
+		shortenedHighlights,
+		"",
+		"**Downloads**",
+		downloadLinks,
+		"",
+		footer,
+	].join("\n");
+
+	return message.length > 1_850 ? \`\${message.slice(0, 1_849).trimEnd()}…\` : message;
+}
+
+interface ParsedReleaseNoteSection {
+	title: string;
+	bullets: string[];
+}
+
+function parseReleaseNotes(body: string): { summary: string; sections: ParsedReleaseNoteSection[] } {
+	const sections: ParsedReleaseNoteSection[] = [];
+	const introLines: string[] = [];
+	let currentSection: ParsedReleaseNoteSection | null = null;
+	let skipSection = false;
+
+	for (const rawLine of body.split(/\r?\n/)) {
+		const line = rawLine.trim();
+		if (!line) continue;
+
+		const heading = /^(#{1,6})\s+(.+?)\s*#*\s*$/.exec(line);
+		if (heading) {
+			const title = heading[2]?.trim() ?? "";
+			skipSection = /^(downloads?|assets|checksums?)$/i.test(title);
+			if (skipSection) {
+				currentSection = null;
+				continue;
+			}
+			currentSection = { title, bullets: [] };
+			sections.push(currentSection);
+			continue;
+		}
+		if (skipSection || /^\|?\s*:?-{3,}/.test(line) || /^\|?\s*file\s*\|/i.test(line) || /^\|?\s*---/.test(line)) continue;
+
+		const bullet = /^(?:[-*+]\s+|\d+[.)]\s+)(.+)$/.exec(line);
+		if (bullet) {
+			const text = bullet[1]?.trim();
+			if (text) {
+				if (!currentSection) {
+					currentSection = { title: "Highlights", bullets: [] };
+					sections.push(currentSection);
+				}
+				currentSection.bullets.push(text);
+			}
+			continue;
+		}
+
+		if (/^\|/.test(line)) continue;
+		if (currentSection && currentSection.bullets.length > 0) {
+			const lastIndex = currentSection.bullets.length - 1;
+			currentSection.bullets[lastIndex] = \`\${currentSection.bullets[lastIndex]} \${line}\`;
+		} else {
+			introLines.push(line);
+		}
+	}
+
+	const summary = introLines.join(" ").replace(/\s+/g, " ").trim();
+	if (sections.length === 0 && summary) sections.push({ title: "Highlights", bullets: [summary] });
+	return { summary, sections };
+}
+
+function formatNaturalList(values: string[]): string {
+	if (values.length <= 1) return values[0] ?? "the app";
+	if (values.length === 2) return \`\${values[0]} and \${values[1]}\`;
+	return \`\${values.slice(0, -1).join(", ")}, and \${values[values.length - 1]}\`;
+}
+
+function formatReleaseDownloads(release: GitHubRelease, isZangetsuApp: boolean): string {
+	const assets = (release.assets ?? []).filter((asset) => /^https?:\/\//i.test(asset.browser_download_url));
+	if (isZangetsuApp) {
+		const preferred: Array<{ label: string; pattern: RegExp }> = [
+			{ label: "ARM64", pattern: /arm64-v8a.*\.apk$/i },
+			{ label: "ARMv7", pattern: /armeabi-v7a.*\.apk$/i },
+			{ label: "Universal", pattern: /universal.*\.apk$/i },
+			{ label: "Android TV", pattern: /(?:^|[-_])tv.*\.apk$/i },
+		];
+		const links = preferred.flatMap(({ label, pattern }) => {
+			const asset = assets.find((candidate) => pattern.test(candidate.name));
+			return asset ? [\`[\${label}](\${asset.browser_download_url})\`] : [];
+		});
+		return links.length > 0 ? links.join(" · ") : "No APK downloads are attached to this release yet.";
+	}
+
+	const links = assets.slice(0, 5).map((asset) => \`[\${asset.name}](\${asset.browser_download_url})\`);
+	return links.length > 0 ? links.join(" · ") : \`[View release assets](\${release.html_url})\`;
+}
+
+function truncateText(value: string, maxLength: number): string {
+	if (value.length <= maxLength) return value;
+	const trimmed = value.slice(0, maxLength - 1).trimEnd();
+	return \`\${trimmed}…\`;
+}
