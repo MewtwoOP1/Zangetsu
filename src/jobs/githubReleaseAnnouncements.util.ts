@@ -25,6 +25,86 @@ function announcementPayload(repository: GitHubRepository, release: GitHubReleas
 	};
 }
 
+export interface ForcedReleaseCheckResult {
+	repositoriesChecked: number;
+	announcementsSent: number;
+	failures: string[];
+}
+
+/**
+ * Checks only the invoking guild immediately, bypassing the feed cache and preserving each repository's cursor.
+ * Existing releases are not replayed; only releases newer than the saved cursor are delivered.
+ */
+export async function forceCheckGitHubReleaseAnnouncements(
+	client: TestifyClient,
+	guildId: string,
+): Promise<ForcedReleaseCheckResult> {
+	const settings = (await listReleaseAnnouncementSettings()).find((entry) => entry.guildId === guildId);
+	if (!settings) throw new Error("Release announcements are not set up in this server. Run /releases setup first.");
+
+	const channel = await client.channels.fetch(settings.channelId).catch(() => null);
+	if (
+		!channel?.isTextBased() ||
+		!channel.isSendable() ||
+		!("guildId" in channel) ||
+		channel.guildId !== guildId
+	) {
+		throw new Error("The configured release channel is unavailable, not sendable, or belongs to another server.");
+	}
+
+	let announcementsSent = 0;
+	const failures: string[] = [];
+
+	await Promise.all(
+		settings.repositories.map(async (tracked) => {
+			const repository = repositoryOf(tracked.owner, tracked.repo);
+			let releases: GitHubRelease[];
+
+			try {
+				releases = await fetchGitHubReleases(repository, { forceRefresh: true });
+			} catch (error) {
+				const detail = error instanceof Error ? error.message : "GitHub could not be reached.";
+				failures.push(`${repository.fullName}: ${detail}`);
+				client.logger.warn(
+					{ err: toError(error), repository: repository.fullName, guildId },
+					"[GITHUB_RELEASES] Forced check failed for a repository.",
+				);
+				return;
+			}
+
+			const pending = releasesAfterCursor(releases, tracked.lastReleaseId, tracked.lastReleasePublishedAt);
+			for (const release of pending) {
+				try {
+					await channel.send(announcementPayload(repository, release, settings.roleId));
+					if (release.published_at === null) continue;
+					await updateTrackedGitHubRelease(
+						guildId,
+						tracked.owner,
+						tracked.repo,
+						release.id,
+						release.published_at,
+					);
+					announcementsSent += 1;
+					client.logger.info(
+						{ guildId, repository: repository.fullName, tag: release.tag_name },
+						"[GITHUB_RELEASES] Posted a release announcement from a forced check.",
+					);
+				} catch (error) {
+					const detail = error instanceof Error ? error.message : "Discord could not deliver the announcement.";
+					failures.push(`${repository.fullName}: ${detail}`);
+					client.logger.warn(
+						{ err: toError(error), guildId, repository: repository.fullName, tag: release.tag_name },
+						"[GITHUB_RELEASES] Forced announcement delivery failed; it will be retried.",
+					);
+					break;
+				}
+			}
+		}),
+	);
+
+	return { repositoriesChecked: settings.repositories.length, announcementsSent, failures };
+}
+
 export async function checkGitHubReleaseAnnouncements(client: TestifyClient): Promise<void> {
 	const settings = await listReleaseAnnouncementSettings();
 	if (settings.length === 0) return;
