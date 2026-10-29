@@ -122,6 +122,17 @@ describe("releasesAfterCursor", () => {
 		expect(releasesAfterCursor([newest, oldest], null, null)).toEqual([oldest, newest]);
 	});
 
+	it("uses publication time when a newer release was created before the saved release", () => {
+		const cursor = release({ id: 40, published_at: "2026-10-29T12:00:00Z" });
+		const publishedLater = release({
+			id: 41,
+			tag_name: "v1.1.0",
+			published_at: "2026-10-29T13:00:00Z",
+		});
+
+		expect(releasesAfterCursor([cursor, publishedLater], cursor.id, cursor.published_at)).toEqual([publishedLater]);
+	});
+
 	it("does not replay old releases when a saved cursor has aged out of the recent feed", () => {
 		const older = release({ id: 31, published_at: "2026-10-28T10:00:00Z" });
 		const newer = release({ id: 32, published_at: "2026-10-30T10:00:00Z" });
