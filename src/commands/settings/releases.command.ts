@@ -172,7 +172,7 @@ export default defineCommand({
 								`**Ping role:** ${settings.roleId ? `<@&${settings.roleId}>` : "Disabled"}`,
 								`**Check interval:** Every 10 minutes`,
 								"",
-								`**Repositories (${String(settings.repositories.length)}/${String(MAX_TRACKED_REPOSITORIES)):**`,
+								`**Repositories (${String(settings.repositories.length)}/${String(MAX_TRACKED_REPOSITORIES)}):**`,
 								repositories,
 							].join("\n"),
 						}),
