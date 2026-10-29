@@ -213,9 +213,11 @@ export function formatGitHubReleaseAnnouncement(repository: GitHubRepository, re
 
 	const parsedNotes = parseReleaseNotes(release.body ?? "");
 	const sectionNames = parsedNotes.sections.map((section) => section.title).filter(Boolean);
-	const summary = parsedNotes.summary || (sectionNames.length > 0
-		? `A smoother experience with updates to ${formatNaturalList(sectionNames)}.`
-		: "A new release with the latest features and improvements.");
+	const summary = parsedNotes.summary || (
+		sectionNames.length > 0 && !sectionNames.every((name) => name.toLowerCase() === "highlights")
+			? `A smoother experience with updates to ${formatNaturalList(sectionNames)}.`
+			: "A smoother experience with the latest features and improvements."
+	);
 	const highlights = parsedNotes.sections.map((section) => {
 		const bullets = section.bullets.join("; ");
 		return bullets ? `- **${section.title}:** ${bullets}` : "";
