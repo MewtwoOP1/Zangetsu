@@ -254,17 +254,58 @@ export default defineCommand({
 					);
 				}
 
+				let releases: GitHubRelease[];
+				try {
+					releases = await fetchGitHubReleases(DEFAULT_REPOSITORY, { forceRefresh: true });
+				} catch (error) {
+					throw new UserFacingError(
+						`Could not fetch the latest Spyou/Zangetsu app release: ${error instanceof Error ? error.message : "GitHub could not be reached."}`,
+					);
+				}
+
+				const latestRelease =
+					[...releases].sort(
+						(left, right) => Date.parse(right.published_at ?? "") - Date.parse(left.published_at ?? ""),
+					)[0] ?? null;
+				if (!latestRelease) {
+					throw new UserFacingError(
+						"No published releases were found for Spyou/Zangetsu, so I cannot create a version-specific test announcement yet.",
+					);
+				}
+
+				const publishedDate = latestRelease.published_at
+					? new Date(latestRelease.published_at).toLocaleString("en-GB", {
+							day: "2-digit",
+							month: "short",
+						year: "numeric",
+						hour: "2-digit",
+						minute: "2-digit",
+						timeZone: "UTC",
+						timeZoneName: "short",
+						})
+					: "Unknown";
+				const releaseNotes = latestRelease.body?.trim() || "No release notes were provided.";
+				const maxReleaseNotesLength = 2_600;
+				const displayedReleaseNotes = releaseNotes.slice(0, maxReleaseNotesLength);
+			const truncatedNote = releaseNotes.length > maxReleaseNotesLength ? "\n… Release notes truncated." : "";
+
 				await channel.send({
 					...(settings.roleId === null ? {} : { content: `<@&${settings.roleId}>` }),
 					embeds: [
 						embed({
 							category: "info",
-							title: "Spyou/Zangetsu release announcements test",
-							description:
-								"This is a test message for the Spyou/Zangetsu app release feed. The announcement channel and embed are working. " +
-								"Future announcements will include the app release version, publication date, and release notes.",
-							url: "https://github.com/Spyou/Zangetsu/releases",
-							footer: "Test announcement · no app release was published",
+							title: `Spyou/Zangetsu v${latestRelease.tag_name} · Test`,
+							description: [
+								"This test uses the latest published release fetched live from the Spyou/Zangetsu app repository.",
+								`**Release:** ${latestRelease.name?.trim() || latestRelease.tag_name}`,
+								`**Version:** [${latestRelease.tag_name}](${latestRelease.html_url})`,
+								`**Published:** ${publishedDate}`,
+								"",
+								"**Release notes**",
+							`${displayedReleaseNotes}${truncatedNote}`,
+							].join("\n"),
+							url: latestRelease.html_url,
+							footer: "Test announcement · latest app release fetched live",
 						}),
 					],
 					allowedMentions: { parse: [], roles: settings.roleId === null ? [] : [settings.roleId] },
