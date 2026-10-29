@@ -4,8 +4,7 @@ import {
 	listReleaseAnnouncementSettings,
 	updateTrackedGitHubRelease,
 } from "@database/repositories/releaseAnnouncementRepository";
-import { embed } from "@lib/discord";
-import { fetchGitHubReleases, releasesAfterCursor, type GitHubRelease, type GitHubRepository } from "@lib/releases";
+import { fetchGitHubReleases, formatGitHubReleaseAnnouncement, releasesAfterCursor, type GitHubRelease, type GitHubRepository } from "@lib/releases";
 
 function repositoryOf(owner: string, repo: string): GitHubRepository {
 	const key = `${owner.toLowerCase()}/${repo.toLowerCase()}`;
@@ -13,29 +12,9 @@ function repositoryOf(owner: string, repo: string): GitHubRepository {
 }
 
 function announcementPayload(repository: GitHubRepository, release: GitHubRelease, roleId: string | null) {
-	const publishedAt = release.published_at === null ? null : Math.floor(Date.parse(release.published_at) / 1_000);
-	const notes = release.body?.trim() ?? "";
-	const truncatedNotes = notes.length > 2_600 ? `${notes.slice(0, 2_600)}\n\n… Release notes truncated.` : notes;
-	const description = [
-		`**${release.name || release.tag_name}**`,
-		`**Version:** \`${release.tag_name}\``,
-		`**Repository:** [${repository.fullName}](https://github.com/${repository.fullName})`,
-		publishedAt === null ? null : `**Published:** <t:${String(publishedAt)}:F> (<t:${String(publishedAt)}:R>)`,
-		"",
-		truncatedNotes || "No release notes were provided.",
-	].filter((line): line is string => line !== null).join("\n");
-
+	const announcement = formatGitHubReleaseAnnouncement(repository, release);
 	return {
-		...(roleId === null ? {} : { content: `<@&${roleId}>` }),
-		embeds: [
-			embed({
-				category: "info",
-				title: `New GitHub release: ${repository.fullName}`,
-				description,
-				url: release.html_url,
-				footer: "GitHub release announcement",
-			}),
-		],
+		content: roleId === null ? announcement : `<@&${roleId}>\n${announcement}`,
 		allowedMentions: { parse: [], roles: roleId === null ? [] : [roleId] },
 	};
 }
