@@ -8,6 +8,11 @@ export interface GitHubRepository {
 	key: string;
 }
 
+export interface GitHubReleaseAsset {
+	name: string;
+	browser_download_url: string;
+}
+
 export interface GitHubRelease {
 	id: number;
 	tag_name: string;
@@ -17,6 +22,7 @@ export interface GitHubRelease {
 	published_at: string | null;
 	draft: boolean;
 	prerelease: boolean;
+	assets?: GitHubReleaseAsset[];
 }
 
 interface CachedReleaseFeed {
