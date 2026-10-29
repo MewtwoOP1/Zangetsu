@@ -103,6 +103,12 @@ export function fields(isDev: boolean): Field[] {
 			check: discordId,
 		},
 		{
+			key: "GITHUB_TOKEN",
+			message: "Optional GitHub token for release announcements",
+			hint: "Useful on shared hosts like Render; use public repository read access only",
+			required: false,
+		},
+		{
 			key: "TMDB_API_READ_ACCESS_TOKEN",
 			message: "TMDB API Read Access Token for movie and TV recommendations",
 			hint: "Free for non-commercial projects; leave blank if only using anime, manga, or light novels",
