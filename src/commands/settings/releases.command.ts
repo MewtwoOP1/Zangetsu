@@ -8,7 +8,12 @@ import {
 	setReleaseAnnouncementTarget,
 } from "@database/repositories/releaseAnnouncementRepository";
 import { embed, reply, successEmbed } from "@lib/discord";
-import { fetchGitHubReleases, formatGitHubReleaseAnnouncement, parseGitHubRepository, type GitHubRelease } from "@lib/releases";
+import {
+	fetchGitHubReleases,
+	formatGitHubReleaseAnnouncement,
+	parseGitHubRepository,
+	type GitHubRelease,
+} from "@lib/releases";
 
 const MAX_TRACKED_REPOSITORIES = 10;
 const DEFAULT_REPOSITORY = { owner: "spyou", repo: "zangetsu", fullName: "spyou/zangetsu", key: "spyou/zangetsu" };
