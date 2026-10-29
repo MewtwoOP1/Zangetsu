@@ -152,7 +152,14 @@ function isRelease(value: unknown): value is GitHubRelease {
 		(release.body === null || typeof release.body === "string") &&
 		(release.published_at === null || typeof release.published_at === "string") &&
 		typeof release.draft === "boolean" &&
-		typeof release.prerelease === "boolean"
+		typeof release.prerelease === "boolean" &&
+		(release.assets === undefined ||
+			(Array.isArray(release.assets) &&
+				release.assets.every((asset) => {
+					if (typeof asset !== "object" || asset === null) return false;
+					const candidate = asset as Record<string, unknown>;
+					return typeof candidate.name === "string" && typeof candidate.browser_download_url === "string";
+				})))
 	);
 }
 
