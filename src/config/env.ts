@@ -26,6 +26,7 @@ const fields = z.object({
 	MONGODB_URI: z.string().min(1, "is required — a MongoDB connection string"),
 
 	// Optional.
+	GITHUB_TOKEN: z.string().min(1).optional(),
 	NODE_ENV: z.enum(["development", "production", "test"]).default("production"),
 	LOG_LEVEL: z.enum(["trace", "debug", "info", "warn", "error", "fatal"]).default("info"),
 	DISCORD_DEV_GUILD_ID: id.optional(),
