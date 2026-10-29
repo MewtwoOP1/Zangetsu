@@ -7,6 +7,10 @@ import {
 	removeTrackedGitHubRepository,
 	setReleaseAnnouncementTarget,
 } from "@database/repositories/releaseAnnouncementRepository";
+import {
+	forceCheckGitHubReleaseAnnouncements,
+	type ForcedReleaseCheckResult,
+} from "@jobs/githubReleaseAnnouncements.util";
 import { embed, reply, successEmbed } from "@lib/discord";
 import {
 	fetchGitHubReleases,
@@ -14,7 +18,6 @@ import {
 	parseGitHubRepository,
 	type GitHubRelease,
 } from "@lib/releases";
-import { forceCheckGitHubReleaseAnnouncements } from "@jobs/githubReleaseAnnouncements.util";
 
 const MAX_TRACKED_REPOSITORIES = 10;
 const DEFAULT_REPOSITORY = { owner: "spyou", repo: "zangetsu", fullName: "spyou/zangetsu", key: "spyou/zangetsu" };
@@ -226,7 +229,7 @@ export default defineCommand({
 							category: "info",
 							title: "GitHub release announcements",
 						description: [
-								`**Channel:** <#${settings.channelId}>`,
+							`**Channel:** <#${settings.channelId}>`,
 								`**Ping role:** ${settings.roleId ? `<@&${settings.roleId}>` : "Disabled"}`,
 								`**Check interval:** Every 10 minutes`,
 								"",
@@ -243,7 +246,7 @@ export default defineCommand({
 			description: "Force an immediate check for new releases in this server.",
 			async run(interaction, client) {
 				const guild = inGuild(interaction);
-				let result;
+				let result: ForcedReleaseCheckResult;
 				try {
 					result = await forceCheckGitHubReleaseAnnouncements(client, guild.id);
 				} catch (error) {
