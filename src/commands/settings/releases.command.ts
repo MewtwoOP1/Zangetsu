@@ -294,7 +294,7 @@ export default defineCommand({
 					embeds: [
 						embed({
 							category: "info",
-							title: `Spyou/Zangetsu v${latestRelease.tag_name} · Test`,
+							title: `Spyou/Zangetsu · ${latestRelease.tag_name} (Test)`,
 							description: [
 								"This test uses the latest published release fetched live from the Spyou/Zangetsu app repository.",
 								`**Release:** ${latestRelease.name?.trim() || latestRelease.tag_name}`,
