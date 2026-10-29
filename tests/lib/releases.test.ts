@@ -14,6 +14,7 @@ const repository: GitHubRepository = {
 	key: "mewtwoop1/zangetsu",
 };
 const originalFetch = globalThis.fetch;
+const originalGitHubToken = process.env.GITHUB_TOKEN;
 
 function release(overrides: Partial<GitHubRelease> = {}): GitHubRelease {
 	return {
@@ -31,10 +32,13 @@ function release(overrides: Partial<GitHubRelease> = {}): GitHubRelease {
 
 beforeEach(() => {
 	resetGitHubReleaseCache();
+	delete process.env.GITHUB_TOKEN;
 });
 
 afterEach(() => {
 	globalThis.fetch = originalFetch;
+	if (originalGitHubToken === undefined) delete process.env.GITHUB_TOKEN;
+	else process.env.GITHUB_TOKEN = originalGitHubToken;
 	jest.restoreAllMocks();
 });
 
@@ -83,6 +87,22 @@ describe("fetchGitHubReleases", () => {
 		);
 	});
 
+	it("uses GITHUB_TOKEN when configured", async () => {
+		const fetchMock = jest.fn();
+		globalThis.fetch = fetchMock as typeof fetch;
+		process.env.GITHUB_TOKEN = "github_pat_example";
+		fetchMock.mockResolvedValueOnce(new Response(JSON.stringify([release()]), { status: 200 }));
+
+		await fetchGitHubReleases(repository);
+
+		expect(fetchMock).toHaveBeenCalledWith(
+			"https://api.github.com/repos/mewtwoop1/zangetsu/releases?per_page=100",
+			expect.objectContaining({
+				headers: expect.objectContaining({ Authorization: "Bearer github_pat_example" }),
+			}),
+		);
+	});
+
 	it("reuses the cached feed when GitHub replies 304, so failed Discord sends can be retried", async () => {
 		const fetchMock = jest.fn();
 		globalThis.fetch = fetchMock as typeof fetch;
@@ -123,7 +143,12 @@ describe("fetchGitHubReleases", () => {
 		fetchMock.mockRejectedValueOnce(new Error("offline"));
 		await expect(fetchGitHubReleases(repository, { forceRefresh: true })).rejects.toThrow("Could not contact GitHub");
 
-		fetchMock.mockResolvedValueOnce(new Response("{}", { status: 403 }));
+		fetchMock.mockResolvedValueOnce(
+			new Response(JSON.stringify({ message: "API rate limit exceeded" }), {
+				status: 403,
+				headers: { "x-ratelimit-remaining": "0", "x-ratelimit-reset": "1793210000" },
+			}),
+		);
 		await expect(fetchGitHubReleases(repository, { forceRefresh: true })).rejects.toThrow("rate limit");
 
 		fetchMock.mockResolvedValueOnce(new Response("{}", { status: 429 }));
