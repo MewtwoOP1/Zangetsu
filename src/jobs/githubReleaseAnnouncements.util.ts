@@ -4,7 +4,13 @@ import {
 	listReleaseAnnouncementSettings,
 	updateTrackedGitHubRelease,
 } from "@database/repositories/releaseAnnouncementRepository";
-import { fetchGitHubReleases, formatGitHubReleaseAnnouncement, releasesAfterCursor, type GitHubRelease, type GitHubRepository } from "@lib/releases";
+import {
+	fetchGitHubReleases,
+	formatGitHubReleaseAnnouncement,
+	releasesAfterCursor,
+	type GitHubRelease,
+	type GitHubRepository,
+} from "@lib/releases";
 
 function repositoryOf(owner: string, repo: string): GitHubRepository {
 	const key = `${owner.toLowerCase()}/${repo.toLowerCase()}`;
