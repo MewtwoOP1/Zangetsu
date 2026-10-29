@@ -41,9 +41,12 @@ describe("parseGitHubRepository", () => {
 
 	it("rejects URLs that do not identify a public GitHub repository root", () => {
 		expect(parseGitHubRepository("https://example.com/owner/repo")).toBeNull();
+		expect(parseGitHubRepository("https://[invalid/owner/repo")).toBeNull();
 		expect(parseGitHubRepository("https://user:pass@github.com/owner/repo")).toBeNull();
 		expect(parseGitHubRepository("https://github.com/owner/repo/releases")).toBeNull();
 		expect(parseGitHubRepository("owner/repo/issues")).toBeNull();
+		expect(parseGitHubRepository("bad_owner/repo")).toBeNull();
+		expect(parseGitHubRepository("owner/repo!")).toBeNull();
 		expect(parseGitHubRepository("owner/..")).toBeNull();
 		expect(parseGitHubRepository("")).toBeNull();
 	});
@@ -97,13 +100,13 @@ describe("fetchGitHubReleases", () => {
 		);
 	});
 
-	it("returns a useful error for public repositories that cannot be fetched", async () => {
+	it("returns a clear message when the repository is private or unavailable", async () => {
 		const fetchMock = jest.fn();
 		globalThis.fetch = fetchMock as typeof fetch;
 		fetchMock.mockResolvedValueOnce(new Response("{}", { status: 404 }));
 
 		await expect(fetchGitHubReleases(repository!, { forceRefresh: true })).rejects.toThrow(
-			"Private repositories need a GitHub token",
+			"Private repositories are not supported by this keyless feature",
 		);
 	});
 
