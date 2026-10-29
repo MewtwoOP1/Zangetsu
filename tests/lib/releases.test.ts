@@ -124,7 +124,9 @@ describe("fetchGitHubReleases", () => {
 		await expect(fetchGitHubReleases(repository!, { forceRefresh: true })).rejects.toThrow("HTTP 500");
 
 		fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ message: "not an array" }), { status: 200 }));
-		await expect(fetchGitHubReleases(repository!, { forceRefresh: true })).rejects.toThrow("unexpected releases response");
+		await expect(fetchGitHubReleases(repository!, { forceRefresh: true })).rejects.toThrow(
+			"unexpected releases response",
+		);
 
 		fetchMock.mockResolvedValueOnce(new Response(JSON.stringify([null]), { status: 200 }));
 		await expect(fetchGitHubReleases(repository!, { forceRefresh: true })).rejects.toThrow("malformed release entry");
