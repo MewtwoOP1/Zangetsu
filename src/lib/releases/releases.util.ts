@@ -1,4 +1,4 @@
-const RELEASE_PAGE_SIZE = 20;
+const RELEASE_PAGE_SIZE = 100;
 const GITHUB_API = "https://api.github.com";
 
 export interface GitHubRepository {
