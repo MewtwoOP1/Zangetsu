@@ -41,7 +41,19 @@ export default defineCommand({
 					throw new UserFacingError("The @everyone role cannot be used for release announcements.");
 				}
 
+				const selectedRole = role ? guild.roles.cache.get(role.id) : null;
+				if (role && !selectedRole) throw new UserFacingError("I could not find that role in this server.");
+
 				const botMember = guild.members.me;
+				if (
+					selectedRole &&
+					!selectedRole.mentionable &&
+					!botMember?.permissions.has(PermissionFlagsBits.MentionEveryone)
+				) {
+					throw new UserFacingError(
+						"To ping this role, enable Allow anyone to @mention this role in Server Settings > Roles, or grant me Mention Everyone permission.",
+					);
+				}
 				if (
 					botMember &&
 					!channel.permissionsFor(botMember)?.has([
