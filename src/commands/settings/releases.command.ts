@@ -8,7 +8,7 @@ import {
 	setReleaseAnnouncementTarget,
 } from "@database/repositories/releaseAnnouncementRepository";
 import { embed, reply, successEmbed } from "@lib/discord";
-import { fetchGitHubReleases, parseGitHubRepository } from "@lib/releases";
+import { fetchGitHubReleases, parseGitHubRepository, type GitHubRelease } from "@lib/releases";
 
 const MAX_TRACKED_REPOSITORIES = 10;
 
@@ -109,14 +109,17 @@ export default defineCommand({
 					throw new UserFacingError(`This server can track up to ${String(MAX_TRACKED_REPOSITORIES)} repositories.`);
 				}
 
-				let releases;
+				let releases: GitHubRelease[];
 				try {
 					releases = await fetchGitHubReleases(repository, { forceRefresh: true });
 				} catch (error) {
 					throw new UserFacingError(error instanceof Error ? error.message : "GitHub could not be reached.");
 				}
 
-				const latest = releases[0] ?? null;
+				const latest =
+					[...releases].sort(
+						(left, right) => Date.parse(right.published_at ?? "") - Date.parse(left.published_at ?? ""),
+					)[0] ?? null;
 				const added = await addTrackedGitHubRepository(guild.id, {
 					owner: repository.owner,
 					repo: repository.repo,
