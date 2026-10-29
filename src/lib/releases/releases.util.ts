@@ -73,7 +73,8 @@ export async function fetchGitHubReleases(
 
 	let response: Response;
 	try {
-		const endpoint = `${GITHUB_API}/repos/${encodeURIComponent(repository.owner)}/${encodeURIComponent(repository.repo)}/releases`;
+		const repositoryPath = `/repos/${encodeURIComponent(repository.owner)}/${encodeURIComponent(repository.repo)}`;
+		const endpoint = `${GITHUB_API}${repositoryPath}/releases`;
 		response = await fetch(`${endpoint}?per_page=${String(RELEASE_PAGE_SIZE)}`, {
 			headers,
 			signal: AbortSignal.timeout(10_000),
