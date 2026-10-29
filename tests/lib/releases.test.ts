@@ -41,8 +41,10 @@ describe("parseGitHubRepository", () => {
 
 	it("rejects URLs that do not identify a public GitHub repository root", () => {
 		expect(parseGitHubRepository("https://example.com/owner/repo")).toBeNull();
+		expect(parseGitHubRepository("https://user:pass@github.com/owner/repo")).toBeNull();
 		expect(parseGitHubRepository("https://github.com/owner/repo/releases")).toBeNull();
 		expect(parseGitHubRepository("owner/repo/issues")).toBeNull();
+		expect(parseGitHubRepository("owner/..")).toBeNull();
 		expect(parseGitHubRepository("")).toBeNull();
 	});
 });
@@ -104,6 +106,29 @@ describe("fetchGitHubReleases", () => {
 			"Private repositories need a GitHub token",
 		);
 	});
+
+	it("surfaces network, rate-limit, server, and malformed-response errors", async () => {
+		const fetchMock = jest.fn();
+		globalThis.fetch = fetchMock as typeof fetch;
+
+		fetchMock.mockRejectedValueOnce(new Error("offline"));
+		await expect(fetchGitHubReleases(repository!, { forceRefresh: true })).rejects.toThrow("Could not contact GitHub");
+
+		fetchMock.mockResolvedValueOnce(new Response("{}", { status: 403 }));
+		await expect(fetchGitHubReleases(repository!, { forceRefresh: true })).rejects.toThrow("rate limit");
+
+		fetchMock.mockResolvedValueOnce(new Response("{}", { status: 429 }));
+		await expect(fetchGitHubReleases(repository!, { forceRefresh: true })).rejects.toThrow("rate limit");
+
+		fetchMock.mockResolvedValueOnce(new Response("{}", { status: 500 }));
+		await expect(fetchGitHubReleases(repository!, { forceRefresh: true })).rejects.toThrow("HTTP 500");
+
+		fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ message: "not an array" }), { status: 200 }));
+		await expect(fetchGitHubReleases(repository!, { forceRefresh: true })).rejects.toThrow("unexpected releases response");
+
+		fetchMock.mockResolvedValueOnce(new Response(JSON.stringify([null]), { status: 200 }));
+		await expect(fetchGitHubReleases(repository!, { forceRefresh: true })).rejects.toThrow("malformed release entry");
+	});
 });
 
 describe("releasesAfterCursor", () => {
@@ -138,5 +163,21 @@ describe("releasesAfterCursor", () => {
 		const newer = release({ id: 32, published_at: "2026-10-30T10:00:00Z" });
 
 		expect(releasesAfterCursor([newer, older], 30, "2026-10-29T10:00:00Z")).toEqual([newer]);
+	});
+
+	it("filters drafts and unpublished releases from candidate announcements", () => {
+		const draft = release({ id: 50, draft: true });
+		const unpublished = release({ id: 51, published_at: null });
+		const published = release({ id: 52 });
+
+		expect(releasesAfterCursor([draft, unpublished, published], null, null)).toEqual([published]);
+	});
+
+	it("uses the release ID as a fallback when the saved publication time is absent", () => {
+		const cursor = release({ id: 60 });
+		const newer = release({ id: 61, published_at: "2026-10-30T10:00:00Z" });
+
+		expect(releasesAfterCursor([newer, cursor], cursor.id, null)).toEqual([newer]);
+		expect(releasesAfterCursor([newer], 999, null)).toEqual([]);
 	});
 });
