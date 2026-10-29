@@ -280,7 +280,7 @@ export default defineCommand({
 				});
 
 				await reply(interaction, {
-					embeds: [successEmbed(`Test announcement sent to <#${settings.channelId}>.`)],
+					content: `Test announcement sent to <#${settings.channelId}>.`,
 				});
 			},
 		},
