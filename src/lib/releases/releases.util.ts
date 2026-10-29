@@ -84,7 +84,9 @@ export async function fetchGitHubReleases(
 
 	if (response.status === 304 && cached) return cached.releases;
 	if (response.status === 404) {
-		throw new Error("GitHub could not find this public repository. Private repositories need a GitHub token, which this feature does not use.");
+		throw new Error(
+			"GitHub could not find this public repository. Private repositories need a GitHub token, which this feature does not use.",
+		);
 	}
 	if (response.status === 403 || response.status === 429) {
 		throw new Error("GitHub's unauthenticated API rate limit was reached. The bot will retry on its next scheduled check.");
@@ -134,18 +136,18 @@ export function releasesAfterCursor(
 
 	if (lastReleaseId === null) return [...published].sort(chronological);
 
-	const cursorIndex = published.findIndex((release) => release.id === lastReleaseId);
-	if (cursorIndex >= 0) return published.slice(0, cursorIndex).sort(chronological);
-
 	const cursorTime = lastReleasePublishedAt === null ? Number.NaN : Date.parse(lastReleasePublishedAt);
-	if (!Number.isFinite(cursorTime)) return [];
+	if (Number.isFinite(cursorTime)) {
+		return published
+			.filter((release) => {
+				const releaseTime = Date.parse(release.published_at ?? "");
+				return releaseTime > cursorTime || (releaseTime === cursorTime && release.id > lastReleaseId);
+			})
+			.sort(chronological);
+	}
 
-	return published
-		.filter((release) => {
-			const releaseTime = Date.parse(release.published_at ?? "");
-			return releaseTime > cursorTime || (releaseTime === cursorTime && release.id > lastReleaseId);
-		})
-		.sort(chronological);
+	const cursorIndex = published.findIndex((release) => release.id === lastReleaseId);
+	return cursorIndex >= 0 ? published.slice(0, cursorIndex).sort(chronological) : [];
 }
 
 export function resetGitHubReleaseCache(): void {
