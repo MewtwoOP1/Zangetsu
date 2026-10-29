@@ -206,7 +206,12 @@ export default defineCommand({
 				}
 
 				const channel = await client.channels.fetch(settings.channelId).catch(() => null);
-				if (!channel?.isTextBased() || !channel.isSendable()) {
+				if (
+					!channel?.isTextBased() ||
+					!channel.isSendable() ||
+					!("guildId" in channel) ||
+					channel.guildId !== guild.id
+				) {
 					throw new UserFacingError("I cannot send messages in the configured announcement channel. Run `/releases setup` with a channel I can access.");
 				}
 
