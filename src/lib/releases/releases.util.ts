@@ -73,10 +73,11 @@ export async function fetchGitHubReleases(
 
 	let response: Response;
 	try {
-		response = await fetch(
-			`${GITHUB_API}/repos/${encodeURIComponent(repository.owner)}/${encodeURIComponent(repository.repo)}/releases?per_page=${String(RELEASE_PAGE_SIZE)}`,
-			{ headers, signal: AbortSignal.timeout(10_000) },
-		);
+		const endpoint = `${GITHUB_API}/repos/${encodeURIComponent(repository.owner)}/${encodeURIComponent(repository.repo)}/releases`;
+		response = await fetch(`${endpoint}?per_page=${String(RELEASE_PAGE_SIZE)}`, {
+			headers,
+			signal: AbortSignal.timeout(10_000),
+		});
 	} catch (error) {
 		const detail = error instanceof Error ? error.message : "network request failed";
 		throw new Error(`Could not contact GitHub: ${detail}`);
@@ -84,12 +85,10 @@ export async function fetchGitHubReleases(
 
 	if (response.status === 304 && cached) return cached.releases;
 	if (response.status === 404) {
-		throw new Error(
-			"GitHub could not find this public repository. Private repositories need a GitHub token, which this feature does not use.",
-		);
+		throw new Error("GitHub could not find this public repository. Private repositories require a GitHub token.");
 	}
 	if (response.status === 403 || response.status === 429) {
-		throw new Error("GitHub's unauthenticated API rate limit was reached. The bot will retry on its next scheduled check.");
+		throw new Error("GitHub's public API rate limit was reached. The bot will retry on the next check.");
 	}
 	if (!response.ok) throw new Error(`GitHub returned HTTP ${String(response.status)}.`);
 
