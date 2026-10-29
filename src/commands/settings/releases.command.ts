@@ -51,7 +51,7 @@ export default defineCommand({
 					!botMember?.permissions.has(PermissionFlagsBits.MentionEveryone)
 				) {
 					throw new UserFacingError(
-						"To ping this role, enable Allow anyone to @mention this role in Server Settings > Roles, or grant me Mention Everyone permission.",
+						"To ping this role, make it mentionable in Server Settings > Roles or grant me Mention Everyone permission.",
 					);
 				}
 				if (
@@ -66,12 +66,9 @@ export default defineCommand({
 				}
 
 				await setReleaseAnnouncementTarget(guild.id, channel.id, role?.id ?? null);
+				const pingStatus = role === null ? "Role pings are disabled." : `The <@&${role.id}> role will be pinged.`;
 				await reply(interaction, {
-					embeds: [
-						successEmbed(
-							`Release announcements will be posted in <#${channel.id}>. ${role ? `The <@&${role.id}> role will be pinged.` : "Role pings are disabled."}`,
-						),
-					],
+					embeds: [successEmbed(`Release announcements will be posted in <#${channel.id}>. ${pingStatus}`)],
 				});
 			},
 		},
@@ -132,8 +129,8 @@ export default defineCommand({
 					embeds: [
 						successEmbed(
 							latest
-								? `Now tracking \`${repository.fullName}\`. Newer releases will be announced; the current release was saved as the starting point.`
-								: `Now tracking \`${repository.fullName}\`. No published releases were found, so the first published release will be announced.`,
+								? `Tracking \`${repository.fullName}\`. Future releases will be announced.`
+								: `Tracking \`${repository.fullName}\`. The first published release will be announced.`,
 						),
 					],
 				});
@@ -212,7 +209,7 @@ export default defineCommand({
 					!("guildId" in channel) ||
 					channel.guildId !== guild.id
 				) {
-					throw new UserFacingError("I cannot send messages in the configured announcement channel. Run `/releases setup` with a channel I can access.");
+					throw new UserFacingError("The configured release channel is unavailable. Run `/releases setup` again with a writable text channel.");
 				}
 
 				await channel.send({
