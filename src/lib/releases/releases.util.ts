@@ -192,8 +192,8 @@ export function formatGitHubReleaseAnnouncement(repository: GitHubRepository, re
 	const isZangetsuApp = repository.owner.toLowerCase() === "spyou" && repository.repo.toLowerCase() === "zangetsu";
 	const version = release.tag_name.trim();
 	const title = isZangetsuApp
-		? \`<:new_icon:1548743773930922075> Zangetsu \${version}\`
-		: \`\${repository.fullName} · \${release.name?.trim() || version}\`;
+		? `<:new_icon:1548743773930922075> Zangetsu ${version}`
+		: `${repository.fullName} · ${release.name?.trim() || version}`;
 	const releaseType = release.prerelease ? "Pre-release" : "Stable Release";
 	const publishedDate = release.published_at
 		? new Date(release.published_at).toLocaleDateString("en-GB", {
@@ -207,25 +207,25 @@ export function formatGitHubReleaseAnnouncement(repository: GitHubRepository, re
 	const parsedNotes = parseReleaseNotes(release.body ?? "");
 	const sectionNames = parsedNotes.sections.map((section) => section.title).filter(Boolean);
 	const summary = parsedNotes.summary || (sectionNames.length > 0
-		? \`A smoother experience with updates to \${formatNaturalList(sectionNames)}.\`
+		? `A smoother experience with updates to ${formatNaturalList(sectionNames)}.`
 		: "A new release with the latest features and improvements.");
 	const highlights = parsedNotes.sections.map((section) => {
 		const bullets = section.bullets.join("; ");
-		return bullets ? \`- **\${section.title}:** \${bullets}\` : "";
+		return bullets ? `- **${section.title}:** ${bullets}` : "";
 	}).filter(Boolean).join("\n") || "- Release notes are available on the GitHub release page.";
 	const downloadLinks = formatReleaseDownloads(release, isZangetsuApp);
 	const footer = isZangetsuApp
 		? "-# Z A N G E T S U  •  O F F I C I A L  R E L E A S E"
-		: \`-# \${repository.fullName.toUpperCase()} · OFFICIAL RELEASE\`;
+		: `-# ${repository.fullName.toUpperCase()} · OFFICIAL RELEASE`;
 
 	// Keep a comfortable margin below Discord's 2,000-character message limit, including a possible role ping.
 	const maxHighlightsLength = 1_000;
 	const shortenedHighlights = highlights.length > maxHighlightsLength
-		? \`\${highlights.slice(0, maxHighlightsLength - 1).trimEnd()}…\`
+		? `${highlights.slice(0, maxHighlightsLength - 1).trimEnd()}…`
 		: highlights;
 	const message = [
 		title,
-		\`-# \${releaseType} · \${publishedDate}\`,
+		`-# ${releaseType} · ${publishedDate}`,
 		"",
 		truncateText(summary, 260),
 		"",
@@ -238,7 +238,7 @@ export function formatGitHubReleaseAnnouncement(repository: GitHubRepository, re
 		footer,
 	].join("\n");
 
-	return message.length > 1_850 ? \`\${message.slice(0, 1_849).trimEnd()}…\` : message;
+	return message.length > 1_850 ? `${message.slice(0, 1_849).trimEnd()}…` : message;
 }
 
 interface ParsedReleaseNoteSection {
@@ -286,7 +286,7 @@ function parseReleaseNotes(body: string): { summary: string; sections: ParsedRel
 		if (/^\|/.test(line)) continue;
 		if (currentSection && currentSection.bullets.length > 0) {
 			const lastIndex = currentSection.bullets.length - 1;
-			currentSection.bullets[lastIndex] = \`\${currentSection.bullets[lastIndex]} \${line}\`;
+			currentSection.bullets[lastIndex] = `${currentSection.bullets[lastIndex]} ${line}`;
 		} else {
 			introLines.push(line);
 		}
@@ -299,8 +299,8 @@ function parseReleaseNotes(body: string): { summary: string; sections: ParsedRel
 
 function formatNaturalList(values: string[]): string {
 	if (values.length <= 1) return values[0] ?? "the app";
-	if (values.length === 2) return \`\${values[0]} and \${values[1]}\`;
-	return \`\${values.slice(0, -1).join(", ")}, and \${values[values.length - 1]}\`;
+	if (values.length === 2) return `${values[0]} and ${values[1]}`;
+	return `${values.slice(0, -1).join(", ")}, and ${values[values.length - 1]}`;
 }
 
 function formatReleaseDownloads(release: GitHubRelease, isZangetsuApp: boolean): string {
@@ -314,17 +314,17 @@ function formatReleaseDownloads(release: GitHubRelease, isZangetsuApp: boolean):
 		];
 		const links = preferred.flatMap(({ label, pattern }) => {
 			const asset = assets.find((candidate) => pattern.test(candidate.name));
-			return asset ? [\`[\${label}](\${asset.browser_download_url})\`] : [];
+			return asset ? [`[${label}](${asset.browser_download_url})`] : [];
 		});
 		return links.length > 0 ? links.join(" · ") : "No APK downloads are attached to this release yet.";
 	}
 
-	const links = assets.slice(0, 5).map((asset) => \`[\${asset.name}](\${asset.browser_download_url})\`);
-	return links.length > 0 ? links.join(" · ") : \`[View release assets](\${release.html_url})\`;
+	const links = assets.slice(0, 5).map((asset) => `[${asset.name}](${asset.browser_download_url})`);
+	return links.length > 0 ? links.join(" · ") : `[View release assets](${release.html_url})`;
 }
 
 function truncateText(value: string, maxLength: number): string {
 	if (value.length <= maxLength) return value;
 	const trimmed = value.slice(0, maxLength - 1).trimEnd();
-	return \`\${trimmed}…\`;
+	return `${trimmed}…`;
 }
