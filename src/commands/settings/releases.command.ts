@@ -14,12 +14,14 @@ import {
 	parseGitHubRepository,
 	type GitHubRelease,
 } from "@lib/releases";
+import { forceCheckGitHubReleaseAnnouncements } from "@jobs/githubReleaseAnnouncements.util";
 
 const MAX_TRACKED_REPOSITORIES = 10;
 const DEFAULT_REPOSITORY = { owner: "spyou", repo: "zangetsu", fullName: "spyou/zangetsu", key: "spyou/zangetsu" };
 
 export default defineCommand({
 	name: "releases",
+	aliases: ["release"],
 	description: "Configure GitHub release announcements for this server.",
 	category: "settings",
 	guildOnly: true,
@@ -223,7 +225,7 @@ export default defineCommand({
 						embed({
 							category: "info",
 							title: "GitHub release announcements",
-							description: [
+						description: [
 								`**Channel:** <#${settings.channelId}>`,
 								`**Ping role:** ${settings.roleId ? `<@&${settings.roleId}>` : "Disabled"}`,
 								`**Check interval:** Every 10 minutes`,
@@ -237,16 +239,50 @@ export default defineCommand({
 			},
 		},
 		{
+			name: "check",
+			description: "Force an immediate check for new releases in this server.",
+			async run(interaction, client) {
+				const guild = inGuild(interaction);
+				let result;
+				try {
+					result = await forceCheckGitHubReleaseAnnouncements(client, guild.id);
+				} catch (error) {
+					throw new UserFacingError(error instanceof Error ? error.message : "The release check failed.");
+				}
+
+				const lines = [
+					"**Forced release check complete.**",
+					`Repositories checked: ${String(result.repositoriesChecked)}`,
+					`New announcements sent: ${String(result.announcementsSent)}`,
+				];
+				if (result.announcementsSent === 0 && result.failures.length === 0) {
+					lines.push("Everything is up to date; there are no new releases to announce.");
+				}
+				if (result.failures.length > 0) {
+					lines.push("", "**Issues**", ...result.failures.slice(0, 5).map((failure) => `- ${failure}`));
+					if (result.failures.length > 5) lines.push(`- And ${String(result.failures.length - 5)} more issue(s).`);
+				}
+				await reply(interaction, { content: lines.join("\n") });
+			},
+		},
+		{
 			name: "test",
-			description: "Preview the latest app release using the official plain-text announcement format.",
+			description: "Send a preview of the latest app release to a chosen channel.",
+			options: [
+				{
+					name: "channel",
+					description: "Where to send the test. Defaults to the configured channel or current channel.",
+					type: "channel",
+				},
+			],
 			async run(interaction, client) {
 				const guild = inGuild(interaction);
 				const settings = await getReleaseAnnouncementSettings(guild.id);
-				if (!settings) {
-					throw new UserFacingError("Release announcements are not set up. Run `/releases setup` first.");
-				}
+				const selectedChannel = interaction.options.getChannel("channel");
+				const channelId = selectedChannel?.id ?? settings?.channelId ?? interaction.channel?.id;
+				if (!channelId) throw new UserFacingError("Choose a channel to send the test announcement to.");
 
-				const channel = await client.channels.fetch(settings.channelId).catch(() => null);
+				const channel = await client.channels.fetch(channelId).catch(() => null);
 				if (
 					!channel?.isTextBased() ||
 					!channel.isSendable() ||
@@ -254,8 +290,19 @@ export default defineCommand({
 					channel.guildId !== guild.id
 				) {
 					throw new UserFacingError(
-						"The configured release channel is unavailable. Run `/releases setup` again with a writable text channel.",
+						"The chosen channel is unavailable, not sendable, or belongs to another server. Pick a writable server text channel.",
 					);
+				}
+
+				const botMember = guild.members.me;
+				if (
+					botMember &&
+					!channel.permissionsFor(botMember)?.has([
+						PermissionFlagsBits.ViewChannel,
+						PermissionFlagsBits.SendMessages,
+					])
+				) {
+					throw new UserFacingError("I need View Channel and Send Messages in the chosen channel.");
 				}
 
 				let releases: GitHubRelease[];
@@ -277,14 +324,15 @@ export default defineCommand({
 					);
 				}
 
+				const roleId = settings?.roleId ?? null;
 				const announcement = formatGitHubReleaseAnnouncement(DEFAULT_REPOSITORY, latestRelease);
 				await channel.send({
-					content: settings.roleId === null ? announcement : `<@&${settings.roleId}>\n${announcement}`,
-					allowedMentions: { parse: [], roles: settings.roleId === null ? [] : [settings.roleId] },
+					content: roleId === null ? announcement : `<@&${roleId}>\n${announcement}`,
+					allowedMentions: { parse: [], roles: roleId === null ? [] : [roleId] },
 				});
 
 				await reply(interaction, {
-					content: `Test announcement sent to <#${settings.channelId}>.`,
+					content: `Test announcement sent to <#${channel.id}>.`,
 				});
 			},
 		},
