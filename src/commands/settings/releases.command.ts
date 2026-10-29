@@ -209,7 +209,9 @@ export default defineCommand({
 					!("guildId" in channel) ||
 					channel.guildId !== guild.id
 				) {
-					throw new UserFacingError("The configured release channel is unavailable. Run `/releases setup` again with a writable text channel.");
+					throw new UserFacingError(
+						"The configured release channel is unavailable. Run `/releases setup` again with a writable text channel.",
+					);
 				}
 
 				await channel.send({
