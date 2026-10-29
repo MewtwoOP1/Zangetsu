@@ -60,10 +60,9 @@ export default defineCommand({
 					!channel.permissionsFor(botMember)?.has([
 						PermissionFlagsBits.ViewChannel,
 						PermissionFlagsBits.SendMessages,
-						PermissionFlagsBits.EmbedLinks,
 					])
 				) {
-					throw new UserFacingError("I need View Channel, Send Messages, and Embed Links in the selected channel.");
+					throw new UserFacingError("I need View Channel and Send Messages in the selected channel.");
 				}
 
 				const existingSettings = await getReleaseAnnouncementSettings(guild.id);
