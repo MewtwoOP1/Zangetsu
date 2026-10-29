@@ -86,7 +86,7 @@ export async function fetchGitHubReleases(
 
 	if (response.status === 304 && cached) return cached.releases;
 	if (response.status === 404) {
-		throw new Error("GitHub could not find this public repository. Private repositories require a GitHub token.");
+		throw new Error("GitHub could not find this public repository. Private repositories are not supported by this keyless feature.");
 	}
 	if (response.status === 403 || response.status === 429) {
 		throw new Error("GitHub's public API rate limit was reached. The bot will retry on the next check.");
