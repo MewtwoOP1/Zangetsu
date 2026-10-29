@@ -259,12 +259,12 @@ export default defineCommand({
 					embeds: [
 						embed({
 							category: "info",
-							title: "GitHub release announcements test",
+							title: "Spyou/Zangetsu release announcements test",
 							description:
-								"This is a test message from Zangetsu. The announcement channel and embed are working. " +
-								"Future announcements will include the release version, repository, publication date, and release notes.",
-							url: "https://github.com/MewtwoOP1/Zangetsu/releases",
-							footer: "Test announcement · no release was published",
+								"This is a test message for the Spyou/Zangetsu app release feed. The announcement channel and embed are working. " +
+								"Future announcements will include the app release version, publication date, and release notes.",
+							url: "https://github.com/Spyou/Zangetsu/releases",
+							footer: "Test announcement · no app release was published",
 						}),
 					],
 					allowedMentions: { parse: [], roles: settings.roleId === null ? [] : [settings.roleId] },
