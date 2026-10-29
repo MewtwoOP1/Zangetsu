@@ -11,6 +11,7 @@ import { embed, reply, successEmbed } from "@lib/discord";
 import { fetchGitHubReleases, parseGitHubRepository, type GitHubRelease } from "@lib/releases";
 
 const MAX_TRACKED_REPOSITORIES = 10;
+const DEFAULT_REPOSITORY = { owner: "spyou", repo: "zangetsu", fullName: "spyou/zangetsu", key: "spyou/zangetsu" };
 
 export default defineCommand({
 	name: "releases",
@@ -65,10 +66,49 @@ export default defineCommand({
 					throw new UserFacingError("I need View Channel, Send Messages, and Embed Links in the selected channel.");
 				}
 
+				const existingSettings = await getReleaseAnnouncementSettings(guild.id);
+				const defaultAlreadyTracked = existingSettings?.repositories.some(
+					(tracked) =>
+						tracked.owner.toLowerCase() === DEFAULT_REPOSITORY.owner &&
+						tracked.repo.toLowerCase() === DEFAULT_REPOSITORY.repo,
+				) ?? false;
+
+				let latestDefaultRelease: GitHubRelease | null = null;
+				if (!defaultAlreadyTracked) {
+					if ((existingSettings?.repositories.length ?? 0) >= MAX_TRACKED_REPOSITORIES) {
+						throw new UserFacingError(
+							`This server already tracks ${String(MAX_TRACKED_REPOSITORIES)} repositories. Remove one before setting up the default Spyou/Zangetsu feed.`,
+						);
+					}
+					try {
+						const releases = await fetchGitHubReleases(DEFAULT_REPOSITORY);
+						latestDefaultRelease =
+							[...releases].sort(
+								(left, right) => Date.parse(right.published_at ?? "") - Date.parse(left.published_at ?? ""),
+							)[0] ?? null;
+					} catch (error) {
+						throw new UserFacingError(
+							`Could not initialize the default Spyou/Zangetsu release feed: ${error instanceof Error ? error.message : "GitHub could not be reached."}`,
+						);
+					}
+				}
+
 				await setReleaseAnnouncementTarget(guild.id, channel.id, role?.id ?? null);
+				if (!defaultAlreadyTracked) {
+					await addTrackedGitHubRepository(guild.id, {
+						owner: DEFAULT_REPOSITORY.owner,
+						repo: DEFAULT_REPOSITORY.repo,
+						lastReleaseId: latestDefaultRelease?.id ?? null,
+						lastReleasePublishedAt: latestDefaultRelease?.published_at ?? null,
+					});
+				}
 				const pingStatus = role === null ? "Role pings are disabled." : `The <@&${role.id}> role will be pinged.`;
 				await reply(interaction, {
-					embeds: [successEmbed(`Release announcements will be posted in <#${channel.id}>. ${pingStatus}`)],
+					embeds: [
+						successEmbed(
+							`Release announcements will be posted in <#${channel.id}>. Spyou/Zangetsu is tracked by default. ${pingStatus}`,
+						),
+					],
 				});
 			},
 		},
