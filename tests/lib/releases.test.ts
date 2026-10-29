@@ -4,9 +4,15 @@ import {
 	releasesAfterCursor,
 	resetGitHubReleaseCache,
 	type GitHubRelease,
+	type GitHubRepository,
 } from "@lib/releases";
 
-const repository = parseGitHubRepository("MewtwoOP1/Zangetsu");
+const repository: GitHubRepository = {
+	owner: "mewtwoop1",
+	repo: "zangetsu",
+	fullName: "mewtwoop1/zangetsu",
+	key: "mewtwoop1/zangetsu",
+};
 const originalFetch = globalThis.fetch;
 
 function release(overrides: Partial<GitHubRelease> = {}): GitHubRelease {
@@ -66,7 +72,7 @@ describe("fetchGitHubReleases", () => {
 			),
 		);
 
-		const result = await fetchGitHubReleases(repository!);
+		const result = await fetchGitHubReleases(repository);
 
 		expect(result).toEqual([release()]);
 		expect(fetchMock).toHaveBeenCalledWith(
@@ -89,8 +95,8 @@ describe("fetchGitHubReleases", () => {
 			)
 			.mockResolvedValueOnce(new Response(null, { status: 304 }));
 
-		const first = await fetchGitHubReleases(repository!);
-		const second = await fetchGitHubReleases(repository!);
+		const first = await fetchGitHubReleases(repository);
+		const second = await fetchGitHubReleases(repository);
 
 		expect(second).toEqual(first);
 		expect(fetchMock.mock.calls[1]?.[1]).toEqual(
@@ -105,7 +111,7 @@ describe("fetchGitHubReleases", () => {
 		globalThis.fetch = fetchMock as typeof fetch;
 		fetchMock.mockResolvedValueOnce(new Response("{}", { status: 404 }));
 
-		await expect(fetchGitHubReleases(repository!, { forceRefresh: true })).rejects.toThrow(
+		await expect(fetchGitHubReleases(repository, { forceRefresh: true })).rejects.toThrow(
 			"Private repositories are not supported by this keyless feature",
 		);
 	});
@@ -115,24 +121,24 @@ describe("fetchGitHubReleases", () => {
 		globalThis.fetch = fetchMock as typeof fetch;
 
 		fetchMock.mockRejectedValueOnce(new Error("offline"));
-		await expect(fetchGitHubReleases(repository!, { forceRefresh: true })).rejects.toThrow("Could not contact GitHub");
+		await expect(fetchGitHubReleases(repository, { forceRefresh: true })).rejects.toThrow("Could not contact GitHub");
 
 		fetchMock.mockResolvedValueOnce(new Response("{}", { status: 403 }));
-		await expect(fetchGitHubReleases(repository!, { forceRefresh: true })).rejects.toThrow("rate limit");
+		await expect(fetchGitHubReleases(repository, { forceRefresh: true })).rejects.toThrow("rate limit");
 
 		fetchMock.mockResolvedValueOnce(new Response("{}", { status: 429 }));
-		await expect(fetchGitHubReleases(repository!, { forceRefresh: true })).rejects.toThrow("rate limit");
+		await expect(fetchGitHubReleases(repository, { forceRefresh: true })).rejects.toThrow("rate limit");
 
 		fetchMock.mockResolvedValueOnce(new Response("{}", { status: 500 }));
-		await expect(fetchGitHubReleases(repository!, { forceRefresh: true })).rejects.toThrow("HTTP 500");
+		await expect(fetchGitHubReleases(repository, { forceRefresh: true })).rejects.toThrow("HTTP 500");
 
 		fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ message: "not an array" }), { status: 200 }));
-		await expect(fetchGitHubReleases(repository!, { forceRefresh: true })).rejects.toThrow(
+		await expect(fetchGitHubReleases(repository, { forceRefresh: true })).rejects.toThrow(
 			"unexpected releases response",
 		);
 
 		fetchMock.mockResolvedValueOnce(new Response(JSON.stringify([null]), { status: 200 }));
-		await expect(fetchGitHubReleases(repository!, { forceRefresh: true })).rejects.toThrow("malformed release entry");
+		await expect(fetchGitHubReleases(repository, { forceRefresh: true })).rejects.toThrow("malformed release entry");
 	});
 });
 
