@@ -4,7 +4,7 @@ import { botName } from "@core/brand";
 import { defineMessageHandler } from "@core/message";
 import { parseMessage } from "@core/prefix";
 import { getPrefix } from "@database/repositories/settingsRepository";
-import { askZangetsu, type AssistantTurn } from "@lib/assistant/zangetsuAssistant.util";
+import { askZangetsu, formatOwnerRelationshipReply, type AssistantTurn } from "@lib/assistant/zangetsuAssistant.util";
 import { embed, linkButton, row } from "@lib/discord";
 
 interface Conversation {
@@ -16,7 +16,7 @@ interface Conversation {
 const CONVERSATION_TTL_MS = 20 * 60_000;
 const USER_COOLDOWN_MS = 7_000;
 const MAX_CONVERSATIONS = 500;
-const MAX_HISTORY_MESSAGES = 6;
+const MAX_HISTORY_MESSAGES = 4;
 
 const conversations = new Map<string, Conversation>();
 const cooldowns = new Map<string, number>();
@@ -71,7 +71,8 @@ export default defineMessageHandler({
 	order: 5,
 	async run(message, client) {
 		const botId = client.user?.id;
-		if (botId === undefined || message.author.bot || !message.channel.isSendable()) return;
+		const ownerId = client.env.DISCORD_OWNER_IDS[0];
+		if (botId === undefined || ownerId === undefined || message.author.bot || !message.channel.isSendable()) return;
 
 		const key = conversationKey(message.channelId, message.author.id);
 		const now = Date.now();
@@ -116,9 +117,9 @@ export default defineMessageHandler({
 			return true;
 		}
 
-		if (question.length > 1_800) {
+		if (question.length > 1_200) {
 			await message.reply({
-				content: "That is a bit long for one message. Send the main question first and we can work through the rest.",
+				content: "That is a bit long for one message. Send the main point first and we can work through the rest.",
 				allowedMentions: { parse: [] },
 			});
 			return true;
@@ -146,11 +147,12 @@ export default defineMessageHandler({
 			const answer = await askZangetsu({
 				question,
 				history: conversation.history,
+				ownerId,
 				apiKey: client.env.GROQ_API_KEY,
 				model: client.env.RECOMMENDATION_AI_MODEL,
 			});
 			const reply = await message.reply({
-				content: answer,
+				content: formatOwnerRelationshipReply(answer, ownerId),
 				allowedMentions: { parse: [] },
 			});
 
