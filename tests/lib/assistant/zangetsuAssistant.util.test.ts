@@ -74,7 +74,7 @@ describe("askZangetsu", () => {
     const payload = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
     expect(payload.model).toBe("openai/gpt-oss-20b");
     expect(payload.messages[0].role).toBe("system");
-    expect(payload.messages.at(-2)).toEqual({ role: "user", content: "hi" });
+    expect(payload.messages.at(-3)).toEqual({ role: "user", content: "hi" });
     expect(payload.messages.at(-1)).toEqual({ role: "user", content: "what are you doing?" });
   });
 
