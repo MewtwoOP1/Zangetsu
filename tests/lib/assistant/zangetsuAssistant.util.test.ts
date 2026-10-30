@@ -9,7 +9,7 @@ import {
 
 describe("Zangetsu assistant knowledge", () => {
 	it("defines one shared girlfriend persona and one configured boyfriend", () => {
-		const prompt = buildZangetsuSystemPrompt("12345678901234567");
+		const prompt = buildZangetsuSystemPrompt("12345678901234567", "22345678901234567");
 		expect(prompt).toContain("fictional adult anime-girl companion");
 		expect(prompt).toContain("IDENTITY LINE");
 		expect(prompt).toContain("playfully savage");
@@ -17,11 +17,12 @@ describe("Zangetsu assistant knowledge", () => {
 		expect(prompt).toContain("No spammed");
 		expect(prompt).toContain("The one and only boyfriend is the bot owner, Discord ID 12345678901234567");
 		expect(prompt).toContain("Every other person is a server member/friend");
+		expect(prompt).toContain("is a server member/friend, not your boyfriend");
 		expect(prompt).toContain("Same personality for all");
 	});
 
 	it("explicitly excludes source-repository names, lists, and links", () => {
-		const prompt = buildZangetsuSystemPrompt("12345678901234567");
+		const prompt = buildZangetsuSystemPrompt("12345678901234567", "22345678901234567");
 		expect(prompt).toContain("never name, list, recommend, rank, or link source repositories");
 		expect(prompt).not.toContain("github.com/");
 		expect(prompt).not.toContain("MewtwoOP1");
@@ -73,6 +74,7 @@ describe("askZangetsu", () => {
 			history: [{ role: "user", content: "hi" }, { role: "assistant", content: "Hey!" }],
 			apiKey: "test-groq-key",
 			ownerId: "12345678901234567",
+			speakerId: "22345678901234567",
 			model: "openai/gpt-oss-20b",
 		})).resolves.toBe("Just chatting with the community. What about you?");
 
@@ -101,7 +103,7 @@ describe("askZangetsu", () => {
 				status: 200, headers: { "content-type": "application/json" },
 			}),
 		);
-		await askZangetsu({ question: "What are you doing?", ownerId: "12345678901234567", apiKey: "test-key" });
+		await askZangetsu({ question: "What are you doing?", ownerId: "12345678901234567", speakerId: "22345678901234567", apiKey: "test-key" });
 		const payload = JSON.parse(String(jest.mocked(global.fetch).mock.calls[0]?.[1]?.body));
 		expect(payload.messages[0].content).not.toContain("mpv playback");
 	});
@@ -116,6 +118,7 @@ describe("askZangetsu", () => {
 		await askZangetsu({
 			question: "hi",
 			ownerId: "12345678901234567",
+			speakerId: "22345678901234567",
 			apiKey: "test-key",
 			model: "openrouter/auto",
 		});
