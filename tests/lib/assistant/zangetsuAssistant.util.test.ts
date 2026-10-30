@@ -106,8 +106,10 @@ describe("askZangetsu", () => {
 		);
 		const payload = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
 		expect(payload.model).toBe("openai/gpt-oss-20b");
-		expect(payload.max_completion_tokens).toBe(320);
-		expect(payload.temperature).toBe(0.8);
+		expect(payload.max_completion_tokens).toBe(1_024);
+		expect(payload.temperature).toBe(0.7);
+		expect(payload.reasoning_effort).toBe("low");
+		expect(payload.include_reasoning).toBe(false);
 		expect(payload.messages[0].role).toBe("system");
 		expect(payload.messages[0].content).toContain("mpv playback");
 		expect(payload.messages[0].content).toContain("Android TV");
@@ -153,6 +155,6 @@ describe("askZangetsu", () => {
 				status: 200, headers: { "content-type": "application/json" },
 			}),
 		);
-		await expect(askZangetsu({ question: "hi", ownerId: "12345678901234567", speakerId: "22345678901234567", apiKey: "key" })).rejects.toThrow("empty assistant reply");
+		await expect(askZangetsu({ question: "hi", ownerId: "12345678901234567", speakerId: "22345678901234567", apiKey: "key" })).rejects.toThrow("no visible text");
 	});
 });
