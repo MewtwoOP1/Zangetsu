@@ -149,6 +149,7 @@ export default defineMessageHandler({
 				question,
 				history: conversation.history,
 				ownerId,
+				speakerId: message.author.id,
 				apiKey: client.env.GROQ_API_KEY,
 				model: client.env.RECOMMENDATION_AI_MODEL,
 			});
