@@ -27,6 +27,7 @@ const MAX_COMPLETION_TOKENS = 1_024;
 
 const responseSchema = z.object({
 	choices: z.array(z.object({
+		finish_reason: z.string().nullable().optional(),
 		message: z.object({
 			content: z.string().nullable().optional(),
 		}),
