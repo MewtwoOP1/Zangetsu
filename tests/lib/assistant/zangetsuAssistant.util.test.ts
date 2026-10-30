@@ -58,6 +58,7 @@ describe("Zangetsu assistant knowledge", () => {
 		const ownerId = "12345678901234567";
 		const memberId = "22345678901234567";
 		expect(isRomanticAdvance("I love you so much!", memberId, ownerId)).toBe(true);
+		expect(isRomanticAdvance("Any plans to make my heart skip a beat?", memberId, ownerId)).toBe(true);
 		expect(isRomanticAdvance("Are you single?", memberId, ownerId)).toBe(true);
 		expect(isRomanticAdvance("You're so cute", memberId, ownerId)).toBe(false);
 		expect(isRomanticAdvance("How are you today?", memberId, ownerId)).toBe(false);
@@ -71,6 +72,7 @@ describe("Zangetsu assistant knowledge", () => {
 	it("removes accidental owner claims and duplicate owner mentions from model output", () => {
 		const messy = "I'm <@12345678901234567>'s girlfriend, obviously. You are <@12345678901234567>'s girlfriend.\nHey hun! How are you?";
 		expect(cleanAssistantReply(messy, "12345678901234567")).toBe("Hey hun! How are you?");
+		expect(cleanAssistantReply("I am already taken, sorry. Let's chat as friends.", "12345678901234567")).toBe("Let's chat as friends.");
 	});
 
 });
