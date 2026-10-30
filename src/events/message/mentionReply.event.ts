@@ -113,7 +113,7 @@ export default defineMessageHandler({
 					}),
 				],
 				components: [row(linkButton("Source code", theme.repository), linkButton("Support", theme.supportServer))],
-				allowedMentions: { parse: [] },
+				allowedMentions: { users: [ownerId] },
 			});
 			return true;
 		}
@@ -121,7 +121,7 @@ export default defineMessageHandler({
 		if (question.length > 1_000) {
 			await message.reply({
 				content: formatOwnerRelationshipReply("That is a bit long for one message. Send the main point first and we can work through the rest.", ownerId),
-				allowedMentions: { parse: [] },
+				allowedMentions: { users: [ownerId] },
 			});
 			return true;
 		}
@@ -129,7 +129,7 @@ export default defineMessageHandler({
 		if (!client.env.GROQ_API_KEY) {
 			await message.reply({
 				content: formatOwnerRelationshipReply("My Groq connection is not configured yet. The commands still work, though.", ownerId),
-				allowedMentions: { parse: [] },
+				allowedMentions: { users: [ownerId] },
 			});
 			return true;
 		}
@@ -155,7 +155,7 @@ export default defineMessageHandler({
 			});
 			const reply = await message.reply({
 				content: formatOwnerRelationshipReply(answer, ownerId),
-				allowedMentions: { parse: [] },
+				allowedMentions: { users: [ownerId] },
 			});
 
 			conversation.history.push(
@@ -169,7 +169,7 @@ export default defineMessageHandler({
 			client.logger.warn({ err: error }, "Zangetsu AI conversation failed");
 			await message.reply({
 				content: formatOwnerRelationshipReply("I lost my connection for a moment. Try again in a little while.", ownerId),
-				allowedMentions: { parse: [] },
+				allowedMentions: { users: [ownerId] },
 			});
 		}
 
