@@ -16,7 +16,7 @@ interface Conversation {
 const CONVERSATION_TTL_MS = 20 * 60_000;
 const USER_COOLDOWN_MS = 7_000;
 const MAX_CONVERSATIONS = 500;
-const MAX_HISTORY_MESSAGES = 10;
+const MAX_HISTORY_MESSAGES = 6;
 
 const conversations = new Map<string, Conversation>();
 const cooldowns = new Map<string, number>();
