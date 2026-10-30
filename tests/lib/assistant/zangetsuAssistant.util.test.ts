@@ -19,6 +19,7 @@ describe("Zangetsu assistant knowledge", () => {
 		expect(prompt).toContain("Every other person is a server member/friend");
 		expect(prompt).toContain("is a server member/friend, not your boyfriend");
 		expect(prompt).toContain("Same personality for all");
+		expect(buildZangetsuSystemPrompt("12345678901234567", "12345678901234567")).toContain("is your boyfriend. Address him with natural affection");
 	});
 
 	it("explicitly excludes source-repository names, lists, and links", () => {
@@ -40,6 +41,7 @@ describe("Zangetsu assistant knowledge", () => {
 		expect(ZANGETSU_ASSISTANT_LIMITS.historyChars).toBe(600);
 		expect(ZANGETSU_ASSISTANT_LIMITS.questionChars).toBe(1_000);
 		expect(ZANGETSU_ASSISTANT_LIMITS.replyChars).toBe(1_600);
+		expect(ZANGETSU_ASSISTANT_LIMITS.completionTokens).toBe(320);
 	});
 
 	it("limits long history messages and strips source-repository URLs from replies", () => {
@@ -127,14 +129,14 @@ describe("askZangetsu", () => {
 	});
 
 	it("rejects empty questions, missing keys, and empty model responses", async () => {
-		await expect(askZangetsu({ question: "  ", ownerId: "12345678901234567", apiKey: "key" })).rejects.toThrow("needs a question");
-		await expect(askZangetsu({ question: "hi", ownerId: "12345678901234567", apiKey: "" })).rejects.toThrow("Groq is not configured");
+		await expect(askZangetsu({ question: "  ", ownerId: "12345678901234567", speakerId: "22345678901234567", apiKey: "key" })).rejects.toThrow("needs a question");
+		await expect(askZangetsu({ question: "hi", ownerId: "12345678901234567", speakerId: "22345678901234567", apiKey: "" })).rejects.toThrow("Groq is not configured");
 
 		jest.spyOn(global, "fetch").mockResolvedValue(
 			new Response(JSON.stringify({ choices: [{ message: { content: " " } }] }), {
 				status: 200, headers: { "content-type": "application/json" },
 			}),
 		);
-		await expect(askZangetsu({ question: "hi", ownerId: "12345678901234567", apiKey: "key" })).rejects.toThrow("empty assistant reply");
+		await expect(askZangetsu({ question: "hi", ownerId: "12345678901234567", speakerId: "22345678901234567", apiKey: "key" })).rejects.toThrow("empty assistant reply");
 	});
 });
