@@ -12,7 +12,8 @@ describe("Zangetsu assistant knowledge", () => {
 	it("defines one shared girlfriend persona and one configured boyfriend", () => {
 		const prompt = buildZangetsuSystemPrompt("12345678901234567", "22345678901234567");
 		expect(prompt).toContain("fictional adult anime-girl companion");
-		expect(prompt).toContain("IDENTITY LINE");
+		expect(prompt).toContain("Do NOT mention the owner's name");
+		expect(prompt).toContain("Never prepend a relationship disclaimer");
 		expect(prompt).toContain("playfully savage");
 		expect(prompt).toContain("drop sarcasm for distress");
 		expect(prompt).toContain("No spammed");
