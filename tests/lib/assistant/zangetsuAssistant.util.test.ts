@@ -2,7 +2,8 @@ import {
 	askZangetsu,
 	buildZangetsuSystemPrompt,
 	cleanAssistantReply,
-	formatOwnerRelationshipReply,
+	formatAssistantReply,
+	isRomanticAdvance,
 	trimAssistantHistory,
 	ZANGETSU_ASSISTANT_LIMITS,
 } from "@lib/assistant/zangetsuAssistant.util";
@@ -52,11 +53,23 @@ describe("Zangetsu assistant knowledge", () => {
 			"[source-repository link omitted]",
 		);
 	});
-	it("adds the real configured owner mention to every reply", () => {
-		expect(formatOwnerRelationshipReply("What do you need?", "12345678901234567")).toBe(
-			"I'm <@12345678901234567>'s girlfriend, obviously. What do you need?",
+	it("mentions the owner only for explicit romantic advances from members", () => {
+		const ownerId = "12345678901234567";
+		const memberId = "22345678901234567";
+		expect(isRomanticAdvance("I love you so much!", memberId, ownerId)).toBe(true);
+		expect(isRomanticAdvance("Are you single?", memberId, ownerId)).toBe(true);
+		expect(isRomanticAdvance("You're so cute", memberId, ownerId)).toBe(false);
+		expect(isRomanticAdvance("How are you today?", memberId, ownerId)).toBe(false);
+		expect(isRomanticAdvance("I love you", ownerId, ownerId)).toBe(false);
+		expect(formatAssistantReply("Aww, that's sweet.", ownerId, false)).toBe("Aww, that's sweet.");
+		expect(formatAssistantReply("Aww, that's sweet.", ownerId, true)).toBe(
+			"Aww, that's sweet.\\n\\nI'm already taken — <@12345678901234567>'s my boyfriend.",
 		);
-		expect(() => formatOwnerRelationshipReply("Hi", "not-an-id")).toThrow("valid bot owner ID");
+	});
+
+	it("removes accidental owner claims and duplicate owner mentions from model output", () => {
+		const messy = "I'm <@12345678901234567>'s girlfriend, obviously. You are <@12345678901234567>'s girlfriend.\\nHey hun! How are you?";
+		expect(cleanAssistantReply(messy, "12345678901234567")).toBe("Hey hun! How are you?");
 	});
 
 });
