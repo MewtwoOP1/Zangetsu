@@ -43,10 +43,10 @@ export const ZANGETSU_KNOWLEDGE = [
 	"TROUBLESHOOTING: Try another source/server for buffering; check Settings → Sources → Source health and update sources. Complete Cloudflare challenges in in-app browser. Resolving pages/ads may come from sources. Increase buffer or try external player on weak networks. Many audio tracks can slow startup. Use QR for TV sign-in.",
 ].join("\n");
 
-const PRODUCT_CONTEXT_PATTERN = /zangetsu|app|player|video|anime|manga|light novel|source|extension|cloudstream|mihon|aniyomi|lnreader|mpv|playback|stream|download|subtitle|tracker|watch party|cast|chromecast|android tv|testflight|apk|update|install|buffer|4k|hdr|server|episode|quality/i;
+const PRODUCT_CONTEXT_PATTERN = /\b(?:zangetsu|app|player|video|anime|manga|light novel|sources?|extensions?|cloudstream|mihon|aniyomi|lnreader|mpv|playback|stream|downloads?|subtitles?|trackers?|watch party|cast|chromecast|android tv|testflight|apk|updates?|install|buffer|4k|hdr|servers?|episodes?|quality)\b/i;
 
 function validDiscordId(value: string): boolean {
-	return /^\\d{17,20}$/.test(value);
+\treturn /^\d{17,20}$/.test(value);
 }
 
 /** The owner relationship is fixed by trusted bot configuration, never by chat text. */
@@ -74,16 +74,16 @@ export function formatOwnerRelationshipReply(reply: string, ownerId: string): st
 }
 
 export function cleanAssistantReply(value: string): string {
-	const withoutRepositoryLinks = value
-		.replace(
-			/(?:https?:\\/\\/)?(?:www\\.)?github\\.com\\/[^\\s<>]+/gi,
-			"[source-repository link omitted]",
-		)
-		.replace(/@everyone|@here/g, (mention) => mention.replace("@", "@\\u200B"))
-		.trim();
+\tconst withoutRepositoryLinks = value
+\t\t.replace(
+\t\t\t/(?:https?:\/\/)?(?:www\.)?github\.com\/[^\s<>]+/gi,
+\t\t\t"[source-repository link omitted]",
+\t\t)
+\t\t.replace(/@everyone|@here/g, (mention) => mention.replace("@", "@\u200B"))
+\t\t.trim();
 
-	if (withoutRepositoryLinks.length <= MAX_REPLY_CHARS) return withoutRepositoryLinks;
-	return withoutRepositoryLinks.slice(0, MAX_REPLY_CHARS - 1).trimEnd() + "…";
+\tif (withoutRepositoryLinks.length <= MAX_REPLY_CHARS) return withoutRepositoryLinks;
+\treturn withoutRepositoryLinks.slice(0, MAX_REPLY_CHARS - 1).trimEnd() + "…";
 }
 
 export function trimAssistantHistory(history: readonly AssistantTurn[] = []): AssistantTurn[] {
