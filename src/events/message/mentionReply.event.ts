@@ -4,7 +4,7 @@ import { botName } from "@core/brand";
 import { defineMessageHandler } from "@core/message";
 import { parseMessage } from "@core/prefix";
 import { getPrefix } from "@database/repositories/settingsRepository";
-import { askZangetsu, formatOwnerRelationshipReply, type AssistantTurn } from "@lib/assistant/zangetsuAssistant.util";
+import { askZangetsu, formatAssistantReply, isRomanticAdvance, type AssistantTurn } from "@lib/assistant/zangetsuAssistant.util";
 import { embed, linkButton, row } from "@lib/discord";
 
 interface Conversation {
@@ -103,7 +103,7 @@ export default defineMessageHandler({
 		// A bare mention keeps the existing compact introduction and help buttons.
 		if (!question) {
 			await message.reply({
-				content: formatOwnerRelationshipReply(`Mention me with a message to chat, or use /help or ${prefix}help to see my commands.`, ownerId),
+				content: `Mention me with a message to chat, or use /help or ${prefix}help to see my commands.`,
 				embeds: [
 					embed({
 						category: "info",
@@ -113,23 +113,23 @@ export default defineMessageHandler({
 					}),
 				],
 				components: [row(linkButton("Source code", theme.repository), linkButton("Support", theme.supportServer))],
-				allowedMentions: { users: [ownerId] },
+				allowedMentions: { parse: [] },
 			});
 			return true;
 		}
 
 		if (question.length > 1_000) {
 			await message.reply({
-				content: formatOwnerRelationshipReply("That is a bit long for one message. Send the main point first and we can work through the rest.", ownerId),
-				allowedMentions: { users: [ownerId] },
+				content: "That is a bit long for one message. Send the main point first and we can work through the rest.",
+				allowedMentions: { parse: [] },
 			});
 			return true;
 		}
 
 		if (!client.env.GROQ_API_KEY) {
 			await message.reply({
-				content: formatOwnerRelationshipReply("My Groq connection is not configured yet. The commands still work, though.", ownerId),
-				allowedMentions: { users: [ownerId] },
+				content: "My Groq connection is not configured yet. The commands still work, though.",
+				allowedMentions: { parse: [] },
 			});
 			return true;
 		}
@@ -154,8 +154,8 @@ export default defineMessageHandler({
 				model: client.env.RECOMMENDATION_AI_MODEL,
 			});
 			const reply = await message.reply({
-				content: formatOwnerRelationshipReply(answer, ownerId),
-				allowedMentions: { users: [ownerId] },
+				content: formatAssistantReply(answer, ownerId, isRomanticAdvance(question, message.author.id, ownerId)),
+				allowedMentions: { users: isRomanticAdvance(question, message.author.id, ownerId) ? [ownerId] : [] },
 			});
 
 			conversation.history.push(
@@ -168,8 +168,8 @@ export default defineMessageHandler({
 		} catch (error) {
 			client.logger.warn({ err: error }, "Zangetsu AI conversation failed");
 			await message.reply({
-				content: formatOwnerRelationshipReply("I lost my connection for a moment. Try again in a little while.", ownerId),
-				allowedMentions: { users: [ownerId] },
+				content: "I lost my connection for a moment. Try again in a little while.",
+				allowedMentions: { parse: [] },
 			});
 		}
 
