@@ -23,10 +23,11 @@ const MAX_HISTORY_MESSAGES = 4;
 const MAX_HISTORY_CHARS = 600;
 const MAX_QUESTION_CHARS = 1_000;
 const MAX_REPLY_CHARS = 1_600;
-const MAX_COMPLETION_TOKENS = 320;
+const MAX_COMPLETION_TOKENS = 1_024;
 
 const responseSchema = z.object({
 	choices: z.array(z.object({
+		finish_reason: z.string().nullable().optional(),
 		message: z.object({
 			content: z.string().nullable().optional(),
 		}),
@@ -151,8 +152,9 @@ export async function askZangetsu(input: AskZangetsuInput): Promise<string> {
 		},
 		body: JSON.stringify({
 			model,
-			temperature: 0.8,
+			temperature: 0.7,
 			max_completion_tokens: MAX_COMPLETION_TOKENS,
+			...(model.startsWith("openai/gpt-oss-") ? { reasoning_effort: "low", include_reasoning: false } : {}),
 			messages: [
 				{ role: "system", content: systemPrompt },
 				...history,
@@ -163,7 +165,10 @@ export async function askZangetsu(input: AskZangetsuInput): Promise<string> {
 	});
 
 	const content = payload.choices[0]?.message.content?.trim();
-	if (!content) throw new Error("Groq returned an empty assistant reply.");
+	if (!content) {
+		const finishReason = payload.choices[0]?.finish_reason ?? "unknown";
+		throw new Error(`Groq returned no visible text (finish_reason: ${finishReason}).`);
+	}
 	return cleanAssistantReply(content, input.ownerId);
 }
 

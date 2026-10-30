@@ -167,8 +167,11 @@ export default defineMessageHandler({
 			conversation.expiresAt = Date.now() + CONVERSATION_TTL_MS;
 		} catch (error) {
 			client.logger.warn({ err: error }, "Zangetsu AI conversation failed");
+			const fallback = error instanceof Error && error.message.startsWith("Groq returned no visible text")
+				? "I got a little stuck thinking and lost my words. Try that again?"
+				: "I couldn't reach my AI connection just now. Try again in a moment.";
 			await message.reply({
-				content: "I lost my connection for a moment. Try again in a little while.",
+				content: fallback,
 				allowedMentions: { parse: [] },
 			});
 		}
