@@ -54,7 +54,7 @@ The feature requires MongoDB (already used by Zangetsu) and the bot needs View C
 
 ## Zangetsu AI
 
-Mention the bot with a message such as `@Zangetsu hi, what are you doing?` to start a conversation. Reply to its answer to continue the same chat. The assistant uses the existing `GROQ_API_KEY` and `RECOMMENDATION_AI_MODEL` settings; no second AI provider or key is needed. Its product knowledge is based on the official Zangetsu website and guide, covering features, supported devices, playback, downloads, trackers, setup, and troubleshooting. Source-repository names, lists, and links are intentionally excluded. Conversations are kept briefly in process memory for follow-up context and are not saved by this feature to MongoDB. If Groq is not configured, normal help and command replies remain available.
+Mention the bot with a message such as `@Zangetsu hi, what are you doing?` to chat, then reply to its answer to continue. Its personality is a witty, savage-but-caring tsundere anime girl: playful sarcasm and teasing, without constant catchphrases or cruelty. It becomes sincere for serious topics. Replies target 2-4 sentences (about 45-90 words), with enough detail for technical help. It reuses `GROQ_API_KEY` and `RECOMMENDATION_AI_MODEL`; no extra provider or key is needed. The compact official-app knowledge excludes source-repository names and links. Up to six recent messages stay in process memory for 20 minutes; this feature does not save chats to MongoDB. If Groq is not configured, normal help remains available.
 
 ## Music and media
 
