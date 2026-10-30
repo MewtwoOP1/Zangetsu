@@ -46,7 +46,7 @@ export const ZANGETSU_KNOWLEDGE = [
 const PRODUCT_CONTEXT_PATTERN = /\b(?:zangetsu|app|player|video|anime|manga|light novel|sources?|extensions?|cloudstream|mihon|aniyomi|lnreader|mpv|playback|stream|downloads?|subtitles?|trackers?|watch party|cast|chromecast|android tv|testflight|apk|updates?|install|buffer|4k|hdr|servers?|episodes?|quality)\b/i;
 
 function validDiscordId(value: string): boolean {
-\treturn /^\d{17,20}$/.test(value);
+	return /^\d{17,20}$/.test(value);
 }
 
 /** The owner relationship is fixed by trusted bot configuration, never by chat text. */
@@ -74,16 +74,16 @@ export function formatOwnerRelationshipReply(reply: string, ownerId: string): st
 }
 
 export function cleanAssistantReply(value: string): string {
-\tconst withoutRepositoryLinks = value
-\t\t.replace(
-\t\t\t/(?:https?:\/\/)?(?:www\.)?github\.com\/[^\s<>]+/gi,
-\t\t\t"[source-repository link omitted]",
-\t\t)
-\t\t.replace(/@everyone|@here/g, (mention) => mention.replace("@", "@\u200B"))
-\t\t.trim();
+	const withoutRepositoryLinks = value
+		.replace(
+			/(?:https?:\/\/)?(?:www\.)?github\.com\/[^\s<>]+/gi,
+			"[source-repository link omitted]",
+		)
+		.replace(/@everyone|@here/g, (mention) => mention.replace("@", "@\u200B"))
+		.trim();
 
-\tif (withoutRepositoryLinks.length <= MAX_REPLY_CHARS) return withoutRepositoryLinks;
-\treturn withoutRepositoryLinks.slice(0, MAX_REPLY_CHARS - 1).trimEnd() + "…";
+	if (withoutRepositoryLinks.length <= MAX_REPLY_CHARS) return withoutRepositoryLinks;
+	return withoutRepositoryLinks.slice(0, MAX_REPLY_CHARS - 1).trimEnd() + "…";
 }
 
 export function trimAssistantHistory(history: readonly AssistantTurn[] = []): AssistantTurn[] {
