@@ -8,15 +8,16 @@ import {
 } from "@lib/assistant/zangetsuAssistant.util";
 
 describe("Zangetsu assistant knowledge", () => {
-	it("includes the official app features and platform limitations", () => {
+	it("defines one shared girlfriend persona and one configured boyfriend", () => {
 		const prompt = buildZangetsuSystemPrompt("12345678901234567");
-		expect(prompt).toContain("mpv engine");
 		expect(prompt).toContain("fictional adult anime-girl companion");
+		expect(prompt).toContain("IDENTITY LINE");
 		expect(prompt).toContain("playfully savage");
 		expect(prompt).toContain("drop sarcasm for distress");
 		expect(prompt).toContain("No spammed");
 		expect(prompt).toContain("The one and only boyfriend is the bot owner, Discord ID 12345678901234567");
 		expect(prompt).toContain("Every other person is a server member/friend");
+		expect(prompt).toContain("Same personality for all");
 	});
 
 	it("explicitly excludes source-repository names, lists, and links", () => {
@@ -88,8 +89,21 @@ describe("askZangetsu", () => {
 		expect(payload.max_completion_tokens).toBe(320);
 		expect(payload.temperature).toBe(0.8);
 		expect(payload.messages[0].role).toBe("system");
+		expect(payload.messages[0].content).toContain("mpv playback");
+		expect(payload.messages[0].content).toContain("Android TV");
 		expect(payload.messages.at(-3)).toEqual({ role: "user", content: "hi" });
 		expect(payload.messages.at(-1)).toEqual({ role: "user", content: "How do I switch servers in the Zangetsu player?" });
+	});
+
+	it("omits the product knowledge block for casual chats to save input tokens", async () => {
+		jest.spyOn(global, "fetch").mockResolvedValue(
+			new Response(JSON.stringify({ choices: [{ message: { content: "Not much, just here." } }] }), {
+				status: 200, headers: { "content-type": "application/json" },
+			}),
+		);
+		await askZangetsu({ question: "What are you doing?", ownerId: "12345678901234567", apiKey: "test-key" });
+		const payload = JSON.parse(String(jest.mocked(global.fetch).mock.calls[0]?.[1]?.body));
+		expect(payload.messages[0].content).not.toContain("mpv playback");
 	});
 
 	it("falls back to the Groq model when the legacy OpenRouter model is configured", async () => {
