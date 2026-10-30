@@ -20,7 +20,7 @@ describe("Zangetsu assistant knowledge", () => {
 		expect(prompt).toContain("The one and only boyfriend is the bot owner, Discord ID 12345678901234567");
 		expect(prompt).toContain("Every other person is a server member/friend");
 		expect(prompt).toContain("is a server member/friend, not your boyfriend");
-		expect(prompt).toContain("Same personality for all");
+		expect(prompt).toContain("one consistent voice with EVERYONE");
 		expect(buildZangetsuSystemPrompt("12345678901234567", "12345678901234567")).toContain("is your boyfriend. Address him with natural affection");
 	});
 
