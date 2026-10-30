@@ -25,6 +25,15 @@ function conversationKey(channelId: string, userId: string): string {
 	return `${channelId}:${userId}`;
 }
 
+function pruneExpiredState(now: number): void {
+	for (const [key, conversation] of conversations) {
+		if (conversation.expiresAt <= now) conversations.delete(key);
+	}
+	for (const [key, expiresAt] of cooldowns) {
+		if (expiresAt <= now) cooldowns.delete(key);
+	}
+}
+
 function getConversation(key: string, now: number): Conversation {
 	const current = conversations.get(key);
 	if (current !== undefined && current.expiresAt > now) {
@@ -66,6 +75,7 @@ export default defineMessageHandler({
 
 		const key = conversationKey(message.channelId, message.author.id);
 		const now = Date.now();
+		pruneExpiredState(now);
 		const previous = conversations.get(key);
 		const hasMention = message.mentions.users.has(botId) ||
 			new RegExp(`<@!?${botId}>`).test(message.content);
@@ -86,12 +96,7 @@ export default defineMessageHandler({
 			const commandTarget = client.aliases.get(parsed.name) ?? parsed.name;
 			const commandName = commandTarget.split(" ")[0] ?? commandTarget;
 			const command = client.commands.get(commandName);
-			if (
-				command !== undefined &&
-				(parsed.prefix !== null || parsed.args.length === 0 || (command.options?.length ?? 0) > 0)
-			) {
-				return;
-			}
+			if (command !== undefined) return;
 		}
 
 		// A bare mention keeps the existing compact introduction and help buttons.
