@@ -2,38 +2,46 @@ import {
 	askZangetsu,
 	buildZangetsuSystemPrompt,
 	cleanAssistantReply,
+	formatOwnerRelationshipReply,
 	trimAssistantHistory,
 	ZANGETSU_ASSISTANT_LIMITS,
 } from "@lib/assistant/zangetsuAssistant.util";
 
 describe("Zangetsu assistant knowledge", () => {
-	it("includes the official app features and platform limitations", () => {
-		const prompt = buildZangetsuSystemPrompt();
-		expect(prompt).toContain("mpv engine");
-		expect(prompt).toContain("Android TV");
-		expect(prompt).toContain("TestFlight beta");
-		expect(prompt).toContain("Watch Party");
-		expect(prompt).toContain("AniList");
-		expect(prompt).toContain("Incognito mode");
-		expect(prompt).toContain("Cloudflare");
+	it("defines one shared girlfriend persona and one configured boyfriend", () => {
+		const prompt = buildZangetsuSystemPrompt("12345678901234567", "22345678901234567");
+		expect(prompt).toContain("fictional adult anime-girl companion");
+		expect(prompt).toContain("IDENTITY LINE");
+		expect(prompt).toContain("playfully savage");
+		expect(prompt).toContain("drop sarcasm for distress");
+		expect(prompt).toContain("No spammed");
+		expect(prompt).toContain("The one and only boyfriend is the bot owner, Discord ID 12345678901234567");
+		expect(prompt).toContain("Every other person is a server member/friend");
+		expect(prompt).toContain("is a server member/friend, not your boyfriend");
+		expect(prompt).toContain("Same personality for all");
+		expect(buildZangetsuSystemPrompt("12345678901234567", "12345678901234567")).toContain("is your boyfriend. Address him with natural affection");
 	});
 
 	it("explicitly excludes source-repository names, lists, and links", () => {
-		const prompt = buildZangetsuSystemPrompt();
-		expect(prompt).toContain("Do not provide, name, list, recommend, rank, or link");
-		expect(prompt).toContain("never supply source repository names or URLs");
+		const prompt = buildZangetsuSystemPrompt("12345678901234567", "22345678901234567");
+		expect(prompt).toContain("never name, list, recommend, rank, or link source repositories");
 		expect(prompt).not.toContain("github.com/");
 		expect(prompt).not.toContain("MewtwoOP1");
 	});
 
-	it("clips conversation history to the most recent ten messages", () => {
+	it("clips conversation history to the most recent four messages", () => {
 		const history = Array.from({ length: 14 }, (_, index) => ({
 			role: index % 2 === 0 ? "user" as const : "assistant" as const,
 			content: `turn-${index}`,
 		}));
 
-		expect(trimAssistantHistory(history)).toEqual(history.slice(-10));
+		expect(trimAssistantHistory(history)).toEqual(history.slice(-4));
 		expect(trimAssistantHistory(history)).toHaveLength(ZANGETSU_ASSISTANT_LIMITS.historyMessages);
+		expect(ZANGETSU_ASSISTANT_LIMITS.historyMessages).toBe(4);
+		expect(ZANGETSU_ASSISTANT_LIMITS.historyChars).toBe(600);
+		expect(ZANGETSU_ASSISTANT_LIMITS.questionChars).toBe(1_000);
+		expect(ZANGETSU_ASSISTANT_LIMITS.replyChars).toBe(1_600);
+		expect(ZANGETSU_ASSISTANT_LIMITS.completionTokens).toBe(320);
 	});
 
 	it("limits long history messages and strips source-repository URLs from replies", () => {
@@ -44,6 +52,13 @@ describe("Zangetsu assistant knowledge", () => {
 			"[source-repository link omitted]",
 		);
 	});
+	it("adds the real configured owner mention to every reply", () => {
+		expect(formatOwnerRelationshipReply("What do you need?", "12345678901234567")).toBe(
+			"I'm <@12345678901234567>'s girlfriend, obviously. What do you need?",
+		);
+		expect(() => formatOwnerRelationshipReply("Hi", "not-an-id")).toThrow("valid bot owner ID");
+	});
+
 });
 
 describe("askZangetsu", () => {
@@ -57,9 +72,11 @@ describe("askZangetsu", () => {
 		);
 
 		await expect(askZangetsu({
-			question: "what are you doing?",
+			question: "How do I switch servers in the Zangetsu player?",
 			history: [{ role: "user", content: "hi" }, { role: "assistant", content: "Hey!" }],
 			apiKey: "test-groq-key",
+			ownerId: "12345678901234567",
+			speakerId: "22345678901234567",
 			model: "openai/gpt-oss-20b",
 		})).resolves.toBe("Just chatting with the community. What about you?");
 
@@ -73,9 +90,24 @@ describe("askZangetsu", () => {
 		);
 		const payload = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
 		expect(payload.model).toBe("openai/gpt-oss-20b");
+		expect(payload.max_completion_tokens).toBe(320);
+		expect(payload.temperature).toBe(0.8);
 		expect(payload.messages[0].role).toBe("system");
+		expect(payload.messages[0].content).toContain("mpv playback");
+		expect(payload.messages[0].content).toContain("Android TV");
 		expect(payload.messages.at(-3)).toEqual({ role: "user", content: "hi" });
-		expect(payload.messages.at(-1)).toEqual({ role: "user", content: "what are you doing?" });
+		expect(payload.messages.at(-1)).toEqual({ role: "user", content: "How do I switch servers in the Zangetsu player?" });
+	});
+
+	it("omits the product knowledge block for casual chats to save input tokens", async () => {
+		jest.spyOn(global, "fetch").mockResolvedValue(
+			new Response(JSON.stringify({ choices: [{ message: { content: "Not much, just here." } }] }), {
+				status: 200, headers: { "content-type": "application/json" },
+			}),
+		);
+		await askZangetsu({ question: "What are you doing?", ownerId: "12345678901234567", speakerId: "22345678901234567", apiKey: "test-key" });
+		const payload = JSON.parse(String(jest.mocked(global.fetch).mock.calls[0]?.[1]?.body));
+		expect(payload.messages[0].content).not.toContain("mpv playback");
 	});
 
 	it("falls back to the Groq model when the legacy OpenRouter model is configured", async () => {
@@ -87,6 +119,8 @@ describe("askZangetsu", () => {
 
 		await askZangetsu({
 			question: "hi",
+			ownerId: "12345678901234567",
+			speakerId: "22345678901234567",
 			apiKey: "test-key",
 			model: "openrouter/auto",
 		});
@@ -95,14 +129,14 @@ describe("askZangetsu", () => {
 	});
 
 	it("rejects empty questions, missing keys, and empty model responses", async () => {
-		await expect(askZangetsu({ question: "  ", apiKey: "key" })).rejects.toThrow("needs a question");
-		await expect(askZangetsu({ question: "hi", apiKey: "" })).rejects.toThrow("Groq is not configured");
+		await expect(askZangetsu({ question: "  ", ownerId: "12345678901234567", speakerId: "22345678901234567", apiKey: "key" })).rejects.toThrow("needs a question");
+		await expect(askZangetsu({ question: "hi", ownerId: "12345678901234567", speakerId: "22345678901234567", apiKey: "" })).rejects.toThrow("Groq is not configured");
 
 		jest.spyOn(global, "fetch").mockResolvedValue(
 			new Response(JSON.stringify({ choices: [{ message: { content: " " } }] }), {
 				status: 200, headers: { "content-type": "application/json" },
 			}),
 		);
-		await expect(askZangetsu({ question: "hi", apiKey: "key" })).rejects.toThrow("empty assistant reply");
+		await expect(askZangetsu({ question: "hi", ownerId: "12345678901234567", speakerId: "22345678901234567", apiKey: "key" })).rejects.toThrow("empty assistant reply");
 	});
 });

@@ -4,7 +4,7 @@ import { botName } from "@core/brand";
 import { defineMessageHandler } from "@core/message";
 import { parseMessage } from "@core/prefix";
 import { getPrefix } from "@database/repositories/settingsRepository";
-import { askZangetsu, type AssistantTurn } from "@lib/assistant/zangetsuAssistant.util";
+import { askZangetsu, formatOwnerRelationshipReply, type AssistantTurn } from "@lib/assistant/zangetsuAssistant.util";
 import { embed, linkButton, row } from "@lib/discord";
 
 interface Conversation {
@@ -16,7 +16,7 @@ interface Conversation {
 const CONVERSATION_TTL_MS = 20 * 60_000;
 const USER_COOLDOWN_MS = 7_000;
 const MAX_CONVERSATIONS = 500;
-const MAX_HISTORY_MESSAGES = 10;
+const MAX_HISTORY_MESSAGES = 4;
 
 const conversations = new Map<string, Conversation>();
 const cooldowns = new Map<string, number>();
@@ -71,7 +71,8 @@ export default defineMessageHandler({
 	order: 5,
 	async run(message, client) {
 		const botId = client.user?.id;
-		if (botId === undefined || message.author.bot || !message.channel.isSendable()) return;
+		const ownerId = client.env.DISCORD_OWNER_IDS[0];
+		if (botId === undefined || ownerId === undefined || message.author.bot || !message.channel.isSendable()) return;
 
 		const key = conversationKey(message.channelId, message.author.id);
 		const now = Date.now();
@@ -102,6 +103,7 @@ export default defineMessageHandler({
 		// A bare mention keeps the existing compact introduction and help buttons.
 		if (!question) {
 			await message.reply({
+				content: formatOwnerRelationshipReply(`Mention me with a message to chat, or use /help or ${prefix}help to see my commands.`, ownerId),
 				embeds: [
 					embed({
 						category: "info",
@@ -111,23 +113,23 @@ export default defineMessageHandler({
 					}),
 				],
 				components: [row(linkButton("Source code", theme.repository), linkButton("Support", theme.supportServer))],
-				allowedMentions: { parse: [] },
+				allowedMentions: { users: [ownerId] },
 			});
 			return true;
 		}
 
-		if (question.length > 1_800) {
+		if (question.length > 1_000) {
 			await message.reply({
-				content: "That is a bit long for one message. Send the main question first and we can work through the rest.",
-				allowedMentions: { parse: [] },
+				content: formatOwnerRelationshipReply("That is a bit long for one message. Send the main point first and we can work through the rest.", ownerId),
+				allowedMentions: { users: [ownerId] },
 			});
 			return true;
 		}
 
 		if (!client.env.GROQ_API_KEY) {
 			await message.reply({
-				content: "I'd love to chat, but my Groq connection isn't configured on this bot yet. You can still use /help for commands and support.",
-				allowedMentions: { parse: [] },
+				content: formatOwnerRelationshipReply("My Groq connection is not configured yet. The commands still work, though.", ownerId),
+				allowedMentions: { users: [ownerId] },
 			});
 			return true;
 		}
@@ -146,12 +148,14 @@ export default defineMessageHandler({
 			const answer = await askZangetsu({
 				question,
 				history: conversation.history,
+				ownerId,
+				speakerId: message.author.id,
 				apiKey: client.env.GROQ_API_KEY,
 				model: client.env.RECOMMENDATION_AI_MODEL,
 			});
 			const reply = await message.reply({
-				content: answer,
-				allowedMentions: { parse: [] },
+				content: formatOwnerRelationshipReply(answer, ownerId),
+				allowedMentions: { users: [ownerId] },
 			});
 
 			conversation.history.push(
@@ -164,8 +168,8 @@ export default defineMessageHandler({
 		} catch (error) {
 			client.logger.warn({ err: error }, "Zangetsu AI conversation failed");
 			await message.reply({
-				content: "I lost my connection for a moment. Try mentioning me again in a little while.",
-				allowedMentions: { parse: [] },
+				content: formatOwnerRelationshipReply("I lost my connection for a moment. Try again in a little while.", ownerId),
+				allowedMentions: { users: [ownerId] },
 			});
 		}
 
