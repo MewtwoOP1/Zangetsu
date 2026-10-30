@@ -103,6 +103,7 @@ export default defineMessageHandler({
 		// A bare mention keeps the existing compact introduction and help buttons.
 		if (!question) {
 			await message.reply({
+				content: formatOwnerRelationshipReply(`Mention me with a message to chat, or use /help or ${prefix}help to see my commands.`, ownerId),
 				embeds: [
 					embed({
 						category: "info",
@@ -117,9 +118,9 @@ export default defineMessageHandler({
 			return true;
 		}
 
-		if (question.length > 1_200) {
+		if (question.length > 1_000) {
 			await message.reply({
-				content: "That is a bit long for one message. Send the main point first and we can work through the rest.",
+				content: formatOwnerRelationshipReply("That is a bit long for one message. Send the main point first and we can work through the rest.", ownerId),
 				allowedMentions: { parse: [] },
 			});
 			return true;
@@ -127,7 +128,7 @@ export default defineMessageHandler({
 
 		if (!client.env.GROQ_API_KEY) {
 			await message.reply({
-				content: "I'd love to chat, but my Groq connection isn't configured on this bot yet. You can still use /help for commands and support.",
+				content: formatOwnerRelationshipReply("My Groq connection is not configured yet. The commands still work, though.", ownerId),
 				allowedMentions: { parse: [] },
 			});
 			return true;
@@ -166,7 +167,7 @@ export default defineMessageHandler({
 		} catch (error) {
 			client.logger.warn({ err: error }, "Zangetsu AI conversation failed");
 			await message.reply({
-				content: "I lost my connection for a moment. Try mentioning me again in a little while.",
+				content: formatOwnerRelationshipReply("I lost my connection for a moment. Try again in a little while.", ownerId),
 				allowedMentions: { parse: [] },
 			});
 		}
