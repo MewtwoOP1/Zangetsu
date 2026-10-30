@@ -1,8 +1,8 @@
 import { DEFAULT_PREFIX } from "@config/constants";
 import { theme } from "@config/theme";
 import { botName } from "@core/brand";
-import { parseMessage } from "@core/prefix";
 import { defineMessageHandler } from "@core/message";
+import { parseMessage } from "@core/prefix";
 import { getPrefix } from "@database/repositories/settingsRepository";
 import { askZangetsu, type AssistantTurn } from "@lib/assistant/zangetsuAssistant.util";
 import { embed, linkButton, row } from "@lib/discord";
