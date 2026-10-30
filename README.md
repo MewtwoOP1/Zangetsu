@@ -13,7 +13,7 @@ Zangetsu is our community build, with custom commands, shared branding, moderati
 - Community tools, welcome features, giveaways, games, and levelling
 - SoundCloud-only music search and playback with `/play` title search
 - Anime title lookup with synopsis, genres, rating, format, status, episode count, runtime, AniList ranking, popularity, and favorites, plus preference-aware recommendations for anime, manga, light novels, and optional TMDB movies / TV
-- Optional Groq AI reranking for free-form natural-language recommendations; OpenRouter remains supported as a legacy fallback
+- Groq-powered Zangetsu AI chat when members mention the bot, with short-lived conversation context and official app knowledge; the same Groq integration also powers natural-language media recommendations
 - Economy, leaderboards, and an optional web dashboard
 - Slash commands and configurable prefix commands
 - Shared Zangetsu logo on command embeds and help responses
@@ -51,6 +51,10 @@ The `/releases` command posts new public GitHub releases as plain-text Discord m
 The bot checks tracked repositories every 10 minutes. A token is optional, but on shared hosting such as Render, set `GITHUB_TOKEN` in the service's environment variables to avoid the unauthenticated API's 60-requests-per-hour-per-IP limit. Authenticated requests generally have a 5,000-requests-per-hour limit. Use a fine-grained token with read-only access to public repository contents; never paste it into source code or commit it. The bot sends it only as an HTTP authorization header and does not log it. Only published releases from public repositories are supported. When a repository is first tracked, its current latest release is saved as the starting point so old releases are not announced retroactively. Role notifications explicitly allow only the configured role, and the `@everyone` role is rejected.
 
 The feature requires MongoDB (already used by Zangetsu) and the bot needs View Channel and Send Messages in the configured announcement channel. The command requires Manage Server permission.
+
+## Zangetsu AI
+
+Mention the bot with a message such as `@Zangetsu hi, what are you doing?` to start a conversation. Reply to its answer to continue the same chat. The assistant uses the existing `GROQ_API_KEY` and `RECOMMENDATION_AI_MODEL` settings; no second AI provider or key is needed. Its product knowledge is based on the official Zangetsu website and guide, covering features, supported devices, playback, downloads, trackers, setup, and troubleshooting. Source-repository names, lists, and links are intentionally excluded. Conversations are kept briefly in process memory for follow-up context and are not saved by this feature to MongoDB. If Groq is not configured, normal help and command replies remain available.
 
 ## Music and media
 
