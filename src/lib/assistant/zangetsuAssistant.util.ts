@@ -110,12 +110,12 @@ export function buildZangetsuSystemPrompt(name = "Zangetsu"): string {
 
 export function cleanAssistantReply(value: string): string {
 	const withoutRepositoryLinks = value
-		.replace(/https?:\\/\\/(?:www\\.)?github\\.com\\/[^\\s<>]+|(?:www\\.)?github\\.com\\/[^\\s<>]+/gi, "[source-repository link omitted]")
+		.replace(/https?:\/\/(?:www\.)?github\.com\/[^\s<>]+|(?:www\.)?github\.com\/[^\s<>]+/gi, "[source-repository link omitted]")
 		.replace(/@everyone|@here/g, (mention) => mention.replace("@", "@\u200B"))
 		.trim();
 
 	if (withoutRepositoryLinks.length <= MAX_REPLY_CHARS) return withoutRepositoryLinks;
-	return `${withoutRepositoryLinks.slice(0, MAX_REPLY_CHARS - 1).trimEnd()}…`;
+	return withoutRepositoryLinks.slice(0, MAX_REPLY_CHARS - 1).trimEnd() + "…";
 }
 
 export function trimAssistantHistory(history: readonly AssistantTurn[] = []): AssistantTurn[] {
