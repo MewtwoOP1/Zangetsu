@@ -10,6 +10,10 @@ describe("Zangetsu assistant knowledge", () => {
 	it("includes the official app features and platform limitations", () => {
 		const prompt = buildZangetsuSystemPrompt();
 		expect(prompt).toContain("mpv engine");
+		expect(prompt).toContain("fictional adult anime-girl AI companion");
+		expect(prompt).toContain("playfully savage");
+		expect(prompt).toContain("drop the sarcasm for distress");
+		expect(prompt).toContain("Do not spam");
 		expect(prompt).toContain("Android TV");
 		expect(prompt).toContain("TestFlight beta");
 		expect(prompt).toContain("Watch Party");
@@ -21,7 +25,7 @@ describe("Zangetsu assistant knowledge", () => {
 	it("explicitly excludes source-repository names, lists, and links", () => {
 		const prompt = buildZangetsuSystemPrompt();
 		expect(prompt).toContain("Do not provide, name, list, recommend, rank, or link");
-		expect(prompt).toContain("never supply source repository names or URLs");
+		expect(prompt).toContain("never name, list, recommend, rank, or link source repositories");
 		expect(prompt).not.toContain("github.com/");
 		expect(prompt).not.toContain("MewtwoOP1");
 	});
@@ -32,8 +36,12 @@ describe("Zangetsu assistant knowledge", () => {
 			content: `turn-${index}`,
 		}));
 
-		expect(trimAssistantHistory(history)).toEqual(history.slice(-10));
+		expect(trimAssistantHistory(history)).toEqual(history.slice(-6));
 		expect(trimAssistantHistory(history)).toHaveLength(ZANGETSU_ASSISTANT_LIMITS.historyMessages);
+		expect(ZANGETSU_ASSISTANT_LIMITS.historyMessages).toBe(6);
+		expect(ZANGETSU_ASSISTANT_LIMITS.historyChars).toBe(900);
+		expect(ZANGETSU_ASSISTANT_LIMITS.questionChars).toBe(1_200);
+		expect(ZANGETSU_ASSISTANT_LIMITS.replyChars).toBe(1_800);
 	});
 
 	it("limits long history messages and strips source-repository URLs from replies", () => {
@@ -73,6 +81,8 @@ describe("askZangetsu", () => {
 		);
 		const payload = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
 		expect(payload.model).toBe("openai/gpt-oss-20b");
+		expect(payload.max_completion_tokens).toBe(380);
+		expect(payload.temperature).toBe(0.75);
 		expect(payload.messages[0].role).toBe("system");
 		expect(payload.messages.at(-3)).toEqual({ role: "user", content: "hi" });
 		expect(payload.messages.at(-1)).toEqual({ role: "user", content: "what are you doing?" });
