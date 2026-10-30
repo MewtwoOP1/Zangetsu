@@ -85,7 +85,9 @@ export default defineMessageHandler({
     if (parsed !== null) {
       const commandTarget = client.aliases.get(parsed.name) ?? parsed.name;
       const commandName = commandTarget.split(" ")[0] ?? commandTarget;
-      if (client.commands.has(commandName)) return;
+      const command = client.commands.get(commandName);
+			if (command !== undefined &&
+				(parsed.prefix !== null || parsed.args.length === 0 || (command.options?.length ?? 0) > 0)) return;
     }
 
     // A bare mention keeps the existing compact introduction and help buttons.
