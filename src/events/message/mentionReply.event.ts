@@ -80,14 +80,18 @@ export default defineMessageHandler({
 
     // Keep the existing natural-language recommendation flow and real prefix
     // commands. Those handlers use catalogue data and must not be replaced by chat.
-    if (/^(?:suggest|recommend)\\b/i.test(question)) return;
+    if (/^(?:suggest|recommend)\b/i.test(question)) return;
     const parsed = parseMessage(message.content, prefix, botId);
     if (parsed !== null) {
       const commandTarget = client.aliases.get(parsed.name) ?? parsed.name;
       const commandName = commandTarget.split(" ")[0] ?? commandTarget;
       const command = client.commands.get(commandName);
-			if (command !== undefined &&
-				(parsed.prefix !== null || parsed.args.length === 0 || (command.options?.length ?? 0) > 0)) return;
+			if (
+				command !== undefined &&
+				(parsed.prefix !== null || parsed.args.length === 0 || (command.options?.length ?? 0) > 0)
+			) {
+				return;
+			}
     }
 
     // A bare mention keeps the existing compact introduction and help buttons.
@@ -97,7 +101,7 @@ export default defineMessageHandler({
           embed({
             category: "info",
             title: `Hello, I am ${botName()}`,
-            description: `My prefix here is \`${prefix}\`.\\n\\nMention me with a message to chat, or use \`/help\` or \`${prefix}help\` to see my commands.`,
+            description: `My prefix here is \`${prefix}\`.\n\nMention me with a message to chat, or use \`/help\` or \`${prefix}help\` to see my commands.`,
             thumbnail: client.user?.displayAvatarURL(),
           }),
         ],
