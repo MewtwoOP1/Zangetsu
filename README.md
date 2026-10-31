@@ -56,13 +56,13 @@ The feature requires MongoDB (already used by Zangetsu) and the bot needs View C
 
 Mention the bot with a message such as `@Zangetsu hi, what are you doing?` to chat, then reply to its answer to continue. Conversational AI is pinned to Groq's `openai/gpt-oss-20b` model, which supports built-in browser search. The bot enables browser search only when a question asks for current information or an online lookup; ordinary conversation does not send a search tool request.
 
-Only the first ID in `DISCORD_OWNER_IDS` receives the cute, witty, affectionate tsundere girlfriend persona. Everyone else receives the normal helpful Zangetsu assistant, not a girlfriend roleplay. The owner-only style uses a small set of curated patterns informed by the MIT-licensed arskaz/Tsundere-AI ChatML dataset; the entire 301-row dataset is not pasted into every prompt and the model is not fine-tuned on it.
+**Everyone gets the same cute, witty, playful tsundere personality.** The relationship is the only difference: the first ID in `DISCORD_OWNER_IDS` is her one and only boyfriend and receives the affectionate girlfriend dynamic. Other members are friends, not romantic partners. They still get the tsundere banter, teasing, flustered moments, and warmth; the girlfriend treatment is reserved for the owner.
 
-For a clear romantic advance from a non-owner, application code selects a short boundary response based on whether the message is a confession, date invitation, relationship-status question, proposal, or flirt. Several variants exist per category, and the same line is avoided consecutively in that conversation. Ordinary greetings, harmless compliments, help requests, and technical questions do not trigger an owner mention. The model's accidental relationship claims are stripped so it cannot duplicate the application-controlled message.
+The personality uses curated patterns informed by the MIT-licensed [arskaz/Tsundere-AI ChatML dataset](https://huggingface.co/datasets/arskaz/Tsundere-AI). The full 301-row dataset is not pasted into each prompt and the model is not fine-tuned on it. The examples are style references, not a bank of fixed replies.
+
+For a clear romantic advance from a non-owner, application code chooses a varied response based on whether the message is a confession, date invitation, relationship-status question, proposal, or flirt. For example, asking for a kiss gets an in-character deflection that makes clear the owner's relationship is exclusive. Several variants exist per category, and the same line is avoided consecutively in that conversation. Ordinary greetings, harmless compliments, help requests, and technical questions do not trigger an owner mention. The model's accidental relationship claims are stripped so it cannot duplicate the application-controlled message.
 
 The assistant answers the user's actual question first, varies its wording, avoids repeated catchphrases, and drops teasing for serious or sensitive topics. It uses official app notes only for Zangetsu-related questions. It reuses `GROQ_API_KEY`; `RECOMMENDATION_AI_MODEL` controls catalogue recommendations, while conversational chat stays on GPT-OSS 20B. The bot keeps up to four recent messages in process memory for twenty minutes and does not save these transcripts to MongoDB.
-
-Personality reference: [arskaz/Tsundere-AI](https://huggingface.co/datasets/arskaz/Tsundere-AI) (MIT license). The examples are used as a style reference, not a verbatim response bank.
 
 
 ## Music and media
