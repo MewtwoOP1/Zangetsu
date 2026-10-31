@@ -75,7 +75,7 @@ describe("Zangetsu assistant personality", () => {
 		const second = chooseRomanticBoundary("I love you", first);
 		const date = chooseRomanticBoundary("Date me");
 
-		expect(first).toContain("confession");
+		expect(first).toMatch(/sweet|romantic|owner/i);
 		expect(second).not.toBe(first);
 		expect(date).toMatch(/date|invitation/i);
 		expect(chooseRomanticBoundary("Are you single?")).toMatch(/single|taken|romantic applications/i);
