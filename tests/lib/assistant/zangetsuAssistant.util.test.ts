@@ -134,7 +134,7 @@ describe("askZangetsu", () => {
 		const payload = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
 		expect(payload.model).toBe("openai/gpt-oss-20b");
 		expect(payload.tools).toEqual([{ type: "browser_search" }]);
-		expect(payload.tool_choice).toBe("auto");
+		expect(payload.tool_choice).toBe("required");
 		expect(payload.max_completion_tokens).toBe(1_024);
 		expect(payload.reasoning_effort).toBe("low");
 		expect(payload.include_reasoning).toBe(false);
