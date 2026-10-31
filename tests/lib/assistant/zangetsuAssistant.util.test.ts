@@ -15,6 +15,7 @@ const ownerId = "12345678901234567";
 const memberId = "22345678901234567";
 
 describe("Zangetsu assistant personality", () => {
+	afterEach(() => jest.restoreAllMocks());
 	it("gives the tsundere girlfriend persona only to the configured owner", () => {
 		const ownerPrompt = buildZangetsuSystemPrompt(ownerId, ownerId);
 		const memberPrompt = buildZangetsuSystemPrompt(ownerId, memberId);
