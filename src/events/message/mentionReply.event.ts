@@ -4,12 +4,19 @@ import { botName } from "@core/brand";
 import { defineMessageHandler } from "@core/message";
 import { parseMessage } from "@core/prefix";
 import { getPrefix } from "@database/repositories/settingsRepository";
-import { askZangetsu, formatAssistantReply, isRomanticAdvance, type AssistantTurn } from "@lib/assistant/zangetsuAssistant.util";
+import {
+	askZangetsu,
+	chooseRomanticBoundary,
+	formatAssistantReply,
+	isRomanticAdvance,
+	type AssistantTurn,
+} from "@lib/assistant/zangetsuAssistant.util";
 import { embed, linkButton, row } from "@lib/discord";
 
 interface Conversation {
 	history: AssistantTurn[];
 	lastAssistantMessageId: string | null;
+	lastRomanticBoundary: string | null;
 	expiresAt: number;
 }
 
@@ -22,7 +29,7 @@ const conversations = new Map<string, Conversation>();
 const cooldowns = new Map<string, number>();
 
 function conversationKey(channelId: string, userId: string): string {
-	return `${channelId}:${userId}`;
+	return channelId + ":" + userId;
 }
 
 function pruneExpiredState(now: number): void {
@@ -49,6 +56,7 @@ function getConversation(key: string, now: number): Conversation {
 	const created: Conversation = {
 		history: [],
 		lastAssistantMessageId: null,
+		lastRomanticBoundary: null,
 		expiresAt: now + CONVERSATION_TTL_MS,
 	};
 	conversations.set(key, created);
@@ -57,7 +65,7 @@ function getConversation(key: string, now: number): Conversation {
 
 /** Remove only this bot's mention, leaving every other mention untouched. */
 export function stripAssistantMention(content: string, botId: string): string {
-	return content.replace(new RegExp(`<@!?${botId}>`, "g"), "").trim();
+	return content.replace(new RegExp("<@!?" + botId + ">", "g"), "").trim();
 }
 
 /** Tests can reset transient conversation state without importing Discord. */
@@ -79,7 +87,7 @@ export default defineMessageHandler({
 		pruneExpiredState(now);
 		const previous = conversations.get(key);
 		const hasMention = message.mentions.users.has(botId) ||
-			new RegExp(`<@!?${botId}>`).test(message.content);
+			new RegExp("<@!?" + botId + ">").test(message.content);
 		const isReplyToAssistant = previous !== undefined &&
 			previous.expiresAt > now &&
 			message.reference?.messageId === previous.lastAssistantMessageId;
@@ -103,12 +111,12 @@ export default defineMessageHandler({
 		// A bare mention keeps the existing compact introduction and help buttons.
 		if (!question) {
 			await message.reply({
-				content: `Mention me with a message to chat, or use /help or ${prefix}help to see my commands.`,
+				content: "Mention me with a message to chat, or use /help or " + prefix + "help to see my commands.",
 				embeds: [
 					embed({
 						category: "info",
-						title: `Hello, I am ${botName()}`,
-						description: `My prefix here is \`${prefix}\`.\n\nMention me with a message to chat, or use \`/help\` or \`${prefix}help\` to see my commands.`,
+						title: "Hello, I am " + botName(),
+						description: "My prefix here is " + prefix + ".\n\nMention me with a message to chat, or use /help or " + prefix + "help to see my commands.",
 						thumbnail: client.user?.displayAvatarURL(),
 					}),
 				],
@@ -151,16 +159,25 @@ export default defineMessageHandler({
 				ownerId,
 				speakerId: message.author.id,
 				apiKey: client.env.GROQ_API_KEY,
-				model: client.env.RECOMMENDATION_AI_MODEL,
-			});
-			const reply = await message.reply({
-				content: formatAssistantReply(answer, ownerId, isRomanticAdvance(question, message.author.id, ownerId)),
-				allowedMentions: { users: isRomanticAdvance(question, message.author.id, ownerId) ? [ownerId] : [] },
 			});
 
+			// Relationship boundaries are selected by the app, not generated as a
+			// repeated sentence by the model. The category follows the member's message.
+			const romanticAdvance = isRomanticAdvance(question, message.author.id, ownerId);
+			const boundary = romanticAdvance
+				? chooseRomanticBoundary(question, conversation.lastRomanticBoundary)
+				: null;
+			const formattedAnswer = formatAssistantReply(answer, ownerId, boundary);
+			const reply = await message.reply({
+				content: formattedAnswer,
+				allowedMentions: { users: romanticAdvance ? [ownerId] : [] },
+			});
+
+			if (boundary) conversation.lastRomanticBoundary = boundary;
+			const historyAnswer = formattedAnswer.replace(new RegExp("<@!?" + ownerId + ">", "g"), "the owner");
 			conversation.history.push(
 				{ role: "user", content: question },
-				{ role: "assistant", content: answer },
+				{ role: "assistant", content: historyAnswer },
 			);
 			conversation.history = conversation.history.slice(-MAX_HISTORY_MESSAGES);
 			conversation.lastAssistantMessageId = reply.id;
