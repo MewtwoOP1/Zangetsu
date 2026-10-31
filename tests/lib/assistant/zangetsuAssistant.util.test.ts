@@ -143,7 +143,7 @@ describe("askZangetsu", () => {
 		expect(payload.reasoning_effort).toBe("low");
 		expect(payload.include_reasoning).toBe(false);
 		expect(payload.messages[0].role).toBe("system");
-		expect(payload.messages[0].content).not.toContain("STYLE EXAMPLES");
+		expect(payload.messages[0].content).toContain("STYLE EXAMPLES");
 		expect(payload.messages.at(-3)).toEqual({ role: "user", content: "hi" });
 		expect(payload.messages.at(-1)).toEqual({ role: "user", content: "What is the latest Groq model? Search online." });
 	});
