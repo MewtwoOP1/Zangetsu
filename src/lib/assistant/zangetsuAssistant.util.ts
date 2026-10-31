@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { fetchJson } from "@lib/infra";
 
-/** Conversational Zangetsu assistant with an owner-only character persona. */
+/** Conversational Zangetsu assistant with one shared tsundere persona and an owner-only girlfriend relationship. */
 
 export interface AssistantTurn {
 	role: "user" | "assistant";
@@ -51,7 +51,7 @@ export const ZANGETSU_KNOWLEDGE = [
 const PRODUCT_CONTEXT_PATTERN = /\b(?:zangetsu|app|player|video|anime|manga|light novel|sources?|extensions?|cloudstream|mihon|aniyomi|lnreader|mpv|playback|stream|downloads?|subtitles?|trackers?|watch party|cast|chromecast|android tv|testflight|apk|updates?|install|buffer|4k|hdr|servers?|episodes?|quality)\b/i;
 
 // Only pass the browser tool when the user's wording indicates a live or explicitly requested lookup.
-// Groq then lets GPT-OSS decide whether the search is useful via tool_choice: "auto".
+// When included, Groq requires the browser_search tool to run for that request.
 const BROWSER_SEARCH_PATTERN = /\b(?:search (?:the )?(?:web|internet|online)|look up online|check online|browse (?:the )?web|find online|latest|current(?:ly)?|today|yesterday|this week|recent(?:ly)?|news|live score|current price|weather|release notes|newest version|as of now|up[- ]to[- ]date)\b/i;
 
 function validDiscordId(value: string): boolean {
