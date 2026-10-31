@@ -242,7 +242,7 @@ export async function askZangetsu(input: AskZangetsuInput): Promise<string> {
 			include_reasoning: false,
 			...(useBrowserSearch ? {
 				tools: [{ type: "browser_search" }],
-				tool_choice: "auto",
+				tool_choice: "required",
 			} : {}),
 			messages: [
 				{ role: "system", content: systemPrompt },
