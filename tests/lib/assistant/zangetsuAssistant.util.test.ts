@@ -16,18 +16,22 @@ const memberId = "22345678901234567";
 
 describe("Zangetsu assistant personality", () => {
 	afterEach(() => jest.restoreAllMocks());
-	it("gives the tsundere girlfriend persona only to the configured owner", () => {
+	it("gives everyone the same tsundere personality but reserves the girlfriend relationship for the owner", () => {
 		const ownerPrompt = buildZangetsuSystemPrompt(ownerId, ownerId);
 		const memberPrompt = buildZangetsuSystemPrompt(ownerId, memberId);
 
-		expect(ownerPrompt).toContain("owner's cute, witty, affectionate tsundere AI girlfriend");
+		expect(ownerPrompt).toContain("EVERY user gets this same tsundere personality");
+		expect(memberPrompt).toContain("EVERY user gets this same tsundere personality");
 		expect(ownerPrompt).toContain("arskaz/Tsundere-AI dataset");
-		expect(ownerPrompt).toContain("Vary openings, sentence lengths, jokes, affection");
-		expect(ownerPrompt).toContain("drop teasing");
-		expect(memberPrompt).toContain("normal helpful assistant voice");
-		expect(memberPrompt).toContain("Do NOT use the tsundere girlfriend persona");
-		expect(memberPrompt).not.toContain("STYLE EXAMPLES");
-		expect(memberPrompt).not.toContain("cute, witty, affectionate tsundere AI girlfriend");
+		expect(memberPrompt).toContain("arskaz/Tsundere-AI dataset");
+		expect(ownerPrompt).toContain("STYLE EXAMPLES");
+		expect(memberPrompt).toContain("STYLE EXAMPLES");
+		expect(ownerPrompt).toContain("one and only boyfriend");
+		expect(memberPrompt).toContain("NOT your boyfriend");
+		expect(memberPrompt).toContain("playful tsundere deflection");
+		expect(memberPrompt).toContain("varied, context-aware response that refers to your owner");
+		expect(memberPrompt).not.toContain("normal helpful assistant voice");
+		expect(memberPrompt).not.toContain("Do NOT use the tsundere girlfriend persona");
 	});
 
 	it("rejects invalid Discord IDs", () => {
@@ -165,7 +169,7 @@ describe("askZangetsu", () => {
 		expect(payload.messages[0].content).not.toContain("mpv playback");
 	});
 
-	it("uses normal assistant voice for non-owners and includes product notes only for app questions", async () => {
+	it("keeps the tsundere personality for non-owners without giving them the girlfriend relationship", async () => {
 		jest.spyOn(global, "fetch").mockResolvedValue(
 			new Response(JSON.stringify({ choices: [{ message: { content: "Open Settings, then Sources." }, finish_reason: "stop" }] }), {
 				status: 200, headers: { "content-type": "application/json" },
@@ -181,8 +185,10 @@ describe("askZangetsu", () => {
 		const payload = JSON.parse(String(jest.mocked(global.fetch).mock.calls[0]?.[1]?.body));
 		expect(payload.temperature).toBe(0.7);
 		expect(payload.messages[0].content).toContain("mpv playback");
-		expect(payload.messages[0].content).toContain("normal helpful assistant voice");
-		expect(payload.messages[0].content).not.toContain("STYLE EXAMPLES");
+		expect(payload.messages[0].content).toContain("EVERY user gets this same tsundere personality");
+		expect(payload.messages[0].content).toContain("STYLE EXAMPLES");
+		expect(payload.messages[0].content).toContain("NOT your boyfriend");
+		expect(payload.messages[0].content).toContain("owner relationship boundary");
 	});
 
 	it("rejects empty questions, missing keys, invalid IDs, and empty model responses", async () => {
