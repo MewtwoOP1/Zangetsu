@@ -102,26 +102,20 @@ export function buildZangetsuSystemPrompt(ownerId: string, speakerId: string): s
 	].join("\n");
 }
 
+/** Classifies the wording itself; authorization is checked separately below. */
+function classifyRomanticQuestion(question: string): RomanticIntent | null {
+	if (/\b(?:i\s*(?:really\s*)?(?:love|luv)\s*(?:you|u)|i'?m\s+in\s+love\s+with\s+you|i\s+have\s+a\s+crush\s+on\s+you|i\s+want\s+to\s+be\s+with\s+you)\b/i.test(question)) return "confession";
+	if (/\b(?:date\s+me|go\s+out\s+with\s+me|take\s+me\s+out|ask\s+me\s+out|can\s+i\s+take\s+you\s+out|would\s+you\s+go\s+on\s+a\s+date)\b/i.test(question)) return "date";
+	if (/\b(?:are\s+you\s+(?:single|taken)|do\s+you\s+have\s+a\s+boyfriend|do\s+you\s+have\s+a\s+partner|are\s+you\s+in\s+a\s+relationship)\b/i.test(question)) return "availability";
+	if (/\b(?:marry\s+me|be\s+my\s+(?:girlfriend|gf|wife|partner)|will\s+you\s+be\s+my\s+(?:girlfriend|gf|wife|partner)|be\s+mine)\b/i.test(question)) return "proposal";
+	if (/\b(?:can\s+i\s+kiss\s+you|kiss\s+me|you\s+are\s+my\s+type|you're\s+my\s+type|make\s+my\s+heart\s+skip\s+(?:a\s+)?beat|make\s+my\s+heart\s+race)\b/i.test(question)) return "flirt";
+	return null;
+}
+
 /** Classifies a member's romantic advance so the app can choose a relevant, varied boundary. */
 export function getRomanticIntent(question: string, speakerId: string, ownerId: string): RomanticIntent | null {
 	if (!validDiscordId(ownerId) || !validDiscordId(speakerId) || speakerId === ownerId) return null;
-
-	if (/\b(?:i\s*(?:really\s*)?(?:love|luv)\s*(?:you|u)|i'?m\s+in\s+love\s+with\s+you|i\s+have\s+a\s+crush\s+on\s+you|i\s+want\s+to\s+be\s+with\s+you)\b/i.test(question)) {
-		return "confession";
-	}
-	if (/\b(?:date\s+me|go\s+out\s+with\s+me|take\s+me\s+out|ask\s+me\s+out|can\s+i\s+take\s+you\s+out|would\s+you\s+go\s+on\s+a\s+date)\b/i.test(question)) {
-		return "date";
-	}
-	if (/\b(?:are\s+you\s+(?:single|taken)|do\s+you\s+have\s+a\s+boyfriend|do\s+you\s+have\s+a\s+partner|are\s+you\s+in\s+a\s+relationship)\b/i.test(question)) {
-		return "availability";
-	}
-	if (/\b(?:marry\s+me|be\s+my\s+(?:girlfriend|gf|wife|partner)|will\s+you\s+be\s+my\s+(?:girlfriend|gf|wife|partner)|be\s+mine)\b/i.test(question)) {
-		return "proposal";
-	}
-	if (/\b(?:can\s+i\s+kiss\s+you|kiss\s+me|you\s+are\s+my\s+type|you're\s+my\s+type|make\s+my\s+heart\s+skip\s+(?:a\s+)?beat|make\s+my\s+heart\s+race)\b/i.test(question)) {
-		return "flirt";
-	}
-	return null;
+	return classifyRomanticQuestion(question);
 }
 
 export function isRomanticAdvance(question: string, speakerId: string, ownerId: string): boolean {
@@ -158,20 +152,11 @@ const ROMANTIC_BOUNDARIES: Record<RomanticIntent, readonly string[]> = {
 
 /** Selects a question-specific boundary and avoids repeating the previous one in the same chat. */
 export function chooseRomanticBoundary(question: string, previousBoundary?: string | null): string | null {
-	const intent = (Object.keys(ROMANTIC_BOUNDARIES) as RomanticIntent[])
-		.find((candidate) => {
-			const probes: Record<RomanticIntent, RegExp> = {
-				confession: /\b(?:love|luv|crush|in love|want to be with you)\b/i,
-				date: /\b(?:date|go out|take you out|ask you out)\b/i,
-				availability: /\b(?:single|taken|boyfriend|partner|relationship)\b/i,
-				proposal: /\b(?:marry|girlfriend|wife|be mine|proposal)\b/i,
-				flirt: /\b(?:kiss|my type|heart skip|heart race)\b/i,
-			};
-			return probes[candidate].test(question);
-		}) ?? "flirt";
+	const intent = classifyRomanticQuestion(question);
+	if (!intent) return null;
 	const options = ROMANTIC_BOUNDARIES[intent].filter((line) => line !== previousBoundary);
 	const available = options.length > 0 ? options : ROMANTIC_BOUNDARIES[intent];
-	return available[Math.floor(Math.random() * available.length)] ?? ROMANTIC_BOUNDARIES[intent][0] ?? null;
+	return available[Math.floor(Math.random() * available.length)] ?? null;
 }
 
 /** Removes accidental owner/relationship claims; the app owns the one contextual boundary line. */
