@@ -64,6 +64,11 @@ const fields = z.object({
 	// Support assistant. Without a key it answers by search alone and never contacts anybody.
 	SUPPORT_AI_API_KEY: z.string().min(1).optional(),
 	SUPPORT_AI_MODEL: z.string().min(1).default("claude-opus-5"),
+
+	// Keeps the app's public release notes and guide snapshot fresh on a timer. Off by default, because a
+	// self-hosted bot should not contact a server on a schedule nobody asked it to. The assistant answers from
+	// the stored corpus either way, and refreshes on demand when somebody asks a question that needs it.
+	KNOWLEDGE_REFRESH_ENABLED: flag.default(false),
 });
 
 /** Every variable name, so the support assistant can refuse to repeat one. */

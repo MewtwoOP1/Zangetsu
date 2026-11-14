@@ -54,6 +54,7 @@ export const INTERVALS = {
 	softbanCheckMs: MINUTE_MS,
 	fixedStatsRefreshMs: 5 * MINUTE_MS,
 	githubReleaseCheckMs: 10 * MINUTE_MS,
+	knowledgeRefreshMs: 6 * HOUR_MS,
 	passiveIncomeMs: HOUR_MS,
 } as const;
 

@@ -3,6 +3,7 @@ import { INTERVALS } from "@config/constants";
 import { defineEvent } from "@core/event";
 import { settleIdleHands } from "@jobs/casinoSweep.util";
 import { checkGitHubReleaseAnnouncements } from "@jobs/githubReleaseAnnouncements.util";
+import { refreshZangetsuKnowledge } from "@jobs/knowledgeRefresh.util";
 import { runLotteryDraws } from "@jobs/lotteryDraw.util";
 import { payPassiveIncome } from "@jobs/passiveIncome.util";
 import { refreshBotStats } from "@jobs/refreshBotStats.util";
@@ -35,6 +36,15 @@ export default defineEvent({
 		});
 		client.timers.every("roulette-rounds", CASINO_TIMING.sweepEveryMs, () => spinOverdueRounds(client));
 		client.timers.every("command-log", INTERVALS.commandLogFlushMs, () => flushCommandLog(client));
+		// Off unless the operator asked for it: a self-hosted bot should not contact a server on a timer.
+		if (client.env.KNOWLEDGE_REFRESH_ENABLED) {
+			client.timers.after("knowledge-first", 20_000, async () => {
+				await refreshZangetsuKnowledge(client);
+			});
+			client.timers.every("knowledge", INTERVALS.knowledgeRefreshMs, async () => {
+				await refreshZangetsuKnowledge(client);
+			});
+		}
 
 		startEventLoopMonitor();
 		watchDiscordApi(client);
