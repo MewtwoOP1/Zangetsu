@@ -11,6 +11,7 @@ export * from "./games";
 export * from "./giveaways";
 export * from "./info";
 export * from "./infra";
+export * from "./knowledge";
 export * from "./levelling";
 export * from "./moderation";
 export * from "./music";

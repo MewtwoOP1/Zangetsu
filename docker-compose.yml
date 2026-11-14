@@ -50,6 +50,9 @@ services:
 
       SUPPORT_AI_API_KEY: ${SUPPORT_AI_API_KEY:-}
       SUPPORT_AI_MODEL: ${SUPPORT_AI_MODEL:-}
+
+      # Off by default: a self-hosted bot should not contact a server on a timer nobody asked it to.
+      KNOWLEDGE_REFRESH_ENABLED: ${KNOWLEDGE_REFRESH_ENABLED:-false}
     ports:
       # Bound to the host's loopback: an admin panel reachable from the internet is not a default.
       # Put a reverse proxy in front and set DASHBOARD_TRUST_PROXY=true to expose it deliberately.

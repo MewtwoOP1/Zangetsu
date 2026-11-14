@@ -1,3 +1,4 @@
+import { type Message } from "discord.js";
 import { DEFAULT_PREFIX } from "@config/constants";
 import { theme } from "@config/theme";
 import { botName } from "@core/brand";
@@ -9,24 +10,42 @@ import {
 	chooseRomanticBoundary,
 	formatAssistantReply,
 	isRomanticAdvance,
+	shouldUseBrowserSearch,
+	splitAssistantReply,
 	type AssistantTurn,
 } from "@lib/assistant/zangetsuAssistant.util";
 import { embed, linkButton, row } from "@lib/discord";
+import { refreshZangetsuLive } from "@lib/knowledge/knowledgeLive.util";
+
+/** Answers a mention with the Zangetsu app knowledge, as a reply to the message that asked. */
 
 interface Conversation {
 	history: AssistantTurn[];
-	lastAssistantMessageId: string | null;
+	/** Every part of the last answer, so a reply to any of them continues the conversation. */
+	assistantMessageIds: Set<string>;
 	lastRomanticBoundary: string | null;
 	expiresAt: number;
 }
 
 const CONVERSATION_TTL_MS = 20 * 60_000;
 const USER_COOLDOWN_MS = 7_000;
+/** The same person, asking in another channel, does not get to double the model's work. */
+const USER_GLOBAL_COOLDOWN_MS = 20_000;
+/** A channel full of mentions does not get an answer for every one of them. */
+const CHANNEL_WINDOW_MS = 60_000;
+const CHANNEL_MAX_ANSWERS = 6;
 const MAX_CONVERSATIONS = 500;
 const MAX_HISTORY_MESSAGES = 4;
+const MAX_QUESTION_CHARS = 1_000;
+/** How many message ids are remembered, so a repeated gateway event cannot answer twice. */
+const MAX_PROCESSED_IDS = 1_000;
 
 const conversations = new Map<string, Conversation>();
 const cooldowns = new Map<string, number>();
+const userCooldowns = new Map<string, number>();
+const channelAnswers = new Map<string, number[]>();
+const inFlight = new Set<string>();
+const processed = new Set<string>();
 
 function conversationKey(channelId: string, userId: string): string {
 	return channelId + ":" + userId;
@@ -38,6 +57,14 @@ function pruneExpiredState(now: number): void {
 	}
 	for (const [key, expiresAt] of cooldowns) {
 		if (expiresAt <= now) cooldowns.delete(key);
+	}
+	for (const [key, expiresAt] of userCooldowns) {
+		if (expiresAt <= now) userCooldowns.delete(key);
+	}
+	for (const [key, answers] of channelAnswers) {
+		const kept = answers.filter((at) => at > now - CHANNEL_WINDOW_MS);
+		if (kept.length === 0) channelAnswers.delete(key);
+		else channelAnswers.set(key, kept);
 	}
 }
 
@@ -55,7 +82,7 @@ function getConversation(key: string, now: number): Conversation {
 
 	const created: Conversation = {
 		history: [],
-		lastAssistantMessageId: null,
+		assistantMessageIds: new Set(),
 		lastRomanticBoundary: null,
 		expiresAt: now + CONVERSATION_TTL_MS,
 	};
@@ -68,10 +95,46 @@ export function stripAssistantMention(content: string, botId: string): string {
 	return content.replace(new RegExp("<@!?" + botId + ">", "g"), "").trim();
 }
 
+/** Whether the message mentions this bot, by Discord's own mention list or by its raw form. */
+export function mentionsBot(content: string, botId: string, mentioned: readonly string[] = []): boolean {
+	if (mentioned.includes(botId)) return true;
+	return new RegExp("<@!?" + botId + ">").test(content);
+}
+
+/** How many answers this channel has had inside the window. */
+export function channelAnswerCount(channelId: string, now: number): number {
+	return (channelAnswers.get(channelId) ?? []).filter((at) => at > now - CHANNEL_WINDOW_MS).length;
+}
+
 /** Tests can reset transient conversation state without importing Discord. */
 export function clearMentionAssistantState(): void {
 	conversations.clear();
 	cooldowns.clear();
+	userCooldowns.clear();
+	channelAnswers.clear();
+	inFlight.clear();
+	processed.clear();
+}
+
+/** Remembers a message id, and says whether it had been seen before. */
+function claimMessage(messageId: string): boolean {
+	if (processed.has(messageId)) return false;
+	processed.add(messageId);
+	if (processed.size > MAX_PROCESSED_IDS) {
+		const first = processed.values().next().value;
+		if (first !== undefined) processed.delete(first);
+	}
+	return true;
+}
+
+/** The answer goes to the channel when the message itself can no longer be replied to. */
+async function sendToChannel(
+	channel: Message["channel"],
+	payload: { content: string; allowedMentions: { users: string[] } },
+): Promise<Message | null> {
+	const candidate = channel as { send?: (body: unknown) => Promise<Message> };
+	if (typeof candidate.send !== "function") return null;
+	return candidate.send(payload).catch(() => null);
 }
 
 export default defineMessageHandler({
@@ -85,14 +148,17 @@ export default defineMessageHandler({
 		const key = conversationKey(message.channelId, message.author.id);
 		const now = Date.now();
 		pruneExpiredState(now);
+
 		const previous = conversations.get(key);
-		const hasMention = message.mentions.users.has(botId) ||
-			new RegExp("<@!?" + botId + ">").test(message.content);
-		const isReplyToAssistant = previous !== undefined &&
+		const hasMention = mentionsBot(message.content, botId, [...message.mentions.users.keys()]);
+		const isReplyToAssistant =
+			previous !== undefined &&
 			previous.expiresAt > now &&
-			message.reference?.messageId === previous.lastAssistantMessageId;
+			message.reference?.messageId !== undefined &&
+			previous.assistantMessageIds.has(message.reference.messageId);
 
 		if (!hasMention && !isReplyToAssistant) return;
+		if (!claimMessage(message.id)) return true;
 
 		const question = stripAssistantMention(message.content, botId);
 		const prefix = message.guild === null ? DEFAULT_PREFIX : await getPrefix(message.guild.id);
@@ -100,16 +166,21 @@ export default defineMessageHandler({
 		// Keep the existing natural-language recommendation flow and real prefix
 		// commands. Those handlers use catalogue data and must not be replaced by chat.
 		if (/^(?:suggest|recommend)\b/i.test(question)) return;
-		const parsed = parseMessage(message.content, prefix, botId);
-		if (parsed !== null) {
+		for (const parsed of [
+			parseMessage(message.content, prefix, botId),
+			parseMessage(question, prefix, botId),
+		]) {
+			if (parsed === null) continue;
 			const commandTarget = client.aliases.get(parsed.name) ?? parsed.name;
 			const commandName = commandTarget.split(" ")[0] ?? commandTarget;
-			const command = client.commands.get(commandName);
-			if (command !== undefined) return;
+			if (client.commands.get(commandName) !== undefined) return;
 		}
 
 		// A bare mention keeps the existing compact introduction and help buttons.
 		if (!question) {
+			const buttons = [linkButton("Source code", theme.repository)];
+			// The support server is optional, and an empty one is not a URL Discord will accept.
+			if (theme.supportServer !== "") buttons.push(linkButton("Support", theme.supportServer));
 			await message.reply({
 				content: "Mention me with a message to chat, or use /help or " + prefix + "help to see my commands.",
 				embeds: [
@@ -120,13 +191,13 @@ export default defineMessageHandler({
 						thumbnail: client.user?.displayAvatarURL(),
 					}),
 				],
-				components: [row(linkButton("Source code", theme.repository), linkButton("Support", theme.supportServer))],
+				components: [row(...buttons)],
 				allowedMentions: { parse: [] },
 			});
 			return true;
 		}
 
-		if (question.length > 1_000) {
+		if (question.length > MAX_QUESTION_CHARS) {
 			await message.reply({
 				content: "That is a bit long for one message. Send the main point first and we can work through the rest.",
 				allowedMentions: { parse: [] },
@@ -143,16 +214,26 @@ export default defineMessageHandler({
 		}
 
 		const cooldownUntil = cooldowns.get(key) ?? 0;
-		if (cooldownUntil > now) return true;
+		const userCooldownUntil = userCooldowns.get(message.author.id) ?? 0;
+		if (cooldownUntil > now || userCooldownUntil > now) return true;
+		if (channelAnswerCount(message.channelId, now) >= CHANNEL_MAX_ANSWERS) return true;
+		if (inFlight.has(key)) return true;
+
 		cooldowns.set(key, now + USER_COOLDOWN_MS);
-		if (cooldowns.size > MAX_CONVERSATIONS) {
-			const first = cooldowns.keys().next().value;
-			if (first !== undefined) cooldowns.delete(first);
-		}
+		userCooldowns.set(message.author.id, now + USER_GLOBAL_COOLDOWN_MS);
+		channelAnswers.set(message.channelId, [...(channelAnswers.get(message.channelId) ?? []), now]);
+		inFlight.add(key);
 
 		const conversation = getConversation(key, now);
 		try {
 			await message.channel.sendTyping();
+
+			// A question about the state of the world needs a current answer, so the release feed is
+			// refreshed first — briefly, because somebody is waiting.
+			if (shouldUseBrowserSearch(question)) {
+				await refreshZangetsuLive({ timeoutMs: 3_000 });
+			}
+
 			const answer = await askZangetsu({
 				question,
 				history: conversation.history,
@@ -168,10 +249,32 @@ export default defineMessageHandler({
 				? chooseRomanticBoundary(question, conversation.lastRomanticBoundary)
 				: null;
 			const formattedAnswer = formatAssistantReply(answer, ownerId, boundary);
-			const reply = await message.reply({
-				content: formattedAnswer,
-				allowedMentions: { users: romanticAdvance ? [ownerId] : [] },
-			});
+			const parts = splitAssistantReply(formattedAnswer);
+
+			const sentMessages: Message[] = [];
+			for (const [index, part] of parts.entries()) {
+				const payload = {
+					content: part,
+					allowedMentions: { users: romanticAdvance ? [ownerId] : [] },
+				};
+
+				let sent: Message | null = null;
+				try {
+					// The first part answers the member's message; the rest continue the
+					// same thread, so a long answer never loses its place.
+					const previous = sentMessages.at(-1);
+					sent = index === 0 ? await message.reply(payload) : ((await previous?.reply(payload)) ?? null);
+				} catch {
+					sent = null;
+				}
+				if (sent === null) {
+					sent = await sendToChannel(message.channel, payload);
+				}
+				if (sent === null) continue;
+
+				sentMessages.push(sent);
+				conversation.assistantMessageIds.add(sent.id);
+			}
 
 			if (boundary) conversation.lastRomanticBoundary = boundary;
 			const historyAnswer = formattedAnswer.replace(new RegExp("<@!?" + ownerId + ">", "g"), "the owner");
@@ -180,7 +283,6 @@ export default defineMessageHandler({
 				{ role: "assistant", content: historyAnswer },
 			);
 			conversation.history = conversation.history.slice(-MAX_HISTORY_MESSAGES);
-			conversation.lastAssistantMessageId = reply.id;
 			conversation.expiresAt = Date.now() + CONVERSATION_TTL_MS;
 		} catch (error) {
 			client.logger.warn({ err: error }, "Zangetsu AI conversation failed");
@@ -190,7 +292,9 @@ export default defineMessageHandler({
 			await message.reply({
 				content: fallback,
 				allowedMentions: { parse: [] },
-			});
+			}).catch(() => sendToChannel(message.channel, { content: fallback, allowedMentions: { users: [] } }));
+		} finally {
+			inFlight.delete(key);
 		}
 
 		return true;

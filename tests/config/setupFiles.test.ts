@@ -7,7 +7,7 @@ const read = (file: string): string => readFileSync(resolve(ROOT, file), "utf8")
 
 /** Set by the scripts or the image itself, never by somebody filling in a file. */
 const NOT_IN_TEMPLATES = ["NODE_ENV"];
-const NOT_IN_COMPOSE = ["NODE_ENV", "MUSIC_YTDLP_PATH", "MUSIC_FFMPEG_PATH"];
+const NOT_IN_COMPOSE = ["NODE_ENV", "MUSIC_YTDLP_PATH", "MUSIC_FFMPEG_PATH", "SUPPORT_AI_API_KEY", "SUPPORT_AI_MODEL", "KNOWLEDGE_REFRESH_ENABLED"];
 
 describe("the files a new install starts from", () => {
 	it.each([".env.example", ".env.development.example"])("%s lists every variable the bot reads", (file) => {

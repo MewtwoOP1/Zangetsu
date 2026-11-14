@@ -54,6 +54,20 @@ The web dashboard is a workspace of its own (`dashboard/`), with an API inside t
 
 `AGENTS.md` §24 wins wherever it and `dashboard/guide.md` disagree.
 
+### The app support assistant
+
+The assistant that answers questions about the **Zangetsu app** when somebody mentions the bot.
+
+| File                                                  | What it is                                                                      |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------- |
+| 🧠 [`ai/zangetsu-knowledge.md`](ai/zangetsu-knowledge.md) | How the knowledge base is stored, searched, refreshed and kept honest           |
+| 📖 [`ai/zangetsu-faq.md`](ai/zangetsu-faq.md)           | The questions members ask most, and the answers the assistant gives              |
+| 🔗 [`ai/zangetsu-source-index.md`](ai/zangetsu-source-index.md) | Every source consulted, what was taken from it, and what could not be verified |
+| 🔎 [`ai/research-summary.md`](ai/research-summary.md)   | What the research found, what it could not confirm, and what is still open        |
+
+The corpus itself is `assets/zangetsu/*.md` — one file per answer, each with its source, its confidence and the
+date it was last checked.
+
 ### Images
 
 | Folder                                                | What is in it                                                                                                        |
