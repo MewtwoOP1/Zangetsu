@@ -34,6 +34,7 @@ const USER_GLOBAL_COOLDOWN_MS = 20_000;
 /** A channel full of mentions does not get an answer for every one of them. */
 const CHANNEL_WINDOW_MS = 60_000;
 const CHANNEL_MAX_ANSWERS = 6;
+const SOURCE_SHARE_TTL_MS = 30_000;
 const MAX_CONVERSATIONS = 500;
 const MAX_HISTORY_MESSAGES = 4;
 const MAX_QUESTION_CHARS = 1_000;
@@ -44,7 +45,6 @@ const conversations = new Map<string, Conversation>();
 const cooldowns = new Map<string, number>();
 const userCooldowns = new Map<string, number>();
 const channelAnswers = new Map<string, number[]>();
-const inFlight = new Set<string>();
 const processed = new Set<string>();
 
 function conversationKey(channelId: string, userId: string): string {
@@ -112,7 +112,6 @@ export function clearMentionAssistantState(): void {
 	cooldowns.clear();
 	userCooldowns.clear();
 	channelAnswers.clear();
-	inFlight.clear();
 	processed.clear();
 }
 
@@ -217,12 +216,12 @@ export default defineMessageHandler({
 		const userCooldownUntil = userCooldowns.get(message.author.id) ?? 0;
 		if (cooldownUntil > now || userCooldownUntil > now) return true;
 		if (channelAnswerCount(message.channelId, now) >= CHANNEL_MAX_ANSWERS) return true;
-		if (inFlight.has(key)) return true;
+		// Removed inFlight check — each message is independently processed.
+		// A previous in-flight request should not block unrelated messages.
 
 		cooldowns.set(key, now + USER_COOLDOWN_MS);
 		userCooldowns.set(message.author.id, now + USER_GLOBAL_COOLDOWN_MS);
 		channelAnswers.set(message.channelId, [...(channelAnswers.get(message.channelId) ?? []), now]);
-		inFlight.add(key);
 
 		const conversation = getConversation(key, now);
 		try {
@@ -276,7 +275,24 @@ export default defineMessageHandler({
 				conversation.assistantMessageIds.add(sent.id);
 			}
 
-			if (boundary) conversation.lastRomanticBoundary = boundary;
+		// Source sharing messages auto-delete after 30 seconds.
+		const hasRepoLink = parts.some((p) => /github\.com/i.test(p));
+		if (hasRepoLink && sentMessages.length > 0) {
+			client.timers.after(
+				`source-share-${sentMessages[0].id}`,
+				SOURCE_SHARE_TTL_MS,
+				async () => {
+					try {
+						const first = sentMessages[0];
+						if (first) await first.delete().catch(() => undefined);
+					} catch {
+						// Message may already be deleted or inaccessible.
+					}
+				},
+			);
+		}
+
+		if (boundary) conversation.lastRomanticBoundary = boundary;
 			const historyAnswer = formattedAnswer.replace(new RegExp("<@!?" + ownerId + ">", "g"), "the owner");
 			conversation.history.push(
 				{ role: "user", content: question },
@@ -293,8 +309,6 @@ export default defineMessageHandler({
 				content: fallback,
 				allowedMentions: { parse: [] },
 			}).catch(() => sendToChannel(message.channel, { content: fallback, allowedMentions: { users: [] } }));
-		} finally {
-			inFlight.delete(key);
 		}
 
 		return true;
