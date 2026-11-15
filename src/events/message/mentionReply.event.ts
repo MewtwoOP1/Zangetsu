@@ -164,12 +164,11 @@ export default defineMessageHandler({
 
 		// Keep the existing natural-language recommendation flow and real prefix
 		// commands. Those handlers use catalogue data and must not be replaced by chat.
+		// Only check the mention-stripped question — not the full message with mention —
+		// so that @zangetsu help me triggers AI chat rather than the prefix command handler.
 		if (/^(?:suggest|recommend)\b/i.test(question)) return;
-		for (const parsed of [
-			parseMessage(message.content, prefix, botId),
-			parseMessage(question, prefix, botId),
-		]) {
-			if (parsed === null) continue;
+		const parsed = parseMessage(question, prefix, botId);
+		if (parsed !== null) {
 			const commandTarget = client.aliases.get(parsed.name) ?? parsed.name;
 			const commandName = commandTarget.split(" ")[0] ?? commandTarget;
 			if (client.commands.get(commandName) !== undefined) return;

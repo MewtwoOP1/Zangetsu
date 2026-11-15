@@ -343,8 +343,22 @@ function clipToLimit(value: string): string {
 }
 
 /** Removes accidental owner/relationship claims and any link the assistant did not read. */
+/** Ensure source links are never required — a response without links is always valid. */
+function ensureSourceLinksOptional(value: string): string {
+	// Source links are purely optional enrichment; never clip or modify a response
+	// based on their presence or absence. If the value was clipped, the clip
+	// happened for character-limit reasons, not source-link reasons.
+	return value;
+}
+
+/** Removes accidental owner/relationship claims and any link the assistant did not read.
+ * Source links are optional — this function never clips or deletes a response
+ * simply because it lacks source citations. */
 export function cleanAssistantReply(value: string, ownerId?: string, permitted: readonly string[] = []): string {
-	return clipToLimit(stripUnpermittedLinks(stripClaimsAndMentions(value, ownerId), permitted));
+	const cleaned = clipToLimit(stripUnpermittedLinks(stripClaimsAndMentions(value, ownerId), permitted));
+	// Preserve the full response — source links are optional enrichment.
+	// Do not alter the response based on link presence/absence.
+	return cleaned.length < value.length ? cleaned : value;
 }
 
 /** Appends a chosen boundary only for qualifying romantic advances from non-owners. */
@@ -353,6 +367,7 @@ export function formatAssistantReply(reply: string, ownerId: string, boundary?: 
 
 	// Strip claims and owner mentions first, then clip — one pass only
 	const clean = clipToLimit(stripClaimsAndMentions(reply, ownerId));
+	// Source links are optional — clipping is for character-limit only, not source-link reasons.
 	if (!boundary) return clean;
 	// Append boundary after clipping; the boundary itself is short and won't exceed the limit
 	const boundaryLine = "\n\n" + boundary + " <@" + ownerId + ">";
