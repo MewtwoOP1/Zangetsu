@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { normaliseDiscordMarkdown, splitDiscordMessage } from "./assistantFormat.util";
 import { type AssistantTone, buildToneInstructions } from "@lib/assistant/assistantPersona.util";
 import { fetchJson } from "@lib/infra/http.util";
 import {
@@ -47,9 +48,16 @@ const DEFAULT_MODEL = "openai/gpt-oss-20b";
 const MAX_HISTORY_MESSAGES = 4;
 const MAX_HISTORY_CHARS = 600;
 const MAX_QUESTION_CHARS = 1_000;
-/** Discord's message limit is 2,000 characters, and a reply needs room for its own decoration. */
+/** One piece of an answer: Discord's 2,000-character limit, less room for its own decoration. */
 const MAX_REPLY_CHARS = 1_900;
-const MAX_COMPLETION_TOKENS = 1_600;
+/** A whole answer past this is cut at a sentence boundary, because a wall of messages helps nobody. */
+const MAX_REPLY_CEILING = 20_000;
+/** GPT-OSS 20B accepts far more; a reasoning model spends part of this thinking before it writes. */
+const MAX_COMPLETION_TOKENS = 4_096;
+/** How many times a cut-off answer is asked to carry on before it is delivered as it stands. */
+const MAX_CONTINUATIONS = 2;
+const CONTINUE_INSTRUCTION =
+	"Your last answer was cut off by the length limit. Continue from the exact point you stopped, without repeating anything you already wrote and without starting over.";
 
 const responseSchema = z.object({
 	choices: z
@@ -270,8 +278,8 @@ export function chooseRomanticBoundary(question: string, previousBoundary?: stri
 	return available[Math.floor(Math.random() * available.length)] ?? null;
 }
 
-const URL_PATTERN = /https?:\/\/[^\s<>()[]"']+/gi;
-const BARE_REPOSITORY = /\b(?:www\.)?github\.com\/[^\s<>()[]"]+/gi;
+const URL_PATTERN = /https?:\/\/[^\s<>()[\]"']+/gi;
+const BARE_REPOSITORY = /\b(?:www\.)?github\.com\/[^\s<>()[\]"]+/gi;
 
 /** The links the answer may carry: what was retrieved, and nothing else. */
 export function allowedLinks(hits: readonly KnowledgeHit[]): string[] {
@@ -325,132 +333,58 @@ function stripUnpermittedLinks(value: string, permitted: readonly string[]): str
 		});
 }
 
-/** Safely clip a reply to the character limit, preserving formatting boundaries. */
-function clipToLimit(value: string): string {
-	if (value.length <= MAX_REPLY_CHARS) return value;
+/** Joins a continuation onto what came before, dropping whatever the model repeated across the seam. */
+function joinContinuation(before: string, after: string): string {
+	if (after !== "" && before.endsWith(after)) return before;
 
-	// Try to find a safe break point near the limit — at a space or period
-	const safeCut = value.lastIndexOf(" ", MAX_REPLY_CHARS - 20);
-	const safeCutAtPeriod = value.lastIndexOf(". ", MAX_REPLY_CHARS - 20);
+	const longest = Math.min(200, before.length, after.length);
+	for (let size = longest; size >= 10; size -= 1) {
+		if (before.slice(-size) === after.slice(0, size)) return before + after.slice(size);
+	}
 
-	let cutAt = MAX_REPLY_CHARS;
-	if (safeCut > MAX_REPLY_CHARS - 40) cutAt = safeCut;
-	else if (safeCutAtPeriod > MAX_REPLY_CHARS - 40) cutAt = safeCutAtPeriod + 2;
-
-	const clipped = value.slice(0, cutAt).trimEnd();
-	// Only add ellipsis if we actually clipped something substantial
-	return clipped.length < value.length ? clipped + "…" : clipped;
+	// A cut inside a word needs no space; a finished sentence does.
+	const joiner = /[.!?…:;]\s*$/.test(before) ? " " : "";
+	return before + joiner + after;
 }
 
-/** Removes accidental owner/relationship claims and any link the assistant did not read. */
-/** Ensure source links are never required — a response without links is always valid. */
-function ensureSourceLinksOptional(value: string): string {
-	// Source links are purely optional enrichment; never clip or modify a response
-	// based on their presence or absence. If the value was clipped, the clip
-	// happened for character-limit reasons, not source-link reasons.
-	return value;
+/** Cuts an answer only past the ceiling for one whole reply, at a sentence boundary and honestly. */
+function boundReplyLength(value: string): string {
+	if (value.length <= MAX_REPLY_CEILING) return value;
+
+	const window = value.slice(0, MAX_REPLY_CEILING);
+	const sentence = Math.max(window.lastIndexOf(". "), window.lastIndexOf("\n\n"), window.lastIndexOf("\n"));
+	let end = Math.min(sentence > MAX_REPLY_CEILING * 0.6 ? sentence + 1 : MAX_REPLY_CEILING, value.length);
+
+	// Never leave half an emoji behind.
+	const last = value.charCodeAt(end - 1);
+	const next = value.charCodeAt(end);
+	if (last >= 0xd800 && last <= 0xdbff && next >= 0xdc00 && next <= 0xdfff) end -= 1;
+
+	return (
+		value.slice(0, end).trimEnd() +
+		"\n\n…that is as much as I can write at once. Ask me to continue and I will pick up where I left off."
+	);
 }
 
 /** Removes accidental owner/relationship claims and any link the assistant did not read.
- * Source links are optional — this function never clips or deletes a response
- * simply because it lacks source citations. */
+ * Source links are optional — nothing is cut or dropped for want of a citation. */
 export function cleanAssistantReply(value: string, ownerId?: string, permitted: readonly string[] = []): string {
-	const cleaned = clipToLimit(stripUnpermittedLinks(stripClaimsAndMentions(value, ownerId), permitted));
-	// Preserve the full response — source links are optional enrichment.
-	// Do not alter the response based on link presence/absence.
-	return cleaned.length < value.length ? cleaned : value;
+	const stripped = stripUnpermittedLinks(stripClaimsAndMentions(value, ownerId), permitted);
+	return boundReplyLength(normaliseDiscordMarkdown(stripped));
 }
 
 /** Appends a chosen boundary only for qualifying romantic advances from non-owners. */
 export function formatAssistantReply(reply: string, ownerId: string, boundary?: string | null): string {
 	if (!validDiscordId(ownerId)) throw new Error("A valid bot owner ID is required.");
 
-	// Strip claims and owner mentions first, then clip — one pass only
-	const clean = clipToLimit(stripClaimsAndMentions(reply, ownerId));
-	// Source links are optional — clipping is for character-limit only, not source-link reasons.
+	const clean = boundReplyLength(stripClaimsAndMentions(reply, ownerId));
 	if (!boundary) return clean;
-	// Append boundary after clipping; the boundary itself is short and won't exceed the limit
-	const boundaryLine = "\n\n" + boundary + " <@" + ownerId + ">";
-	return clean + boundaryLine;
+	return clean + "\n\n" + boundary + " <@" + ownerId + ">";
 }
 
-/** Patterns that must never be cut through when splitting a reply. */
-const NEVER_CUT_PATTERNS = [
-	// Fenced code blocks ``` ... ```
-	{ pattern: /```[\s\S]*?```/, preserve: true },
-	// Inline code `...`
-	{ pattern: /`[^`]*`/, preserve: true },
-	// Links [text](url) and <url>
-	{ pattern: /\[.*?\]\([^)]+\)|<[^>]+>/, preserve: true },
-];
-
-/** Whether a position is inside a pattern that must not be cut. */
-function isInsidePreservedPattern(text: string, pos: number): boolean {
-	for (const { pattern } of NEVER_CUT_PATTERNS) {
-		const match = text.slice(0, pos).match(pattern);
-		if (!match) continue;
-		// Count how many times the pattern opens/closes before pos
-		let depth = 0;
-	let searchEnd = pos;
-	 while (searchEnd > 0) {
-			const idx = text.lastIndexOf(match[0], searchEnd - 1);
-			if (idx < 0) break;
-			searchEnd = idx;
-			depth++;
-		}
-		if (depth > 0 && depth % 2 === 1) return true; // inside an odd number of matches = inside
-	}
-	return false;
-}
-
-/** Breaks an answer into pieces Discord will accept, keeping the paragraphs intact where it can.
- * Never cuts through fenced code blocks, inline code, or links. */
-export function splitAssistantReply(text: string, limit = MAX_REPLY_CHARS): string[] {
-	const trimmed = text.trim();
-	if (trimmed === "") return [];
-	if (trimmed.length <= limit) return [trimmed];
-
-	const parts: string[] = [];
-	let rest = trimmed;
-
-	while (rest.length > limit) {
-		const window = rest.slice(0, limit);
-
-		// Check if we're cutting through a preserved pattern near the boundary
-		let breakAt = Math.max(
-			window.lastIndexOf("\n\n"),
-			window.lastIndexOf("\n"),
-			window.lastIndexOf(". "),
-			window.lastIndexOf(" "),
-		);
-
-		// If the best break point is inside a preserved pattern, adjust
-		if (breakAt > 0 && isInsidePreservedPattern(rest, breakAt)) {
-			// Step back to find the pattern boundary
-			const patternText = rest.slice(0, breakAt);
-			const lastFence = patternText.lastIndexOf("```");
-			const lastInline = patternText.lastIndexOf("`");
-			const lastLink = Math.max(
-				patternText.lastIndexOf("["),
-				patternText.lastIndexOf("<"),
-			);
-			// Find the most recent pattern boundary
-			const candidates: number[] = [];
-			if (lastFence >= 0) candidates.push(lastFence);
-			if (lastInline >= 0) candidates.push(lastInline);
-			if (lastLink >= 0) candidates.push(lastLink);
-			if (candidates.length > 0) {
-				breakAt = Math.max(...candidates);
-			}
-		}
-
-		const cut = breakAt > limit * 0.4 ? breakAt + (rest[breakAt] === " " ? 1 : 0) : limit;
-		parts.push(rest.slice(0, cut).trimEnd());
-		rest = rest.slice(cut).trimStart();
-	}
-
-	if (rest !== "") parts.push(rest);
-	return parts.filter((part) => part !== "");
+/** Breaks an answer into the messages Discord will accept, keeping its formatting intact. */
+export function splitAssistantReply(text: string, limit: number = MAX_REPLY_CHARS): string[] {
+	return splitDiscordMessage(text, limit);
 }
 
 export function trimAssistantHistory(history: readonly AssistantTurn[] = []): AssistantTurn[] {
@@ -498,35 +432,74 @@ export async function askZangetsu(input: AskZangetsuInput): Promise<string> {
 	].join("\n");
 	const useBrowserSearch = shouldUseBrowserSearch(question);
 
-	const payload = await fetchJson("Groq AI", GROQ_CHAT_COMPLETIONS, responseSchema, {
-		method: "POST",
-		headers: {
-			Authorization: "Bearer " + input.apiKey,
-			"Content-Type": "application/json",
-		},
-		body: JSON.stringify({
-			model,
-			temperature: input.speakerId === input.ownerId ? 0.9 : 0.7,
-			max_completion_tokens: MAX_COMPLETION_TOKENS,
-			reasoning_effort: "low",
-			include_reasoning: false,
-			...(useBrowserSearch
-				? {
-						tools: [{ type: "browser_search" }],
-						tool_choice: "required",
-					}
-				: {}),
-			messages: [{ role: "system", content: systemPrompt }, ...history, { role: "user", content: question }],
-		}),
-		timeoutMs: 30_000,
-	});
+	interface ChatMessage {
+		role: "system" | "user" | "assistant";
+		content: string;
+	}
+	let messages: ChatMessage[] = [
+		{ role: "system", content: systemPrompt },
+		...history,
+		{ role: "user", content: question },
+	];
 
-	const content = payload.choices[0]?.message.content?.trim();
-	if (!content) {
-		const finishReason = payload.choices[0]?.finish_reason ?? "unknown";
+	const requestAnswer = async (
+		conversation: readonly ChatMessage[],
+	): Promise<{ text: string | null; finishReason: string }> => {
+		const payload = await fetchJson("Groq AI", GROQ_CHAT_COMPLETIONS, responseSchema, {
+			method: "POST",
+			headers: {
+				Authorization: "Bearer " + input.apiKey,
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({
+				model,
+				temperature: input.speakerId === input.ownerId ? 0.9 : 0.7,
+				max_completion_tokens: MAX_COMPLETION_TOKENS,
+				reasoning_effort: "low",
+				include_reasoning: false,
+				...(useBrowserSearch
+					? {
+							tools: [{ type: "browser_search" }],
+							tool_choice: "required",
+						}
+					: {}),
+				messages: conversation,
+			}),
+			timeoutMs: 30_000,
+		});
+
+		const choice = payload.choices[0];
+		return { text: choice?.message.content ?? null, finishReason: choice?.finish_reason ?? "unknown" };
+	};
+
+	let answer = "";
+	let finishReason = "unknown";
+	for (let attempt = 0; attempt <= MAX_CONTINUATIONS; attempt += 1) {
+		let reply: { text: string | null; finishReason: string };
+		try {
+			reply = await requestAnswer(messages);
+		} catch (error) {
+			// What has already been written is a real answer; a failed continuation must not throw it away.
+			if (answer === "") throw error;
+			finishReason = "unavailable";
+			break;
+		}
+
+		const piece = reply.text?.trim() ?? "";
+		if (piece !== "") answer = answer === "" ? piece : joinContinuation(answer, piece);
+		finishReason = reply.finishReason;
+		if (finishReason !== "length" || piece === "") break;
+
+		messages = [...messages, { role: "assistant", content: answer }, { role: "user", content: CONTINUE_INSTRUCTION }];
+	}
+
+	if (answer === "") {
 		throw new Error("Groq returned no visible text (finish_reason: " + finishReason + ").");
 	}
-	return cleanAssistantReply(content, input.ownerId, allowedLinks(hits));
+	if (finishReason === "length") {
+		answer += "\n\n…I had to stop there. Ask me to continue and I will pick up where I left off.";
+	}
+	return cleanAssistantReply(answer, input.ownerId, allowedLinks(hits));
 }
 
 export const ZANGETSU_ASSISTANT_LIMITS = {

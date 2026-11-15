@@ -1,5 +1,4 @@
 import { type Message, type User } from "discord.js";
-import { createMockClient, createMockMessage, createMockUser } from "@tests/helpers/mocks";
 import {
 	channelAnswerCount,
 	clearMentionAssistantState,
@@ -7,16 +6,17 @@ import {
 	stripAssistantMention,
 } from "@events/message/mentionReply.event";
 import { askZangetsu } from "@lib/assistant/zangetsuAssistant.util";
+import { createMockClient, createMockMessage, createMockUser } from "@tests/helpers/mocks";
 
 jest.mock("@database/repositories/settingsRepository", () => ({
-	getPrefix: jest.fn(async () => "t?"),
-	getPrefixConfig: jest.fn(async () => ({ prefix: "t?", isEnabled: true })),
+	getPrefix: jest.fn(() => Promise.resolve("t?")),
+	getPrefixConfig: jest.fn(() => Promise.resolve({ prefix: "t?", isEnabled: true })),
 }));
 
-jest.mock("@lib/assistant/zangetsuAssistant.util", () => ({
-	...jest.requireActual("@lib/assistant/zangetsuAssistant.util"),
-	askZangetsu: jest.fn(async () => "Open Settings, then Sources."),
-}));
+jest.mock("@lib/assistant/zangetsuAssistant.util", () => {
+	const actual = jest.requireActual<Record<string, unknown>>("@lib/assistant/zangetsuAssistant.util");
+	return { ...actual, askZangetsu: jest.fn(() => Promise.resolve("Open Settings, then Sources.")) };
+});
 
 const botId = "111111111111111111";
 const memberId = "222222222222222222";
@@ -155,7 +155,9 @@ describe("the mention handler", () => {
 
 		await handler.run(message, mockClient({ env: { DISCORD_OWNER_IDS: [ownerId] } }));
 
-		expect(String((message.reply as jest.Mock).mock.calls[0]?.[0]?.content)).toContain("Groq connection is not configured");
+		expect(String((message.reply as jest.Mock).mock.calls[0]?.[0]?.content)).toContain(
+			"Groq connection is not configured",
+		);
 		expect(askZangetsu).not.toHaveBeenCalled();
 	});
 
@@ -163,7 +165,7 @@ describe("the mention handler", () => {
 		const handler = (await import("@events/message/mentionReply.event")).default;
 		const client = mockClient();
 		const command = { name: "help", description: "Help", category: "info" as const };
-		client.commands.set("help", command as never);
+		client.commands.set("help", command);
 		const message = mockMessage(`<@${botId}> t?help`);
 
 		await handler.run(message, client);
@@ -222,5 +224,49 @@ describe("the mention handler", () => {
 		await handler.run(second, mockClient());
 
 		expect(askZangetsu).toHaveBeenCalledTimes(1);
+	});
+
+	it("answers 'help me' as a question rather than printing the command list", async () => {
+		const handler = (await import("@events/message/mentionReply.event")).default;
+		const client = mockClient();
+		client.commands.set("help", { name: "help", description: "Help", category: "info" });
+		const message = mockMessage(`<@${botId}> help me`);
+
+		await handler.run(message, client);
+
+		expect(askZangetsu).toHaveBeenCalledTimes(1);
+		expect(askZangetsu).toHaveBeenLastCalledWith(expect.objectContaining({ question: "help me" }));
+	});
+
+	it("delivers a long answer as one reply and then plain channel messages", async () => {
+		jest.mocked(askZangetsu).mockResolvedValueOnce("word ".repeat(900));
+		const handler = (await import("@events/message/mentionReply.event")).default;
+		const message = mockMessage(`<@${botId}> tell me everything`);
+
+		await handler.run(message, mockClient());
+
+		const channel = message.channel as unknown as { send: jest.Mock };
+		expect(message.reply).toHaveBeenCalledTimes(1);
+		expect(channel.send).toHaveBeenCalledTimes(2);
+
+		const sent = [
+			String((message.reply as jest.Mock).mock.calls[0]?.[0]?.content),
+			...channel.send.mock.calls.map((call: unknown[]) => String((call[0] as { content: string }).content)),
+		];
+		expect(sent.join(" ").replace(/\s+/g, " ").trim()).toBe("word ".repeat(900).replace(/\s+/g, " ").trim());
+		for (const content of sent) expect(content.length).toBeLessThanOrEqual(2_000);
+	});
+
+	it("never schedules a deletion for an answer that shared the repository link", async () => {
+		jest.mocked(askZangetsu).mockResolvedValueOnce("The source is at https://github.com/Spyou/Zangetsu.");
+		const handler = (await import("@events/message/mentionReply.event")).default;
+		const client = mockClient();
+		const message = mockMessage(`<@${botId}> where is the source?`);
+
+		await handler.run(message, client);
+
+		expect(String((message.reply as jest.Mock).mock.calls[0]?.[0]?.content)).toContain("github.com");
+		expect(client.timers.after).not.toHaveBeenCalled();
+		expect(message.delete).not.toHaveBeenCalled();
 	});
 });

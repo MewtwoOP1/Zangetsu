@@ -6,7 +6,7 @@ export const theme = {
 	author: "MewtwoOP1",
 	repository: "https://github.com/MewtwoOP1/Zangetsu",
 	/** Configure this once the Zangetsu Discord invite URL is available. */
-	supportServer: "",
+	supportServer: "" as string,
 	logoUrl: "https://cdn.discordapp.com/icons/1514592000429654196/c07572fcdd3987826f09fdcd490e9b65.webp?size=256",
 	websiteUrl: "https://zangetsu.online/",
 
