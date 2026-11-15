@@ -13,9 +13,9 @@ import {
 	shouldUseBrowserSearch,
 	splitAssistantReply,
 	type AssistantTurn,
-} from "@lib/assistant/zangetsuAssistant.util";
+} from "@lib/assistant";
 import { embed, linkButton, row } from "@lib/discord";
-import { refreshZangetsuLive } from "@lib/knowledge/knowledgeLive.util";
+import { refreshZangetsuLive } from "@lib/knowledge";
 
 /** Answers a mention with the Zangetsu app knowledge, as a reply to the message that asked. */
 
@@ -34,7 +34,6 @@ const USER_GLOBAL_COOLDOWN_MS = 20_000;
 /** A channel full of mentions does not get an answer for every one of them. */
 const CHANNEL_WINDOW_MS = 60_000;
 const CHANNEL_MAX_ANSWERS = 6;
-const SOURCE_SHARE_TTL_MS = 30_000;
 const MAX_CONVERSATIONS = 500;
 const MAX_HISTORY_MESSAGES = 4;
 const MAX_QUESTION_CHARS = 1_000;
@@ -133,7 +132,16 @@ async function sendToChannel(
 ): Promise<Message | null> {
 	const candidate = channel as { send?: (body: unknown) => Promise<Message> };
 	if (typeof candidate.send !== "function") return null;
-	return candidate.send(payload).catch(() => null);
+
+	for (let attempt = 0; attempt < 2; attempt += 1) {
+		try {
+			return await candidate.send(payload);
+		} catch {
+			// A transient refusal gets one more try before the piece is given up on.
+		}
+	}
+
+	return null;
 }
 
 export default defineMessageHandler({
@@ -178,14 +186,15 @@ export default defineMessageHandler({
 		if (!question) {
 			const buttons = [linkButton("Source code", theme.repository)];
 			// The support server is optional, and an empty one is not a URL Discord will accept.
-			if (theme.supportServer !== "") buttons.push(linkButton("Support", theme.supportServer));
+			if (theme.supportServer) buttons.push(linkButton("Support", theme.supportServer));
+			const hint = "Mention me with a message to chat, or use /help or " + prefix + "help to see my commands.";
 			await message.reply({
-				content: "Mention me with a message to chat, or use /help or " + prefix + "help to see my commands.",
+				content: hint,
 				embeds: [
 					embed({
 						category: "info",
 						title: "Hello, I am " + botName(),
-						description: "My prefix here is " + prefix + ".\n\nMention me with a message to chat, or use /help or " + prefix + "help to see my commands.",
+						description: "My prefix here is " + prefix + ".\n\n" + hint,
 						thumbnail: client.user?.displayAvatarURL(),
 					}),
 				],
@@ -243,71 +252,50 @@ export default defineMessageHandler({
 			// Relationship boundaries are selected by the app, not generated as a
 			// repeated sentence by the model. The category follows the member's message.
 			const romanticAdvance = isRomanticAdvance(question, message.author.id, ownerId);
-			const boundary = romanticAdvance
-				? chooseRomanticBoundary(question, conversation.lastRomanticBoundary)
-				: null;
+			const boundary = romanticAdvance ? chooseRomanticBoundary(question, conversation.lastRomanticBoundary) : null;
 			const formattedAnswer = formatAssistantReply(answer, ownerId, boundary);
 			const parts = splitAssistantReply(formattedAnswer);
 
-			const sentMessages: Message[] = [];
 			for (const [index, part] of parts.entries()) {
 				const payload = {
 					content: part,
 					allowedMentions: { users: romanticAdvance ? [ownerId] : [] },
 				};
 
+				// The first piece answers the member's message; every later piece is an ordinary
+				// channel message, so a long answer never becomes a chain of replies to itself.
 				let sent: Message | null = null;
-				try {
-					// The first part answers the member's message; the rest continue the
-					// same thread, so a long answer never loses its place.
-					const previous = sentMessages.at(-1);
-					sent = index === 0 ? await message.reply(payload) : ((await previous?.reply(payload)) ?? null);
-				} catch {
-					sent = null;
-				}
+				if (index === 0) sent = await message.reply(payload).catch(() => null);
+				sent ??= await sendToChannel(message.channel, payload);
 				if (sent === null) {
-					sent = await sendToChannel(message.channel, payload);
+					// The rest of the answer is still worth sending.
+					client.logger.warn(
+						{ channelId: message.channelId, piece: index + 1, pieces: parts.length },
+						"[ASSISTANT] A piece of the answer could not be sent",
+					);
+					continue;
 				}
-				if (sent === null) continue;
 
-				sentMessages.push(sent);
 				conversation.assistantMessageIds.add(sent.id);
 			}
 
-		// Source sharing messages auto-delete after 30 seconds.
-		const hasRepoLink = parts.some((p) => /github\.com/i.test(p));
-		if (hasRepoLink && sentMessages.length > 0) {
-			client.timers.after(
-				`source-share-${sentMessages[0].id}`,
-				SOURCE_SHARE_TTL_MS,
-				async () => {
-					try {
-						const first = sentMessages[0];
-						if (first) await first.delete().catch(() => undefined);
-					} catch {
-						// Message may already be deleted or inaccessible.
-					}
-				},
-			);
-		}
-
-		if (boundary) conversation.lastRomanticBoundary = boundary;
+			if (boundary) conversation.lastRomanticBoundary = boundary;
 			const historyAnswer = formattedAnswer.replace(new RegExp("<@!?" + ownerId + ">", "g"), "the owner");
-			conversation.history.push(
-				{ role: "user", content: question },
-				{ role: "assistant", content: historyAnswer },
-			);
+			conversation.history.push({ role: "user", content: question }, { role: "assistant", content: historyAnswer });
 			conversation.history = conversation.history.slice(-MAX_HISTORY_MESSAGES);
 			conversation.expiresAt = Date.now() + CONVERSATION_TTL_MS;
 		} catch (error) {
 			client.logger.warn({ err: error }, "Zangetsu AI conversation failed");
-			const fallback = error instanceof Error && error.message.startsWith("Groq returned no visible text")
-				? "I got a little stuck thinking and lost my words. Try that again?"
-				: "I couldn't reach my AI connection just now. Try again in a moment.";
-			await message.reply({
-				content: fallback,
-				allowedMentions: { parse: [] },
-			}).catch(() => sendToChannel(message.channel, { content: fallback, allowedMentions: { users: [] } }));
+			const fallback =
+				error instanceof Error && error.message.startsWith("Groq returned no visible text")
+					? "I got a little stuck thinking and lost my words. Try that again?"
+					: "I couldn't reach my AI connection just now. Try again in a moment.";
+			await message
+				.reply({
+					content: fallback,
+					allowedMentions: { parse: [] },
+				})
+				.catch(() => sendToChannel(message.channel, { content: fallback, allowedMentions: { users: [] } }));
 		}
 
 		return true;

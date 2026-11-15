@@ -70,7 +70,8 @@ function tableToList(block: readonly string[]): string[] {
 	const rows = block
 		.filter((row) => !TABLE_DIVIDER_PATTERN.test(row))
 		.map((row) =>
-			(row.replace(TABLE_ROW_PATTERN, "$1") ?? "")
+			row
+				.replace(TABLE_ROW_PATTERN, "$1")
 				.split("|")
 				.map((cell) => cell.trim())
 				.filter((cell) => cell !== ""),
@@ -93,82 +94,148 @@ function tableToList(block: readonly string[]): string[] {
 	return lines.filter((line) => line !== "");
 }
 
-/** Whether a line opens or closes a code fence, and which language it opens with. */
-function fenceOf(line: string): { closing: boolean; language: string } | null {
+/** A line that opens or closes a code fence, with the marker as it was written. */
+interface FenceLine {
+	marker: string;
+	language: string;
+}
+
+/** Whether a line opens or closes a code fence, and what it was written with. */
+function fenceOf(line: string): FenceLine | null {
 	const match = /^\s*(`{3,}|~{3,})\s*([A-Za-z0-9+#._-]*)\s*$/.exec(line);
 	if (match === null) return null;
 
-	const marker = match[1] ?? "```";
-	return { closing: marker.startsWith("`") ? marker.length >= 3 : marker.length >= 3, language: match[2] ?? "" };
+	return { marker: match[1] ?? "```", language: match[2] ?? "" };
+}
+
+function isHighSurrogate(code: number): boolean {
+	return code >= 0xd800 && code <= 0xdbff;
+}
+
+function isLowSurrogate(code: number): boolean {
+	return code >= 0xdc00 && code <= 0xdfff;
+}
+
+/** Moves a cut before a surrogate pair rather than through it, so no piece ends on half an emoji. */
+function wholeCharacter(text: string, index: number): number {
+	const at = Math.max(0, Math.min(index, text.length));
+	if (at <= 0 || at >= text.length) return at;
+	return isHighSurrogate(text.charCodeAt(at - 1)) && isLowSurrogate(text.charCodeAt(at)) ? at - 1 : at;
+}
+
+/** Breaks one line that is longer than a piece at its last sentence or word boundary. */
+function splitLongLine(line: string, budget: number): string[] {
+	const pieces: string[] = [];
+	let rest = line;
+
+	while (rest.length > budget) {
+		const window = rest.slice(0, budget);
+		const sentence = Math.max(window.lastIndexOf(". "), window.lastIndexOf("! "), window.lastIndexOf("? "));
+		const space = window.lastIndexOf(" ");
+		let cut = sentence > budget * 0.6 ? sentence + 1 : space > budget * 0.6 ? space : budget;
+		cut = wholeCharacter(rest, cut);
+		if (cut <= 0) cut = wholeCharacter(rest, budget);
+
+		pieces.push(rest.slice(0, cut).trimEnd());
+		rest = rest.slice(cut);
+	}
+
+	if (rest !== "") pieces.push(rest);
+	return pieces;
 }
 
 /**
- * Breaks an answer into pieces Discord will accept.
+ * Breaks an answer into the messages Discord will accept.
  *
  * A code fence is never broken in half: a piece that opens one closes it, and the next piece opens it
- * again. A list is broken between items rather than through one.
+ * again. Pieces break at a line, a sentence or a word before they break inside one, and a cut never
+ * falls between the halves of an emoji. The returned pieces always join back into the whole answer.
  */
-export function splitDiscordMessage(text: string, limit = LIMITS.messageContent): string[] {
+export function splitDiscordMessage(text: string, limit: number = LIMITS.messageContent): string[] {
+	const ceiling = Math.max(1, Math.min(limit, LIMITS.messageContent));
 	const trimmed = text.trim();
 	if (trimmed === "") return [];
-	if (trimmed.length <= limit) return [trimmed];
+	if (trimmed.length <= ceiling) return [trimmed];
+
+	// Lines longer than a piece are broken here, while the fence they sit in is still known, so the
+	// assembly below only ever deals with lines that fit.
+	const lines: string[] = [];
+	let openMarker = "";
+	for (const raw of trimmed.split("\n")) {
+		const fence = fenceOf(raw);
+		if (fence !== null) {
+			openMarker = openMarker === "" ? fence.marker : "";
+			lines.push(raw);
+			continue;
+		}
+
+		const reserve = openMarker === "" ? 0 : openMarker.length + 1;
+		lines.push(...(raw.length + reserve <= ceiling ? [raw] : splitLongLine(raw, Math.max(1, ceiling - reserve - 24))));
+	}
 
 	const parts: string[] = [];
 	let current = "";
-	let inFence = false;
+	let fenceMarker = "";
 	let fenceLanguage = "";
 
 	const push = (): void => {
 		const piece = current.trimEnd();
-		if (piece !== "") parts.push(piece);
+		if (piece.trim() !== "") parts.push(piece);
 		current = "";
 	};
 
-	for (const line of trimmed.split("\n")) {
+	const append = (line: string, reopen: boolean): void => {
+		const addition = (current === "" ? "" : "\n") + line;
+		// Room to close the open fence at the end of this piece, so it is never left hanging.
+		const reserve = fenceMarker === "" ? 0 : fenceMarker.length + 1;
+		if (current !== "" && current.length + addition.length + reserve > ceiling) {
+			if (fenceMarker !== "") current += "\n" + fenceMarker;
+			push();
+			current = reopen && fenceMarker !== "" ? fenceMarker + fenceLanguage + "\n" : "";
+		}
+
+		if (current === "") current = line;
+		else if (current.endsWith("\n")) current += line;
+		else current += "\n" + line;
+	};
+
+	for (const line of lines) {
 		const fence = fenceOf(line);
 
-		if (fence !== null) {
-			if (!inFence) {
-				inFence = true;
-				fenceLanguage = fence.language;
-			} else {
-				inFence = false;
-				fenceLanguage = "";
-			}
-			current += (current === "" ? "" : "\n") + line;
+		if (fence === null) {
+			append(line, true);
 			continue;
 		}
 
+		if (fenceMarker === "") {
+			append(line, false);
+			fenceMarker = fence.marker;
+			fenceLanguage = fence.language;
+			continue;
+		}
+
+		// A closing fence line: when it does not fit, the piece is closed here anyway.
 		const addition = (current === "" ? "" : "\n") + line;
-		if (current !== "" && current.length + addition.length > limit) {
-			if (inFence) {
-				// Close the fence here and open it again in the next piece, so neither loses its code.
-				push();
-				current = "```" + fenceLanguage + "\n" + line;
-				continue;
-			}
-
+		if (current !== "" && current.length + addition.length > ceiling) {
+			current += "\n" + fenceMarker;
 			push();
-			current = line;
-			continue;
+		} else {
+			append(line, false);
 		}
-
-		current += addition;
+		fenceMarker = "";
+		fenceLanguage = "";
 	}
 
 	push();
 
-	// A piece that is still too long is a single unbroken run, such as one enormous code line.
+	// Nothing may leave here above the ceiling, whatever the input did.
 	const final: string[] = [];
 	for (const part of parts) {
-		if (part.length <= limit) {
+		if (part.length <= ceiling) {
 			final.push(part);
 			continue;
 		}
-
-		for (let start = 0; start < part.length; start += limit) {
-			final.push(part.slice(start, start + limit));
-		}
+		final.push(...splitLongLine(part, ceiling));
 	}
 
 	return final.filter((part) => part.trim() !== "");
@@ -206,7 +273,10 @@ export function buildDiscordReply(text: string): DiscordReply {
 	const stepLines = steps.map((line) => line.trim());
 
 	const before = lines.slice(0, headingIndex).join("\n").trim();
-	const after = lines.slice(lines.indexOf(steps[0] ?? "")).join("\n").trim();
+	const after = lines
+		.slice(lines.indexOf(steps[0] ?? ""))
+		.join("\n")
+		.trim();
 
 	return {
 		content: before === "" ? "" : before,

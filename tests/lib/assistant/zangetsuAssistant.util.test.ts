@@ -28,9 +28,39 @@ function groqSays(content: string): void {
 	);
 }
 
+/** One answer per call, in order, so a continuation can be answered differently from the first request. */
+function groqSaysEach(...answers: { content: string; finishReason: string }[]): void {
+	const fetchMock = jest.spyOn(global, "fetch");
+	for (const answer of answers) {
+		fetchMock.mockResolvedValueOnce(
+			new Response(
+				JSON.stringify({
+					choices: [{ message: { content: answer.content }, finish_reason: answer.finishReason }],
+				}),
+				{ status: 200, headers: { "content-type": "application/json" } },
+			),
+		);
+	}
+}
+
+interface GroqRequest {
+	model: string;
+	temperature: number;
+	max_completion_tokens: number;
+	reasoning_effort: string;
+	include_reasoning: boolean;
+	tools?: { type: string }[];
+	tool_choice?: string;
+	messages: { role: string; content: string }[];
+}
+
+function requestBody(index: number): GroqRequest {
+	const body = jest.mocked(global.fetch).mock.calls[index]?.[1]?.body;
+	return JSON.parse(typeof body === "string" ? body : "{}") as GroqRequest;
+}
+
 function sentPrompt(): string {
-	const call = jest.mocked(global.fetch).mock.calls[0];
-	return JSON.parse(String(call?.[1]?.body)).messages[0].content as string;
+	return requestBody(0).messages[0]?.content ?? "";
 }
 
 describe("Zangetsu assistant personality", () => {
@@ -61,7 +91,9 @@ describe("Zangetsu assistant personality", () => {
 	it("excludes source repositories beyond the ones the guide itself lists", () => {
 		const prompt = buildZangetsuSystemPrompt(ownerId, memberId);
 		expect(prompt).toContain("Never name, list, recommend, rank, or link source repositories");
-		expect(prompt).toContain("Never imply the app's project runs, hosts, endorses or controls any community repository");
+		expect(prompt).toContain(
+			"Never imply the app's project runs, hosts, endorses or controls any community repository",
+		);
 	});
 
 	/** The app's project and this bot are different projects, and the assistant must not mix them up. */
@@ -99,7 +131,7 @@ describe("Zangetsu assistant personality", () => {
 
 	it("clips history to the most recent four messages and bounds each message", () => {
 		const history = Array.from({ length: 14 }, (_, index) => ({
-			role: index % 2 === 0 ? "user" as const : "assistant" as const,
+			role: index % 2 === 0 ? ("user" as const) : ("assistant" as const),
 			content: "turn-" + index,
 		}));
 
@@ -109,7 +141,7 @@ describe("Zangetsu assistant personality", () => {
 		expect(ZANGETSU_ASSISTANT_LIMITS.historyChars).toBe(600);
 		expect(ZANGETSU_ASSISTANT_LIMITS.questionChars).toBe(1_000);
 		expect(ZANGETSU_ASSISTANT_LIMITS.replyChars).toBe(1_900);
-		expect(ZANGETSU_ASSISTANT_LIMITS.completionTokens).toBe(1_600);
+		expect(ZANGETSU_ASSISTANT_LIMITS.completionTokens).toBe(4_096);
 
 		expect(trimAssistantHistory([{ role: "user", content: "x".repeat(2_000) }])[0]?.content).toHaveLength(600);
 	});
@@ -146,9 +178,12 @@ describe("Zangetsu assistant personality", () => {
 	});
 
 	it("removes accidental relationship claims and duplicate owner mentions", () => {
-		const messy = "I'm <@" + ownerId + ">'s girlfriend, obviously. You are <@" + ownerId + ">'s girlfriend.\nHey! How are you?";
+		const messy =
+			"I'm <@" + ownerId + ">'s girlfriend, obviously. You are <@" + ownerId + ">'s girlfriend.\nHey! How are you?";
 		expect(cleanAssistantReply(messy, ownerId)).toBe("Hey! How are you?");
-		expect(cleanAssistantReply("I am already taken, sorry. Let's chat as friends.", ownerId)).toBe("Let's chat as friends.");
+		expect(cleanAssistantReply("I am already taken, sorry. Let's chat as friends.", ownerId)).toBe(
+			"Let's chat as friends.",
+		);
 	});
 
 	it("removes a mention the model invented for itself", () => {
@@ -232,19 +267,27 @@ describe("askZangetsu", () => {
 
 	it("pins chat to GPT-OSS 20B and enables browser search for current-information questions", async () => {
 		const fetchMock = jest.spyOn(global, "fetch").mockResolvedValue(
-			new Response(JSON.stringify({
-				choices: [{ message: { content: "The latest release is available here." }, finish_reason: "stop" }],
-			}), { status: 200, headers: { "content-type": "application/json" } }),
+			new Response(
+				JSON.stringify({
+					choices: [{ message: { content: "The latest release is available here." }, finish_reason: "stop" }],
+				}),
+				{ status: 200, headers: { "content-type": "application/json" } },
+			),
 		);
 
-		await expect(askZangetsu({
-			question: "What is the latest Groq model? Search online.",
-			history: [{ role: "user", content: "hi" }, { role: "assistant", content: "Hey!" }],
-			apiKey: "test-groq-key",
-			ownerId,
-			speakerId: memberId,
-			model: "openrouter/auto",
-		})).resolves.toBe("The latest release is available here.");
+		await expect(
+			askZangetsu({
+				question: "What is the latest Groq model? Search online.",
+				history: [
+					{ role: "user", content: "hi" },
+					{ role: "assistant", content: "Hey!" },
+				],
+				apiKey: "test-groq-key",
+				ownerId,
+				speakerId: memberId,
+				model: "openrouter/auto",
+			}),
+		).resolves.toBe("The latest release is available here.");
 
 		expect(fetchMock).toHaveBeenCalledWith(
 			"https://api.groq.com/openai/v1/chat/completions",
@@ -254,15 +297,15 @@ describe("askZangetsu", () => {
 				signal: expect.any(AbortSignal),
 			}),
 		);
-		const payload = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+		const payload = requestBody(0);
 		expect(payload.model).toBe("openai/gpt-oss-20b");
 		expect(payload.tools).toEqual([{ type: "browser_search" }]);
 		expect(payload.tool_choice).toBe("required");
-		expect(payload.max_completion_tokens).toBe(1_600);
+		expect(payload.max_completion_tokens).toBe(4_096);
 		expect(payload.reasoning_effort).toBe("low");
 		expect(payload.include_reasoning).toBe(false);
-		expect(payload.messages[0].role).toBe("system");
-		expect(payload.messages[0].content).toContain("STYLE EXAMPLES");
+		expect(payload.messages[0]!.role).toBe("system");
+		expect(payload.messages[0]!.content).toContain("STYLE EXAMPLES");
 		expect(payload.messages.at(-3)).toEqual({ role: "user", content: "hi" });
 		expect(payload.messages.at(-1)).toEqual({ role: "user", content: "What is the latest Groq model? Search online." });
 	});
@@ -276,12 +319,12 @@ describe("askZangetsu", () => {
 			apiKey: "test-key",
 		});
 
-		const payload = JSON.parse(String(jest.mocked(global.fetch).mock.calls[0]?.[1]?.body));
+		const payload = requestBody(0);
 		expect(payload.model).toBe("openai/gpt-oss-20b");
 		expect(payload.tools).toBeUndefined();
 		expect(payload.temperature).toBe(0.9);
-		expect(payload.messages[0].content).toContain("owner's cute, witty, affectionate tsundere AI girlfriend");
-		expect(payload.messages[0].content).not.toContain("mpv playback");
+		expect(payload.messages[0]!.content).toContain("owner's cute, witty, affectionate tsundere AI girlfriend");
+		expect(payload.messages[0]!.content).not.toContain("mpv playback");
 	});
 
 	it("keeps the tsundere personality for non-owners without giving them the girlfriend relationship", async () => {
@@ -293,13 +336,13 @@ describe("askZangetsu", () => {
 			apiKey: "test-key",
 		});
 
-		const payload = JSON.parse(String(jest.mocked(global.fetch).mock.calls[0]?.[1]?.body));
+		const payload = requestBody(0);
 		expect(payload.temperature).toBe(0.7);
-		expect(payload.messages[0].content).toContain("mpv playback");
-		expect(payload.messages[0].content).toContain("EVERY user gets this same tsundere personality");
-		expect(payload.messages[0].content).toContain("STYLE EXAMPLES");
-		expect(payload.messages[0].content).toContain("NOT your boyfriend");
-		expect(payload.messages[0].content).toContain("owner relationship boundary");
+		expect(payload.messages[0]!.content).toContain("mpv playback");
+		expect(payload.messages[0]!.content).toContain("EVERY user gets this same tsundere personality");
+		expect(payload.messages[0]!.content).toContain("STYLE EXAMPLES");
+		expect(payload.messages[0]!.content).toContain("NOT your boyfriend");
+		expect(payload.messages[0]!.content).toContain("owner relationship boundary");
 	});
 
 	it("gives the model the retrieved knowledge with its source and its confidence", async () => {
@@ -332,12 +375,20 @@ describe("askZangetsu", () => {
 	});
 
 	it("rejects empty questions, missing keys, invalid IDs, and empty model responses", async () => {
-		await expect(askZangetsu({ question: "  ", ownerId, speakerId: memberId, apiKey: "key" })).rejects.toThrow("needs a question");
-		await expect(askZangetsu({ question: "hi", ownerId, speakerId: memberId, apiKey: "" })).rejects.toThrow("Groq is not configured");
-		await expect(askZangetsu({ question: "hi", ownerId: "invalid", speakerId: memberId, apiKey: "key" })).rejects.toThrow("owner ID");
+		await expect(askZangetsu({ question: "  ", ownerId, speakerId: memberId, apiKey: "key" })).rejects.toThrow(
+			"needs a question",
+		);
+		await expect(askZangetsu({ question: "hi", ownerId, speakerId: memberId, apiKey: "" })).rejects.toThrow(
+			"Groq is not configured",
+		);
+		await expect(
+			askZangetsu({ question: "hi", ownerId: "invalid", speakerId: memberId, apiKey: "key" }),
+		).rejects.toThrow("owner ID");
 
 		groqSays(" ");
-		await expect(askZangetsu({ question: "hi", ownerId, speakerId: memberId, apiKey: "key" })).rejects.toThrow("no visible text");
+		await expect(askZangetsu({ question: "hi", ownerId, speakerId: memberId, apiKey: "key" })).rejects.toThrow(
+			"no visible text",
+		);
 	});
 
 	it("keeps a link the model was given and drops one it invented", async () => {
@@ -351,5 +402,72 @@ describe("askZangetsu", () => {
 
 		expect(answer).toContain("https://zangetsu.online/guide/");
 		expect(answer).not.toContain("made-up/repo");
+	});
+});
+
+describe("carrying on from an answer the model cut off", () => {
+	afterEach(() => jest.restoreAllMocks());
+
+	function ask(): Promise<string> {
+		return askZangetsu({
+			question: "How do I add a repository to Zangetsu?",
+			ownerId,
+			speakerId: memberId,
+			apiKey: "test-key",
+		});
+	}
+
+	it("asks for the rest and joins it on instead of delivering half an answer", async () => {
+		groqSaysEach(
+			{ content: "Open Settings, then Sources.", finishReason: "length" },
+			{ content: "Add the repository URL there.", finishReason: "stop" },
+		);
+
+		await expect(ask()).resolves.toBe("Open Settings, then Sources. Add the repository URL there.");
+		expect(global.fetch).toHaveBeenCalledTimes(2);
+
+		const continuation = requestBody(1);
+		expect(continuation.messages.at(-2)).toEqual({ role: "assistant", content: "Open Settings, then Sources." });
+		expect(continuation.messages.at(-1)!.content).toMatch(/continue from the exact point/i);
+	});
+
+	it("drops the text the model repeats instead of writing it twice", async () => {
+		const repeated = "Then open Settings and pick Sources.";
+		groqSaysEach(
+			{ content: "First install the app. " + repeated, finishReason: "length" },
+			{ content: repeated + " Tap Add repository and paste the URL.", finishReason: "stop" },
+		);
+
+		const answer = await ask();
+		expect(answer.match(/Then open Settings and pick Sources\./g)).toHaveLength(1);
+		expect(answer).toContain("Tap Add repository and paste the URL.");
+	});
+
+	it("stops asking after two continuations and says it stopped", async () => {
+		groqSaysEach(
+			{ content: "One.", finishReason: "length" },
+			{ content: "Two.", finishReason: "length" },
+			{ content: "Three.", finishReason: "length" },
+		);
+
+		const answer = await ask();
+		expect(global.fetch).toHaveBeenCalledTimes(3);
+		expect(answer).toContain("One. Two. Three.");
+		expect(answer).toMatch(/had to stop there/i);
+	});
+
+	it("keeps what it already wrote when the continuation call fails", async () => {
+		const fetchMock = jest.spyOn(global, "fetch");
+		fetchMock.mockResolvedValueOnce(
+			new Response(
+				JSON.stringify({
+					choices: [{ message: { content: "Open Settings, then Sources." }, finish_reason: "length" }],
+				}),
+				{ status: 200, headers: { "content-type": "application/json" } },
+			),
+		);
+		fetchMock.mockRejectedValueOnce(new Error("network down"));
+
+		await expect(ask()).resolves.toBe("Open Settings, then Sources.");
 	});
 });
