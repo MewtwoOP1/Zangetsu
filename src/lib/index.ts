@@ -13,6 +13,7 @@ export * from "./info";
 export * from "./infra";
 export * from "./knowledge";
 export * from "./levelling";
+export * from "./memory";
 export * from "./moderation";
 export * from "./music";
 export * from "./releases";
