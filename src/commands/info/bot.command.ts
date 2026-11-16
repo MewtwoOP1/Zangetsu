@@ -76,7 +76,7 @@ async function showInfo(interaction: CommandInput, client: TestifyClient): Promi
 				thumbnail: theme.logoUrl,
 			}),
 		],
-		components: [helpLinks()],
+		components: helpLinks(),
 	});
 }
 

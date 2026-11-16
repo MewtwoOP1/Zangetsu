@@ -35,10 +35,10 @@ export interface MediaRecommendation {
 export interface RecommendationInput {
 	type: RecommendationType;
 	preferences: string;
-	tmdbToken?: string;
-	groqApiKey?: string;
-	openRouterApiKey?: string;
-	recommendationAiModel?: string;
+	tmdbToken?: string | undefined;
+	groqApiKey?: string | undefined;
+	openRouterApiKey?: string | undefined;
+	recommendationAiModel?: string | undefined;
 }
 
 const CACHE_TTL_MS = 15 * 60_000;
@@ -348,10 +348,10 @@ query ($search: String, $page: Int, $perPage: Int, $mediaType: MediaType!, $form
 /** Builds a typed Zangetsu hand-off URL for anime, manga, or light novels. */
 export function buildZangetsuAniListUrl(input: {
 	anilistId: number;
-	malId?: number | null;
+	malId?: number | null | undefined;
 	title: string;
 	mediaType: AniListMediaType;
-	cover?: string | null;
+	cover?: string | null | undefined;
 }): string {
 	const url = new URL("https://zangetsu.online/open/");
 	const itemId = input.malId == null ? `al:${input.anilistId}` : `mal:${input.malId}`;
@@ -367,7 +367,7 @@ export function buildZangetsuAniListUrl(input: {
 export function buildZangetsuAnimeUrl(input: {
 	malId: number;
 	title: string;
-	cover?: string | null;
+	cover?: string | null | undefined;
 }): string {
 	return buildZangetsuAniListUrl({
 		anilistId: input.malId,
@@ -383,7 +383,7 @@ export function buildZangetsuTmdbUrl(input: {
 	tmdbId: number;
 	title: string;
 	type: "movie" | "series";
-	cover?: string | null;
+	cover?: string | null | undefined;
 }): string {
 	const url = new URL("https://zangetsu.online/open/");
 	url.searchParams.set("s", "zm");
@@ -890,7 +890,7 @@ async function fetchTmdbSearch(
 export async function lookupMedia(input: {
 	query: string;
 	type: MediaLookupType;
-	tmdbToken?: string;
+	tmdbToken?: string | undefined;
 }): Promise<MediaRecommendation[]> {
 	const query = input.query.trim();
 	if (!query || query.length > 100) return [];
