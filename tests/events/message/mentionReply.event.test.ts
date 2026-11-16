@@ -1,4 +1,5 @@
 import { type Message, type User } from "discord.js";
+import { deleteMemories, listMemories, saveMemory } from "@database/repositories/aiMemoryRepository";
 import {
 	channelAnswerCount,
 	clearMentionAssistantState,
@@ -11,6 +12,41 @@ import { createMockClient, createMockMessage, createMockUser } from "@tests/help
 jest.mock("@database/repositories/settingsRepository", () => ({
 	getPrefix: jest.fn(() => Promise.resolve("t?")),
 	getPrefixConfig: jest.fn(() => Promise.resolve({ prefix: "t?", isEnabled: true })),
+}));
+
+jest.mock("@database/repositories/aiMemoryRepository", () => ({
+	listMemories: jest.fn(() => Promise.resolve([])),
+	listAllMemories: jest.fn(() => Promise.resolve([])),
+	countMemories: jest.fn(() => Promise.resolve(0)),
+	findMemory: jest.fn(() => Promise.resolve(null)),
+	saveMemory: jest.fn((input: unknown) =>
+		Promise.resolve({
+			...((input ?? {}) as Record<string, unknown>),
+			memoryId: "m1",
+			entities: [],
+			relatedMemoryIds: [],
+			sourceMessageId: null,
+			sourceChannelId: null,
+			version: 1,
+			isActive: true,
+			supersedesId: null,
+			supersededById: null,
+			accessCount: 0,
+			lastAccessedAt: new Date(),
+			createdAt: new Date(),
+			updatedAt: new Date(),
+		}),
+	),
+	deleteMemory: jest.fn(() => Promise.resolve(false)),
+	deleteMemories: jest.fn(() => Promise.resolve(0)),
+	clearMemoryCache: jest.fn(),
+	findSimilarMemories: jest.fn(() => Promise.resolve([])),
+	rememberMemories: jest.fn(),
+	cachedMemories: jest.fn(() => null),
+	touchMemories: jest.fn(() => Promise.resolve()),
+	supersedeMemory: jest.fn(() => Promise.resolve()),
+	linkSuperseding: jest.fn(() => Promise.resolve()),
+	resetMemoryCache: jest.fn(),
 }));
 
 jest.mock("@lib/assistant/zangetsuAssistant.util", () => {
@@ -266,7 +302,90 @@ describe("the mention handler", () => {
 		await handler.run(message, client);
 
 		expect(String((message.reply as jest.Mock).mock.calls[0]?.[0]?.content)).toContain("github.com");
-		expect(client.timers.after).not.toHaveBeenCalled();
+		expect(client.timers.after).not.toHaveBeenCalledWith(
+			expect.stringContaining("source-share"),
+			expect.any(Number),
+			expect.any(Function),
+		);
 		expect(message.delete).not.toHaveBeenCalled();
+	});
+
+	it("tells the model what it remembers about this person", async () => {
+		jest.mocked(listMemories).mockResolvedValue([
+			{
+				memoryId: "m1",
+				userId: memberId,
+				guildId: null,
+				scope: "user",
+				category: "preference",
+				memoryType: "preference",
+				content: "likes Build series anime",
+				summary: "likes Build series anime",
+				entities: [],
+				relatedMemoryIds: [],
+				sourceMessageId: null,
+				sourceChannelId: null,
+				confidence: 0.9,
+				importance: 0.8,
+				explicitlyRequested: true,
+				sensitivity: "normal",
+				version: 1,
+				isActive: true,
+				supersedesId: null,
+				supersededById: null,
+				accessCount: 0,
+				lastAccessedAt: new Date(),
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			},
+		]);
+		const handler = (await import("@events/message/mentionReply.event")).default;
+		const message = mockMessage(`<@${botId}> what should I watch next`);
+
+		await handler.run(message, mockClient());
+
+		const call = jest.mocked(askZangetsu).mock.calls.at(-1)?.[0];
+		expect(call?.memoryBlock).toContain("likes Build series anime");
+	});
+
+	it("tells the model which mood the message earned", async () => {
+		const handler = (await import("@events/message/mentionReply.event")).default;
+		const message = mockMessage(`<@${botId}> you're so cute`);
+
+		await handler.run(message, mockClient());
+
+		const call = jest.mocked(askZangetsu).mock.calls.at(-1)?.[0];
+		expect(call?.mood?.mood).toBe("shy");
+	});
+
+	it("remembers what somebody asked it to remember, without asking the model", async () => {
+		const handler = (await import("@events/message/mentionReply.event")).default;
+		const message = mockMessage(`<@${botId}> remember that my name is Riku`);
+
+		await handler.run(message, mockClient());
+
+		expect(saveMemory).toHaveBeenCalledWith(expect.objectContaining({ content: "my name is Riku" }));
+		expect(askZangetsu).not.toHaveBeenCalled();
+		expect(String((message.reply as jest.Mock).mock.calls[0]?.[0]?.content)).toContain("remember that");
+	});
+
+	it("forgets everything when somebody asks it to", async () => {
+		const handler = (await import("@events/message/mentionReply.event")).default;
+		const message = mockMessage(`<@${botId}> forget everything you know about me`);
+
+		await handler.run(message, mockClient());
+
+		expect(deleteMemories).toHaveBeenCalledWith(memberId);
+		expect(askZangetsu).not.toHaveBeenCalled();
+	});
+
+	it("reads the exchange afterwards so the next conversation remembers it", async () => {
+		const handler = (await import("@events/message/mentionReply.event")).default;
+		const client = mockClient();
+		const message = mockMessage(`<@${botId}> I am learning Rust this year`);
+
+		await handler.run(message, client);
+
+		expect(client.timers.after).toHaveBeenCalledWith("memory-extraction", expect.any(Number), expect.any(Function));
 	});
 });

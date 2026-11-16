@@ -97,5 +97,3 @@ export type MemoryRejection =
 
 /** The tone a person has said they want. */
 export type TonePreference = "roast" | "playful" | "neutral" | "professional";
-/** The tone Zangetsu should use for one message. */
-export type AssistantTone = "roast" | "tease" | "warm" | "serious" | "support" | "neutral";
