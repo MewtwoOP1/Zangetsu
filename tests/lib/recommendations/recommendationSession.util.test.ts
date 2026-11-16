@@ -10,6 +10,19 @@ import {
 
 const ownerId = "111111111111111111";
 
+/** The button's own data, which Discord types as a union of every kind of button. */
+function buttonData(row: { components: readonly unknown[] } | undefined, index: number): {
+	label: string;
+	url?: string;
+	custom_id?: string;
+} {
+	return (row?.components[index] as ButtonBuilder).data as {
+		label: string;
+		url?: string;
+		custom_id?: string;
+	};
+}
+
 const anime: MediaRecommendation = {
 	title: "Test Anime",
 	url: "https://zangetsu.online/open/?s=zm&u=zm%3A%2Fanime%2Fmal%3A1&t=Test+Anime&y=a",
@@ -110,14 +123,14 @@ describe("interactive media sessions", () => {
 		expect(initial.embeds).toHaveLength(1);
 		expect(initial.embeds[0]?.data.title).toContain("Anime  |  Test Anime");
 
-		const openButton = initial.components[0]?.components[2] as ButtonBuilder;
-		expect(openButton.data.label).toBe("Open in Zangetsu");
-		expect(openButton.data.url).toBe(anime.url);
+		const openButton = buttonData(initial.components[0], 2);
+		expect(openButton.label).toBe("Open in Zangetsu");
+		expect(openButton.url).toBe(anime.url);
 
 		const component = initial.components[0]?.components[0];
 		expect(component).toBeInstanceOf(ButtonBuilder);
-		const nextButton = component as ButtonBuilder;
-		const parsed = parseCustomId(nextButton.data.custom_id ?? "");
+		const nextButton = buttonData(initial.components[0], 0);
+		const parsed = parseCustomId(nextButton.custom_id ?? "");
 		const sessionId = parsed.args[0];
 
 		expect(parsed.id).toBe("mediaSession");
@@ -141,17 +154,17 @@ describe("interactive media sessions", () => {
 			expect.objectContaining({ name: "📖 Chapters", value: "120" }),
 			expect.objectContaining({ name: "📚 Volumes", value: "14" }),
 		]));
-		let openButton = initial.components[0]?.components[2] as ButtonBuilder;
-		expect(openButton.data.label).toBe("Open in Zangetsu");
-		expect(openButton.data.url).toBe(manga.url);
+		let openButton = buttonData(initial.components[0], 2);
+		expect(openButton.label).toBe("Open in Zangetsu");
+		expect(openButton.url).toBe(manga.url);
 
-		const nextButton = initial.components[0]?.components[0] as ButtonBuilder;
-		const sessionId = parseCustomId(nextButton.data.custom_id ?? "").args[0] ?? "";
+		const nextButton = buttonData(initial.components[0], 0);
+		const sessionId = parseCustomId(nextButton.custom_id ?? "").args[0] ?? "";
 		const next = changeMediaSession(sessionId, ownerId, "next");
 		expect(next.embeds[0]?.data.title).toContain("Light Novel  |  Test Light Novel");
-		openButton = next.components[0]?.components[2] as ButtonBuilder;
-		expect(openButton.data.label).toBe("Open in Zangetsu");
-		expect(openButton.data.url).toBe(novel.url);
+		openButton = buttonData(next.components[0], 2);
+		expect(openButton.label).toBe("Open in Zangetsu");
+		expect(openButton.url).toBe(novel.url);
 	});
 
 	it("shows complete AniList details immediately for a lookup result", () => {
@@ -175,7 +188,7 @@ describe("interactive media sessions", () => {
 			expect.objectContaining({ name: "🔥 Popularity rank", value: "#21" }),
 			expect.objectContaining({ name: "💗 Favorites", value: "900" }),
 		]));
-		expect((initial.components[0]?.components[1] as ButtonBuilder).data.label).toBe("Hide stats");
+		expect(buttonData(initial.components[0], 1).label).toBe("Hide stats");
 	});
 
 	it("exposes AniList ranking and TMDB vote statistics in the full-stats view", () => {
@@ -184,8 +197,8 @@ describe("interactive media sessions", () => {
 			items: [anime, movie],
 			mode: "recommendation",
 		});
-		const component = initial.components[0]?.components[0] as ButtonBuilder;
-		const sessionId = parseCustomId(component.data.custom_id ?? "").args[0] ?? "";
+		const component = buttonData(initial.components[0], 0);
+		const sessionId = parseCustomId(component.custom_id ?? "").args[0] ?? "";
 
 		const stats = changeMediaSession(sessionId, ownerId, "stats");
 		const fields = stats.embeds[0]?.data.fields ?? [];
@@ -205,8 +218,8 @@ describe("interactive media sessions", () => {
 			items: [anime, movie],
 			mode: "recommendation",
 		});
-		const component = initial.components[0]?.components[0] as ButtonBuilder;
-		const sessionId = parseCustomId(component.data.custom_id ?? "").args[0] ?? "";
+		const component = buttonData(initial.components[0], 0);
+		const sessionId = parseCustomId(component.custom_id ?? "").args[0] ?? "";
 
 		expect(() => changeMediaSession(sessionId, "222222222222222222", "next")).toThrow("expired");
 	});

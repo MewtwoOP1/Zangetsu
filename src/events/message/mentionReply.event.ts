@@ -8,14 +8,22 @@ import { getPrefix } from "@database/repositories/settingsRepository";
 import {
 	askZangetsu,
 	chooseRomanticBoundary,
+	explicitForgetOf,
+	explicitSaveOf,
 	formatAssistantReply,
+	guardReply,
 	isRomanticAdvance,
+	planMood,
+	queueExtraction,
+	readMemoryContext,
 	shouldUseBrowserSearch,
 	splitAssistantReply,
+	type AssistantMood,
 	type AssistantTurn,
 } from "@lib/assistant";
 import { embed, linkButton, row } from "@lib/discord";
 import { refreshZangetsuLive } from "@lib/knowledge";
+import { forgetEverything, rememberExplicit } from "@lib/memory";
 
 /** Answers a mention with the Zangetsu app knowledge, as a reply to the message that asked. */
 
@@ -24,6 +32,8 @@ interface Conversation {
 	/** Every part of the last answer, so a reply to any of them continues the conversation. */
 	assistantMessageIds: Set<string>;
 	lastRomanticBoundary: string | null;
+	/** The mood of the last answer, so the next one does not repeat it. */
+	lastMood: AssistantMood | null;
 	expiresAt: number;
 }
 
@@ -83,6 +93,7 @@ function getConversation(key: string, now: number): Conversation {
 		history: [],
 		assistantMessageIds: new Set(),
 		lastRomanticBoundary: null,
+		lastMood: null,
 		expiresAt: now + CONVERSATION_TTL_MS,
 	};
 	conversations.set(key, created);
@@ -235,6 +246,40 @@ export default defineMessageHandler({
 		try {
 			await message.channel.sendTyping();
 
+			// A request to remember something is a fact in itself, so it never goes to the model.
+			const explicit = explicitSaveOf(question);
+			if (explicit !== null) {
+				await rememberExplicit(explicit, {
+					userId: message.author.id,
+					guildId: message.guild?.id ?? null,
+				});
+				await message.reply({
+					content: "Got it — I will remember that. Try not to make me prove I was listening, okay?",
+					allowedMentions: { parse: [] },
+				});
+				return true;
+			}
+			if (explicitForgetOf(question)) {
+				await forgetEverything(message.author.id);
+				await message.reply({
+					content: "All right — that is gone. Whatever it was, I will not bring it up again.",
+					allowedMentions: { parse: [] },
+				});
+				return true;
+			}
+
+			// What she remembers about this person decides how she speaks to them, so it is read
+			// before the answer is written rather than patched into it afterwards.
+			const memory = await readMemoryContext(message.author.id, message.guild?.id ?? null, question);
+
+			// The mood follows the message and what she already knows about this person.
+			const mood = planMood(question, {
+				preference: memory.tone,
+				stoppedTeasing: memory.stoppedTeasing,
+				previousMood: conversation.lastMood,
+				firstMeeting: conversation.history.length === 0 && memory.memories.length === 0,
+			});
+
 			// A question about the state of the world needs a current answer, so the release feed is
 			// refreshed first — briefly, because somebody is waiting.
 			if (shouldUseBrowserSearch(question)) {
@@ -247,13 +292,16 @@ export default defineMessageHandler({
 				ownerId,
 				speakerId: message.author.id,
 				apiKey: client.env.GROQ_API_KEY,
+				mood,
+				memoryBlock: memory.block,
 			});
 
 			// Relationship boundaries are selected by the app, not generated as a
 			// repeated sentence by the model. The category follows the member's message.
 			const romanticAdvance = isRomanticAdvance(question, message.author.id, ownerId);
 			const boundary = romanticAdvance ? chooseRomanticBoundary(question, conversation.lastRomanticBoundary) : null;
-			const formattedAnswer = formatAssistantReply(answer, ownerId, boundary);
+			const guarded = guardReply(answer);
+			const formattedAnswer = formatAssistantReply(guarded.text, ownerId, boundary, message.author.id);
 			const parts = splitAssistantReply(formattedAnswer);
 
 			for (const [index, part] of parts.entries()) {
@@ -280,10 +328,23 @@ export default defineMessageHandler({
 			}
 
 			if (boundary) conversation.lastRomanticBoundary = boundary;
+			conversation.lastMood = mood.mood;
 			const historyAnswer = formattedAnswer.replace(new RegExp("<@!?" + ownerId + ">", "g"), "the owner");
 			conversation.history.push({ role: "user", content: question }, { role: "assistant", content: historyAnswer });
 			conversation.history = conversation.history.slice(-MAX_HISTORY_MESSAGES);
 			conversation.expiresAt = Date.now() + CONVERSATION_TTL_MS;
+
+			// What was worth keeping is read out of the exchange afterwards, so nobody waits for it.
+			queueExtraction(client, {
+				userId: message.author.id,
+				guildId: message.guild?.id ?? null,
+				turns: [
+					{ role: "user", content: question },
+					{ role: "assistant", content: historyAnswer },
+				],
+				sourceMessageId: message.id,
+				sourceChannelId: message.channelId,
+			});
 		} catch (error) {
 			client.logger.warn({ err: error }, "Zangetsu AI conversation failed");
 			const fallback =

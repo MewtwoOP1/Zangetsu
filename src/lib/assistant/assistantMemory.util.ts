@@ -2,14 +2,19 @@ import { z } from "zod";
 import { MINUTE_MS } from "@config/constants";
 import { type TestifyClient } from "@core/client";
 import { toError } from "@core/errors";
-import { fetchJson } from "@lib/infra";
 import { listMemories } from "@database/repositories/aiMemoryRepository";
+import { fetchJson } from "@lib/infra/http.util";
 import { MEMORY_FORGET_PHRASES, MEMORY_LIMITS, MEMORY_SAVE_PHRASES } from "@lib/memory/memory.constants";
-import { buildExtractionPrompt, judgeCandidate, parseExtraction, toMemoryCandidate } from "@lib/memory/memoryExtract.util";
+import { type MemoryRecord, type RankedMemory } from "@lib/memory/memory.types";
 import { forgetEverything, rememberCandidate, rememberExplicit } from "@lib/memory/memoryActions.util";
-import { buildMemoryContext, entitiesOf, rankMemories } from "@lib/memory/memoryRetrieve.util";
+import {
+	buildExtractionPrompt,
+	judgeCandidate,
+	parseExtraction,
+	toMemoryCandidate,
+} from "@lib/memory/memoryExtract.util";
 import { hasStoppedTeasing, tonePreferenceOf } from "@lib/memory/memoryProfile.util";
-import { type MemoryRecord, type RankedMemory, type AssistantTone } from "@lib/memory/memory.types";
+import { buildMemoryContext, entitiesOf, rankMemories } from "@lib/memory/memoryRetrieve.util";
 
 /** How the assistant remembers, and how it is reminded. */
 
@@ -41,10 +46,20 @@ export function explicitSaveOf(text: string): string | null {
 	if (phrase === undefined) return null;
 
 	const index = lowered.indexOf(phrase);
-	const rest = text.slice(index + phrase.length).replace(/^[\s:,-]+/, "").trim();
+	const rest = text
+		.slice(index + phrase.length)
+		.replace(/^[\s:,-]+/, "")
+		.trim();
 	if (rest === "") return null;
 
-	return rest;
+	// "keep in mind that I like X" and "remember that X" both name the fact after the "that".
+	const fact = rest.replace(/^that\s+/i, "").trim();
+	if (fact === "") return null;
+
+	// A reminder to do something is not a fact to keep.
+	if (/^to\s+\w/i.test(fact)) return null;
+
+	return fact;
 }
 
 /** Whether the person asked for something to be forgotten. */
@@ -66,32 +81,56 @@ export interface MemoryContext {
 	stoppedTeasing: boolean;
 }
 
+/** The context of a person with nothing remembered, used when the store cannot be read. */
+export function emptyMemoryContext(): MemoryContext {
+	return { memories: [], ranked: [], block: "", tone: null, stoppedTeasing: false };
+}
+
+/** How long the memory read may take before the answer goes ahead without it. */
+const MEMORY_READ_TIMEOUT_MS = 1_500;
+
+/**
+ * The memories of one person, or none at all.
+ *
+ * A store that is slow or down must not hold up a conversation, so the read is bounded and a failure
+ * is an empty memory rather than a broken answer.
+ */
+async function readMemories(userId: string, guildId: string | null): Promise<MemoryRecord[]> {
+	let timer: NodeJS.Timeout | undefined;
+	const expiry = new Promise<null>((resolve) => {
+		timer = setTimeout(() => resolve(null), MEMORY_READ_TIMEOUT_MS);
+		timer.unref();
+	});
+
+	try {
+		const memories = await Promise.race([listMemories(userId, guildId).catch(() => null), expiry]);
+		return memories ?? [];
+	} finally {
+		if (timer !== undefined) clearTimeout(timer);
+	}
+}
+
 /**
  * What the bot should remember before it answers, and what it should be reminded of while answering.
  *
- * A failure to read the memory store is not a failure of the answer, so every error here falls back to
- * an empty context rather than stopping the conversation.
+ * A failure to read the memory store is not a failure of the answer, so the read falls back to an empty
+ * context rather than stopping the conversation.
  */
 export async function readMemoryContext(
 	userId: string,
 	guildId: string | null,
 	question: string,
 ): Promise<MemoryContext> {
-	const ranked = rankMemories(await listMemories(userId, guildId), question, { entities: entitiesOf(question) });
-	const block = buildMemoryContext(await listMemories(userId, guildId), ranked);
+	const memories = await readMemories(userId, guildId);
+	const ranked = rankMemories(memories, question, { entities: entitiesOf(question) });
 
 	return {
-		memories: await listMemories(userId, guildId),
+		memories,
 		ranked,
-		block,
-		tone: tonePreferenceOf(await listMemories(userId, guildId)),
-		stoppedTeasing: hasStoppedTeasing(await listMemories(userId, guildId)),
+		block: buildMemoryContext(memories, ranked),
+		tone: tonePreferenceOf(memories),
+		stoppedTeasing: hasStoppedTeasing(memories),
 	};
-}
-
-/** The tone this person gets, once what they asked for is taken into account. */
-export function toneFor(context: MemoryContext): AssistantTone {
-	return context.tone === "roast" ? "tease" : "tease";
 }
 
 export interface ExtractionOutcome {
@@ -156,7 +195,7 @@ export async function extractMemories(input: {
 		for (const candidate of candidates) {
 			const judgement = judgeCandidate(candidate);
 			if (!judgement.keep) {
-				outcome.dropped.push(judgement.reason ?? "not worth keeping");
+				outcome.dropped.push(judgement.reason);
 				continue;
 			}
 
@@ -194,21 +233,21 @@ export interface ExtractionJob {
 }
 
 const queue: ExtractionJob[] = [];
-let scheduled = false;
+
+/** How long the bot waits before it reads a conversation again. */
+const EXTRACTION_DELAY_MS = 50;
 
 /**
  * Puts an exchange in the queue to be read later.
  *
- * The queue exists so a member is never waiting for the model to think about what to remember.
+ * The queue exists so a member is never waiting for the model to think about what to remember, and the
+ * drain is scheduled on the client's timer rather than on a flag, so a stopped timer cannot wedge it.
  */
 export function queueExtraction(client: TestifyClient, job: ExtractionJob): void {
 	if (queue.length >= MEMORY_LIMITS.maxQueuedExtractions) queue.shift();
 	queue.push(job);
 
-	if (scheduled) return;
-	scheduled = true;
-	client.timers.after("memory-extraction", 50, () => {
-		scheduled = false;
+	client.timers.after("memory-extraction", EXTRACTION_DELAY_MS, () => {
 		void drainExtractions(client);
 	});
 }
@@ -259,11 +298,7 @@ export function pendingExtractions(): number {
  *
  * An explicit request is a fact in itself, so it does not need reading out of a conversation.
  */
-export async function applyExplicitSave(
-	content: string,
-	userId: string,
-	guildId: string | null,
-): Promise<boolean> {
+export async function applyExplicitSave(content: string, userId: string, guildId: string | null): Promise<boolean> {
 	const result = await rememberExplicit(content, { userId, guildId });
 	return result.memory !== null;
 }

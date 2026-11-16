@@ -1,9 +1,9 @@
 import { AttachmentBuilder, MessageFlags } from "discord.js";
+import { theme } from "@config/theme";
 import { defineCommand } from "@core/command";
 import { UserFacingError } from "@core/errors";
 import { countMemories, listAllMemories, listMemories } from "@database/repositories/aiMemoryRepository";
-import { reply } from "@lib/discord";
-import { embed } from "@lib/discord";
+import { reply, embed  } from "@lib/discord";
 import {
   entitiesOf,
   forgetMemory,
@@ -11,10 +11,10 @@ import {
   MEMORY_LIMITS,
   MEMORY_TYPE_LABELS,
   rankMemories,
+  rememberExplicit,
   tonePreferenceOf,
   type MemoryRecord,
 } from "@lib/memory";
-import { forgetMemory, rememberExplicit } from "@lib/memory/memoryActions.util";
 
 const VIEW_PAGE = 12;
 const CHOICES_MAX = 25;
@@ -51,8 +51,6 @@ function resolveMemory(memories: readonly MemoryRecord[], typed: string): Memory
     `That matches ${String(matches.length)} memories. Pick one from the list instead of typing it.`,
   );
 }
-
-const MAX_REPLY_CHARS = 1900;
 
 export default defineCommand({
   name: "ai-memory",
@@ -179,7 +177,7 @@ export default defineCommand({
 
         await reply(interaction, {
           embeds: [embed({
-            category: "success",
+            colour: theme.colours.success,
             title: what,
             description: `> ${result.memory.summary}\n\nOnly you and I can see this, and \`/ai-memory forget\` removes it.`,
           }),
@@ -208,7 +206,7 @@ export default defineCommand({
 
         await reply(interaction, {
           embeds: [embed({
-            category: removed ? "success" : "warning",
+            colour: removed ? theme.colours.success : theme.colours.warning,
             title: removed ? "Forgotten" : "It was already gone",
             description: removed ? `I no longer remember: **${memory.summary}**` : "Nothing was stored under that one.",
           }),
@@ -237,7 +235,7 @@ export default defineCommand({
 
         await reply(interaction, {
           embeds: [embed({
-            category: "success",
+            colour: theme.colours.success,
             title: removed.length === 0 ? "Nothing to delete" : `Deleted ${String(removed.length)} memories`,
             description: "Everything I had saved about you is gone, and nothing was kept.",
           }),
@@ -293,7 +291,7 @@ export default defineCommand({
 
         const byCategory = new Map<string, number>();
         for (const memory of memories) {
-          setCategory.set(memory.category, (byCategory.get(memory.category) ?? 0) + 1);
+          byCategory.set(memory.category, (byCategory.get(memory.category) ?? 0) + 1);
         }
 
         const breakdown =
@@ -313,7 +311,7 @@ export default defineCommand({
             fields: [
               { name: "Saved here", value: `${String(memories.length)} of ${String(MEMORY_LIMITS.maxPerUser)}`, inline: true },
               { name: "Saved in total", value: String(total), inline: true },
-              { name: "Tone", value: tone === null ? "No preference saved" : tone, inline: true },
+              { name: "Tone", value: tone ?? "No preference saved", inline: true },
               { name: "By category", value: breakdown },
               { name: "Shared with this server", value:
                 shared === 0

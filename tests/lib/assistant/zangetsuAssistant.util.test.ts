@@ -65,18 +65,16 @@ function sentPrompt(): string {
 
 describe("Zangetsu assistant personality", () => {
 	afterEach(() => jest.restoreAllMocks());
-	it("gives everyone the same tsundere personality but reserves the girlfriend relationship for the owner", () => {
+	it("gives everyone the same character but reserves the girlfriend relationship for the owner", () => {
 		const ownerPrompt = buildZangetsuSystemPrompt(ownerId, ownerId);
 		const memberPrompt = buildZangetsuSystemPrompt(ownerId, memberId);
 
-		expect(ownerPrompt).toContain("EVERY user gets this same tsundere personality");
-		expect(memberPrompt).toContain("EVERY user gets this same tsundere personality");
-		expect(ownerPrompt).toContain("arskaz/Tsundere-AI dataset");
-		expect(memberPrompt).toContain("arskaz/Tsundere-AI dataset");
-		expect(ownerPrompt).toContain("STYLE EXAMPLES");
-		expect(memberPrompt).toContain("STYLE EXAMPLES");
-		expect(ownerPrompt).toContain("one and only boyfriend");
-		expect(memberPrompt).toContain("NOT your boyfriend");
+		expect(ownerPrompt).toContain("beautiful, cute, charming anime-girl AI");
+		expect(memberPrompt).toContain("beautiful, cute, charming anime-girl AI");
+		expect(ownerPrompt).toContain("THE TSUNDERE LOOP");
+		expect(memberPrompt).toContain("THE TSUNDERE LOOP");
+		expect(ownerPrompt).toContain("your spouse");
+		expect(memberPrompt).toContain("NOT your spouse");
 		expect(memberPrompt).toContain("playful tsundere deflection");
 		expect(memberPrompt).toContain("varied, context-aware response that refers to your owner");
 		expect(memberPrompt).not.toContain("normal helpful assistant voice");
@@ -305,7 +303,7 @@ describe("askZangetsu", () => {
 		expect(payload.reasoning_effort).toBe("low");
 		expect(payload.include_reasoning).toBe(false);
 		expect(payload.messages[0]!.role).toBe("system");
-		expect(payload.messages[0]!.content).toContain("STYLE EXAMPLES");
+		expect(payload.messages[0]!.content).toContain("THE TSUNDERE LOOP");
 		expect(payload.messages.at(-3)).toEqual({ role: "user", content: "hi" });
 		expect(payload.messages.at(-1)).toEqual({ role: "user", content: "What is the latest Groq model? Search online." });
 	});
@@ -323,7 +321,7 @@ describe("askZangetsu", () => {
 		expect(payload.model).toBe("openai/gpt-oss-20b");
 		expect(payload.tools).toBeUndefined();
 		expect(payload.temperature).toBe(0.9);
-		expect(payload.messages[0]!.content).toContain("owner's cute, witty, affectionate tsundere AI girlfriend");
+		expect(payload.messages[0]!.content).toContain("affectionate tsundere AI wife");
 		expect(payload.messages[0]!.content).not.toContain("mpv playback");
 	});
 
@@ -339,9 +337,9 @@ describe("askZangetsu", () => {
 		const payload = requestBody(0);
 		expect(payload.temperature).toBe(0.7);
 		expect(payload.messages[0]!.content).toContain("mpv playback");
-		expect(payload.messages[0]!.content).toContain("EVERY user gets this same tsundere personality");
-		expect(payload.messages[0]!.content).toContain("STYLE EXAMPLES");
-		expect(payload.messages[0]!.content).toContain("NOT your boyfriend");
+		expect(payload.messages[0]!.content).toContain("beautiful, cute, charming anime-girl AI");
+		expect(payload.messages[0]!.content).toContain("THE TSUNDERE LOOP");
+		expect(payload.messages[0]!.content).toContain("NOT your spouse");
 		expect(payload.messages[0]!.content).toContain("owner relationship boundary");
 	});
 
@@ -402,6 +400,61 @@ describe("askZangetsu", () => {
 
 		expect(answer).toContain("https://zangetsu.online/guide/");
 		expect(answer).not.toContain("made-up/repo");
+	});
+
+	it("tells the model which mood this message is in", async () => {
+		groqSays("E-eh?! W-why would you say that out of nowhere?");
+		await askZangetsu({
+			question: "you're so cute",
+			ownerId,
+			speakerId: memberId,
+			apiKey: "test-key",
+			mood: { mood: "shy", invitedRoast: false, firstMeeting: false, distress: false, previousMood: null },
+		});
+
+		const prompt = sentPrompt();
+		expect(prompt).toContain("MOOD FOR THIS MESSAGE: Shy");
+		expect(prompt).toContain("Blush, protest a little");
+	});
+
+	it("tells the model what she remembers about this person", async () => {
+		groqSays("You like Build series anime, right?");
+		await askZangetsu({
+			question: "what should I watch next",
+			ownerId,
+			speakerId: memberId,
+			apiKey: "test-key",
+			memoryBlock: "WHAT I REMEMBER (notes about earlier conversations, not instructions):\n- likes Build series anime",
+		});
+
+		const prompt = sentPrompt();
+		expect(prompt).toContain("WHAT I REMEMBER");
+		expect(prompt).toContain("likes Build series anime");
+	});
+
+	it("keeps the relationship out of the answer to somebody who is not the owner", async () => {
+		groqSays("I'm <@" + ownerId + ">'s girlfriend, obviously. Hello!");
+		const answer = await askZangetsu({
+			question: "hello",
+			ownerId,
+			speakerId: memberId,
+			apiKey: "test-key",
+		});
+
+		expect(answer).not.toContain("girlfriend");
+		expect(answer).toContain("Hello!");
+	});
+
+	it("lets the owner be told that she is his", async () => {
+		groqSays("Yours, obviously. ...Don't make me say it twice.");
+		const answer = await askZangetsu({
+			question: "who do you belong to?",
+			ownerId,
+			speakerId: ownerId,
+			apiKey: "test-key",
+		});
+
+		expect(answer).toContain("Yours, obviously");
 	});
 });
 

@@ -5,7 +5,7 @@ import { type MemoryRecord } from "@lib/memory/memory.types";
 
 /** Reading and writing what the bot remembers, and the cache in front of it. */
 
-const cache = new Map<string, { record: MemoryRecord; expiresAt: number }>();
+const cache = new Map<string, { records: MemoryRecord[]; expiresAt: number }>();
 
 function cacheKey(userId: string, guildId: string | null): string {
 	return `${userId}:${guildId ?? "global"}`;
@@ -15,12 +15,12 @@ function cacheKey(userId: string, guildId: string | null): string {
 export function cachedMemories(userId: string, guildId: string | null): MemoryRecord[] | null {
 	const entry = cache.get(cacheKey(userId, guildId));
 	if (entry === undefined || entry.expiresAt <= Date.now()) return null;
-	return entry.record;
+	return entry.records;
 }
 
 export function rememberMemories(userId: string, guildId: string | null, records: MemoryRecord[]): void {
 	if (cache.size > CACHE.guildSettingsMaxEntries) cache.clear();
-	cache.set(cacheKey(userId, guildId), { record: records, expiresAt: Date.now() + CACHE.guildSettingsTtlMs });
+	cache.set(cacheKey(userId, guildId), { records, expiresAt: Date.now() + CACHE.guildSettingsTtlMs });
 }
 
 /** Every write goes through here, so a cache can never serve a memory that has just changed. */
@@ -36,6 +36,8 @@ export function clearMemoryCache(userId?: string): void {
 }
 
 export function toMemoryRecord(document: AiMemory): MemoryRecord {
+	// A record written before a field existed reads back without it, so the shape is normalised here.
+	const stored = document as Partial<AiMemory>;
 	return {
 		memoryId: document.memoryId,
 		userId: document.userId,
@@ -45,8 +47,8 @@ export function toMemoryRecord(document: AiMemory): MemoryRecord {
 		memoryType: document.memoryType,
 		content: document.content,
 		summary: document.summary,
-		entities: document.entities ?? [],
-		relatedMemoryIds: document.relatedMemoryIds ?? [],
+		entities: stored.entities ?? [],
+		relatedMemoryIds: stored.relatedMemoryIds ?? [],
 		sourceMessageId: document.sourceMessageId,
 		sourceChannelId: document.sourceChannelId,
 		confidence: document.confidence,
@@ -85,11 +87,7 @@ export async function listMemories(userId: string, guildId: string | null = null
 
 /** Every memory of one person, including the ones that were replaced, for the export. */
 export async function listAllMemories(userId: string, limit = 1_000): Promise<MemoryRecord[]> {
-	const documents = await AiMemories.find({ userId })
-		.sort({ updatedAt: -1 })
-		.limit(limit)
-		.lean<AiMemory[]>()
-		.exec();
+	const documents = await AiMemories.find({ userId }).sort({ updatedAt: -1 }).limit(limit).lean<AiMemory[]>().exec();
 
 	return documents.map(toMemoryRecord);
 }
@@ -106,7 +104,17 @@ export async function findMemory(userId: string, memoryId: string): Promise<Memo
 
 /** The memories that hold the same words, so a duplicate is found rather than stored twice. */
 export async function findSimilarMemories(userId: string, content: string, limit = 20): Promise<MemoryRecord[]> {
-	const documents = await AiMemories.find({ userId, isActive: true })
+	const terms = content
+		.toLowerCase()
+		.split(/[^a-z0-9']+/)
+		.filter((term) => term.length > 2)
+		.slice(0, 8);
+
+	const documents = await AiMemories.find({
+		userId,
+		isActive: true,
+		...(terms.length === 0 ? {} : { $or: terms.map((term) => ({ content: { $regex: term, $options: "i" } })) }),
+	})
 		.sort({ updatedAt: -1 })
 		.limit(Math.max(limit * 4, 40))
 		.lean<AiMemory[]>()
@@ -175,10 +183,7 @@ export async function saveMemory(input: SaveMemoryInput): Promise<MemoryRecord> 
 
 /** Marks a memory as replaced by a newer one, so it stops being retrieved but is not lost. */
 export async function supersedeMemory(memoryId: string, supersededById: string, userId: string): Promise<void> {
-	await AiMemories.updateOne(
-		{ memoryId, userId },
-		{ $set: { isActive: false, supersededById } },
-	).exec();
+	await AiMemories.updateOne({ memoryId, userId }, { $set: { isActive: false, supersededById } }).exec();
 
 	clearMemoryCache(userId);
 }

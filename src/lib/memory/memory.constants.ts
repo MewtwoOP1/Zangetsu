@@ -99,6 +99,8 @@ export const MEMORY_FORGET_PHRASES = [
 	"forget what",
 	"forget my",
 	"forget about",
+	"forget everything",
+	"forget it all",
 	"delete that memory",
 	"delete this memory",
 	"remove that memory",
