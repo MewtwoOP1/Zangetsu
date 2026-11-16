@@ -369,6 +369,16 @@ describe("the mention handler", () => {
 		expect(String((message.reply as jest.Mock).mock.calls[0]?.[0]?.content)).toContain("remember that");
 	});
 
+	it("does not keep a reminder to do something as a fact", async () => {
+		const handler = (await import("@events/message/mentionReply.event")).default;
+		const message = mockMessage(`<@${botId}> don't forget to bring milk`);
+
+		await handler.run(message, mockClient());
+
+		expect(saveMemory).not.toHaveBeenCalled();
+		expect(askZangetsu).toHaveBeenCalledTimes(1);
+	});
+
 	it("forgets everything when somebody asks it to", async () => {
 		const handler = (await import("@events/message/mentionReply.event")).default;
 		const message = mockMessage(`<@${botId}> forget everything you know about me`);

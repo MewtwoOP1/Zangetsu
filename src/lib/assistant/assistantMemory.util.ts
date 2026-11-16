@@ -52,7 +52,14 @@ export function explicitSaveOf(text: string): string | null {
 		.trim();
 	if (rest === "") return null;
 
-	return rest;
+	// "keep in mind that I like X" and "remember that X" both name the fact after the "that".
+	const fact = rest.replace(/^that\s+/i, "").trim();
+	if (fact === "") return null;
+
+	// A reminder to do something is not a fact to keep.
+	if (/^to\s+\w/i.test(fact)) return null;
+
+	return fact;
 }
 
 /** Whether the person asked for something to be forgotten. */
